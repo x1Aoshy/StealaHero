@@ -5,9 +5,9 @@
 -- to Backpack and Settings, and make the icon 3D art.")
 --
 -- Builds the Hero admin panel at BUILD time into ServerStorage.HeroAdminPanel (a ScreenGui, ResetOnSpawn off,
--- ScreenInsets None = IgnoreGuiInset on, disabled until opened). ServerStorage never replicates, so a non-admin never receives the window or
--- its script: ServerScriptService.BranchServices.HeroAdminService clones it into an admin's PlayerGui (the rule is
--- ServerScriptService.HeroAdminAccess). The LocalScript HeroAdminClient inside it
+-- ScreenInsets None = IgnoreGuiInset on, disabled until opened). ServerStorage never replicates, so a non-admin never
+-- receives the window or its script: ServerScriptService.BranchServices.HeroAdminService clones it into an admin's
+-- PlayerGui (the rule is ServerScriptService.HeroAdminAccess). The LocalScript HeroAdminClient inside it
 -- (src/ServerStorage/HeroAdminPanel/HeroAdminClient.client.luau) wires every button to Network["Admin: Command"] and
 -- adds the topbar icon (TopbarPlus, next to Backpack and Settings) with the 3D crown of this step spinning in it.
 --
@@ -106,7 +106,7 @@ Step.STAGE_FALLBACK = {
 }
 
 -- text size caps per role (px at the 820 x 500 design size)
-Step.TEXT = { button = 22, sub = 15, header = 17, tab = 19, card = 17, small = 14, value = 30, name = 22, title = 40 }
+Step.TEXT = { button = 22, sub = 15, header = 18, tab = 21, card = 17, small = 14, value = 30, name = 22, title = 40 }
 
 -- geometry (design px)
 Step.TABS_BOX = { x = 16, y = 78, w = 154, h = 410 }
@@ -427,7 +427,7 @@ local function weaponsPage(pages, labels)
 		place(portrait, (col[2] - 60) / 2, 6, 60, 60)
 		local pair = labels[tool] or { tool, "" }
 		text(card, "WeaponName", string.upper(pair[1]), "button", 6, 68, col[2] - 12, 20, { max = T.card, zIndex = 3 })
-		text(card, "Hero", pair[2], "body", 6, 87, col[2] - 12, 14, { max = 13, zIndex = 3, color = C.muted })
+		text(card, "Hero", pair[2], "body", 6, 87, col[2] - 12, 15, { max = 14, zIndex = 3, color = C.muted })
 		local strip = UiKit.layer(card, "Frame", "Label", 3) -- "Label": the client's busy / confirm text goes here
 		place(strip, 8, cardH - 28, col[2] - 16, 22)
 		UiKit.glossButton(strip, { color = C.give, stroke = 0.08 })

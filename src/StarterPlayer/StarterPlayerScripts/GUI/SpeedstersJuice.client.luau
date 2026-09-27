@@ -405,8 +405,9 @@ task.spawn(function()
 			if type(icon) == "table" then
 				if icon.name == TOPBAR_BACKPACK_NAME then
 					inventory = icon
-				elseif gear == nil then
-					-- SAH creates exactly two TopbarPlus icons: the InventoryIcon and the unnamed settings gear
+				elseif gear == nil and icon.name ~= "HeroAdminIcon" and icon.name ~= "Cmdr" then
+					-- SAH creates two TopbarPlus icons: the InventoryIcon and the unnamed settings gear (the admin
+					-- panel's HeroAdminIcon and the Cmdr icon only exist for admins)
 					gear = icon
 				end
 			end

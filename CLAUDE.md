@@ -113,6 +113,18 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     (`scripts/tools/vendor_weapon_vfx.luau`: Speedsters' Eggman missile blast, the Ban Hammer lightning / impact) ->
     `ReplicatedStorage.Assets.VFX.HeroWeapons`, plus the place's LightningHit and Mutation_FX.Shocked.
   - Training dummies (CollectionService tag `HeroWeaponDummy`, spawned by the admin panel) are hit like players.
+- **Admin panel** (owner 2026-09-27):
+  - `HeroAdminAccess` holds the access rule: anyone in Studio, UserId 767108248, the game's owner (user, or rank 255 of
+    the owning group). The old Cmdr / AdminStatusHandler whitelists are separate systems and are left alone.
+  - `BranchServices.HeroAdminService` answers `Network["Admin: Command"]`: it re-checks access on every call, rate-limits,
+    validates, logs `[HeroAdmin]`, sets the `HeroAdmin` player attribute and clones `ServerStorage.HeroAdminPanel` into
+    an admin's PlayerGui.
+  - `scripts/steps/ui_85_admin_panel.luau` builds the panel with ui_kit; its LocalScript is
+    `src/ServerStorage/HeroAdminPanel/HeroAdminClient.client.luau`.
+  - The TopbarPlus `HeroAdminIcon` (a part-built 3D crown in a ViewportFrame) sits next to Backpack / Settings; F4
+    also toggles it.
+  - Tabs: weapons (give all / one / remove, unlock the Index weapons), training dummies, economy, eggs, world
+    (teleports, base themes, night / day), player, server stats.
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
