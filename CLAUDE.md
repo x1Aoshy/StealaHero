@@ -76,6 +76,18 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   the Branch Studio plugin's codegen.
 - **Scenery**: `post_zzzzz_scenery` builds `Workspace.Scenery` (woods, treeline, rocks, pebbles), deterministically,
   against the built world's occupancy.
+- **Hero weapons** (the bats, owner 2026-09-27): the melee Tools keep their names (Bat = Cap's shield, Forest = Power
+  Pole, Desert = web shooter, Lake = batarang, Jungle = Bakugo's gauntlet, Snow / Cosmic = Mjolnir, Volcano = Gum-Gum
+  fist; `Library.Modules.HeroWeapons.BY_TOOL`, Prehistoric / Abyss Ocean stay classic bats). The owner's files are in
+  `assets/hero_weapons/` (7 R15 attack KeyframeSequences `.rbxmx` - animations only, no meshes -, baked samples, their
+  `HeroWeaponTools.luau` kit, now `Library.Modules.HeroWeaponTools`). `scripts/tools/hero_weapons/gen_weapon_clips.py`
+  -> `src/ReplicatedStorage/Directory/WeaponAnimations/<WeaponId>.luau` (never edit by hand; Impact keyframe = hit
+  time); `weapon_models.py [--render]` authors the part models in grip space -> `assets/hero_weapons/weapon_models.json`
+  (+ previews posed on the clips); `post_hero_weapons` builds the Tools like `Kit.Prepare`. GearService resolves the
+  hit at Impact by the weapon's Kind and applies a 2.5 s state (`HeroDebuff` attribute) instead of the ragdoll;
+  `BranchControllers.HeroWeaponController` plays the clips, projectiles and states; `Library.Client.WeaponPortrait`
+  draws the weapon in the hotbar / Index. If the owner imports their FBX weapons in Studio, `Kit.Prepare` turns them
+  into Tools (swap the part models for the imports in `post_hero_weapons`).
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
@@ -134,3 +146,14 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   Popups", off by default; `GUI/MoneyUpdate` injected by `scripts/inject/hud_polish.luau`). The currency rows have no
   band (`RIBBON.band = false`). The Shop / Index icons are 0.95 of the pill height (`GLOSSY_GEOMETRY.iconSize`).
   HUD groups hidden under a menu travel `AWAY_SCALE` = 1.25 screens (their content spills outside their boxes).
+- (2026-09-27, 6th pass) Hero weapons replaced the bats (see Pipelines). The owner's mapping puts the Power Pole on the
+  Forest (Avengers) stage and Mjolnir on Snow (Dragon Ball) / Cosmic; swapping is one line in `HeroWeapons.BY_TOOL`.
+  Traps: the placed trap's Hitbox used to stay at the template's lobby spot (anchored clone moved before parenting, the
+  weld never dragged it) - fixed in `placeTrap`; a trap only catches OTHER players (test with 2 clients). The ragdoll
+  only joints / collides real body parts (trail / aura parts made it stiff). Test in Studio Play (2+ clients):
+  - each weapon's attack clip, the Power Pole extend and the Gum-Gum stretch;
+  - the web line, the batarang and the shield throw;
+  - the 7 states (web net, lightning, knockback slide, stars, smoke + grey screen, BOOM, spin);
+  - the hotbar / Index weapon portraits;
+  - the red target glow;
+  - traps catching another player on a stage.

@@ -280,8 +280,30 @@ function mountHeroPortrait(icon, heroId)
 	end
 	return false
 end
+-- Owner 2026-09-27 (hero weapons replace the bats): a hero weapon's gear slot shows the weapon itself
+-- (Library.Client.WeaponPortrait ViewportFrame on the Icon, its image hidden). WeaponPortraitModule caches the module
+-- (false = missing). mountWeaponPortrait returns true when the slot now shows a weapon portrait.
+WeaponPortraitModule = nil
+function mountWeaponPortrait(icon, tool)
+	if WeaponPortraitModule == nil then
+		local library = ReplicatedStorage:FindFirstChild("Library")
+		local client = library and library:FindFirstChild("Client")
+		local module = client and client:FindFirstChild("WeaponPortrait")
+		local ok, result = pcall(require, module)
+		WeaponPortraitModule = if ok and type(result) == "table" then result else false
+	end
+	if not WeaponPortraitModule then
+		return false
+	end
+	local ok, portrait = pcall(WeaponPortraitModule.Mount, icon, tool)
+	if ok and portrait ~= nil then
+		return true
+	end
+	restoreIconImage(icon)
+	return false
+end
 function restoreIconImage(icon)
-	if icon:FindFirstChild("EggPortrait") or icon:FindFirstChild("HeroPortrait") then
+	if icon:FindFirstChild("EggPortrait") or icon:FindFirstChild("HeroPortrait") or icon:FindFirstChild("WeaponPortrait") then
 		return -- a portrait still covers the image
 	end
 	local saved = icon:GetAttribute("EggPortraitImageTransparency")
@@ -298,6 +320,9 @@ function clearEggPortrait(icon)
 	if HeroPortraitModule then
 		pcall(HeroPortraitModule.Clear, icon)
 	end
+	if WeaponPortraitModule then
+		pcall(WeaponPortraitModule.Clear, icon)
+	end
 	restoreIconImage(icon)
 end
 -- a slot refreshed with the same kind of item keeps its portrait: Mount reuses a portrait of the same hero / egg, so a
@@ -308,6 +333,9 @@ function clearOtherPortrait(icon, keep)
 	end
 	if keep ~= "Hero" and HeroPortraitModule then
 		pcall(HeroPortraitModule.Clear, icon)
+	end
+	if keep ~= "Weapon" and WeaponPortraitModule then
+		pcall(WeaponPortraitModule.Clear, icon)
 	end
 	restoreIconImage(icon)
 end
@@ -3447,7 +3475,7 @@ function MakeSlot(p121, p122) -- line: 2573
 			local TextureId = p135.TextureId
 
 			AssetIconShape.Clear(Icon)
-			clearOtherPortrait(Icon, if v974 == "Asset" then "Hero" elseif v974 == "AssetEgg" then "Egg" else nil)
+			clearOtherPortrait(Icon, if v974 == "Asset" then "Hero" elseif v974 == "AssetEgg" then "Egg" elseif v974 == "Gear" then "Weapon" else nil)
 			Icon.Image = TextureId
 			Icon.ScaleType = Enum.ScaleType.Fit
 			ToolName.TextXAlignment = TextXAlignment
@@ -3564,6 +3592,7 @@ function MakeSlot(p121, p122) -- line: 2573
 
 				Icon.Image = TextureId and (TextureId ~= "" and TextureId) or (v1095 and v1095.Icon or "")
 				Icon.ImageColor3 = Color3.new(1.0, 1.0, 1.0)
+				mountWeaponPortrait(Icon, p135) -- a hero weapon shows itself instead of the old bat image
 				Shadow.Visible = false
 				p135Name = ""
 				v1080 = not shouldDisplayGearUses(p135) and "" or getGearUsesText(p135)

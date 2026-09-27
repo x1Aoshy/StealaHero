@@ -11,7 +11,8 @@
 --   * Physics state (+ PlatformStand) so the Humanoid stops balancing, all animation tracks stopped;
 --   * any limb joint the server has not swapped yet (latency, a server that only sent the event) is swapped
 --     locally with the same joint frames and limits, and restored locally afterwards;
---   * limbs collide with the world (adjacent limbs never collide with each other), the root part does not;
+--   * limbs collide with the world (adjacent limbs never collide with each other), the root part does not; only the
+--     real body parts count (a trail's / aura's welded parts keep their own collision, owner 2026-09-27);
 --   * the knockback (Gekko TO DO 2, "smoother and more natural"): the server-computed velocity along the swing is
 --     given to EVERY limb, not just the root, so the body travels as one instead of being dragged by the torso,
 --     with a tumble that tips the head the way the body flies (plus a little random roll);
@@ -56,6 +57,23 @@ local JOINT_AXIS_FRAMES = {
 }
 
 local active = nil -- { token, character, humanoid, root, motors, created, collisions, localSerial }
+
+-- Owner 2026-09-27: "with an aura or a trail equipped the ragdoll collision goes stiff". Trails (TrailController)
+-- and auras weld invisible parts into the character; this script used to turn CanCollide on for EVERY unanchored
+-- part, so those boxes collided with the floor and propped the limp body up. Only the real body parts (direct
+-- children of the character the Humanoid knows as R15 limbs, or the R6 limb names) are ragdoll limbs now; every other
+-- part keeps its own collision and gets no joint swap.
+local R6_BODY = { Torso = true, Head = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true }
+local function isBodyPart(character, humanoid, part)
+	if not (part and part:IsA("BasePart")) or part.Parent ~= character then
+		return false
+	end
+	if R6_BODY[part.Name] then
+		return true
+	end
+	local ok, kind = pcall(humanoid.GetBodyPartR15, humanoid, part)
+	return ok and kind ~= nil and kind ~= Enum.BodyPartR15.Unknown
+end
 local serial = 0
 local endRagdoll -- forward declaration (startRagdoll schedules it)
 
@@ -86,13 +104,16 @@ local function serverPiecesFor(motor)
 	return socket, noCollide
 end
 
-local function isLimbMotor(motor, character, root)
+local function isLimbMotor(motor, character, root, humanoid)
 	if not motor:IsA("Motor6D") then
 		return false
 	end
 	local part0, part1 = motor.Part0, motor.Part1
 	if not (part0 and part1) or part0 == root or part1 == root then
 		return false
+	end
+	if not (isBodyPart(character, humanoid, part0) and isBodyPart(character, humanoid, part1)) then
+		return false -- an aura / trail / accessory joint stays rigid
 	end
 	if motor.Name == "Root" or motor.Name == "RootJoint" or motor.Name == "Neck" then
 		return false -- the root joint keeps the body on the root part; a loose Neck kills (Humanoid.RequiresNeck)
@@ -109,10 +130,10 @@ local function track(state, instance)
 	return instance
 end
 
-local function bodyParts(character)
+local function bodyParts(character, humanoid)
 	local parts = {}
-	for _, part in ipairs(character:GetDescendants()) do
-		if part:IsA("BasePart") and not part.Anchored and not part:FindFirstAncestorOfClass("Tool") then
+	for _, part in ipairs(character:GetChildren()) do
+		if part:IsA("BasePart") and not part.Anchored and isBodyPart(character, humanoid, part) then
 			table.insert(parts, part)
 		end
 	end
@@ -154,7 +175,7 @@ local function startRagdoll(payload)
 
 	-- joints: take the server's sockets, swap any limb motor it has not swapped yet
 	for _, motor in ipairs(character:GetDescendants()) do
-		if isLimbMotor(motor, character, root) then
+		if isLimbMotor(motor, character, root, humanoid) then
 			local serverSocket, serverNoCollide = serverPiecesFor(motor)
 			if motor.Enabled and not serverSocket then
 				local spec = jointSpecFor(motor.Name)
@@ -194,7 +215,7 @@ local function startRagdoll(payload)
 	end
 
 	-- collisions: the body lands on the floor, the invisible root box does not prop it up
-	local parts = bodyParts(character)
+	local parts = bodyParts(character, humanoid)
 	for _, part in ipairs(parts) do
 		if not part:FindFirstAncestorOfClass("Accessory") then
 			local wanted = part ~= root

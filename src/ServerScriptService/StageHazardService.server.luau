@@ -162,8 +162,9 @@ local function step()
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if not humanoid or not root or humanoid.Health <= 0 then
 			slowed[player] = nil
-		elseif character:GetAttribute("IsTrapped") == true then
-			-- GearService froze this player and restores its own saved WalkSpeed: leave it alone.
+		elseif character:GetAttribute("IsTrapped") == true or character:GetAttribute("HeroDebuff") ~= nil then
+			-- GearService froze this player (trap, or a hero weapon's 2.5 s state) and restores its own saved
+			-- WalkSpeed: leave it alone.
 		else
 			local factor = hazardFactorAt(root.Position)
 			if factor and factor < 1 then

@@ -1,0 +1,3083 @@
+{
+ "Format": 1,
+ "Space": "RightGripAttachment (grip) space: +Y out of the top of the fist, -Z past the knuckles, +X right",
+ "Palettes": {
+  "shield_red": {
+   "Color": [
+    196,
+    28,
+    36
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "shield_white": {
+   "Color": [
+    238,
+    240,
+    246
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "shield_blue": {
+   "Color": [
+    22,
+    52,
+    148
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "silver": {
+   "Color": [
+    196,
+    202,
+    212
+   ],
+   "Material": "Metal"
+  },
+  "leather": {
+   "Color": [
+    104,
+    64,
+    38
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "leather_dark": {
+   "Color": [
+    70,
+    42,
+    26
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "hero_red": {
+   "Color": [
+    204,
+    30,
+    34
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "gold": {
+   "Color": [
+    255,
+    190,
+    40
+   ],
+   "Material": "Metal"
+  },
+  "web_red_cloth": {
+   "Color": [
+    206,
+    30,
+    40
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "web_blue_cloth": {
+   "Color": [
+    28,
+    68,
+    172
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "web_neon": {
+   "Color": [
+    236,
+    248,
+    255
+   ],
+   "Material": "Neon"
+  },
+  "steel_dark": {
+   "Color": [
+    38,
+    40,
+    46
+   ],
+   "Material": "Metal"
+  },
+  "bat_black": {
+   "Color": [
+    24,
+    24,
+    28
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "bat_yellow": {
+   "Color": [
+    255,
+    212,
+    40
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "bakugo_green": {
+   "Color": [
+    66,
+    82,
+    58
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "bakugo_orange": {
+   "Color": [
+    255,
+    124,
+    20
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "gold_energy": {
+   "Color": [
+    255,
+    150,
+    40
+   ],
+   "Material": "Neon"
+  },
+  "cartridge_brass": {
+   "Color": [
+    214,
+    160,
+    60
+   ],
+   "Material": "Metal"
+  },
+  "hammer_forged": {
+   "Color": [
+    128,
+    134,
+    146
+   ],
+   "Material": "Metal"
+  },
+  "hammer_edge": {
+   "Color": [
+    176,
+    182,
+    194
+   ],
+   "Material": "Metal"
+  },
+  "hammer_inlay": {
+   "Color": [
+    88,
+    94,
+    106
+   ],
+   "Material": "Metal"
+  },
+  "lightning": {
+   "Color": [
+    150,
+    220,
+    255
+   ],
+   "Material": "Neon"
+  },
+  "rubber_skin": {
+   "Color": [
+    250,
+    200,
+    158
+   ],
+   "Material": "SmoothPlastic"
+  },
+  "rubber_shade": {
+   "Color": [
+    226,
+    168,
+    128
+   ],
+   "Material": "SmoothPlastic"
+  }
+ },
+ "Weapons": [
+  {
+   "WeaponId": "CapShield",
+   "DisplayName": "Cap's Shield",
+   "Description": "Bash rivals and leave them seeing stars!",
+   "Parts": [
+    {
+     "name": "Strap",
+     "shape": "Block",
+     "size": [
+      0.24,
+      0.92,
+      0.2
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.1,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "leather",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "StrapTop",
+     "shape": "Block",
+     "size": [
+      0.9,
+      0.16,
+      0.12
+     ],
+     "cframe": [
+      0.0,
+      0.46,
+      -0.2,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "StrapBottom",
+     "shape": "Block",
+     "size": [
+      0.9,
+      0.16,
+      0.12
+     ],
+     "cframe": [
+      0.0,
+      -0.46,
+      -0.2,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Back",
+     "shape": "Cylinder",
+     "size": [
+      0.1,
+      2.91,
+      2.91
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.3,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "RimRed",
+     "shape": "Cylinder",
+     "size": [
+      0.14,
+      3.0,
+      3.0
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.4,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "shield_red",
+     "section": "Handle"
+    },
+    {
+     "name": "RingWhite",
+     "shape": "Cylinder",
+     "size": [
+      0.14,
+      2.4,
+      2.4
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.445,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "RingRed",
+     "shape": "Cylinder",
+     "size": [
+      0.14,
+      1.8,
+      1.8
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.49,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "shield_red",
+     "section": "Handle"
+    },
+    {
+     "name": "CentreBlue",
+     "shape": "Cylinder",
+     "size": [
+      0.14,
+      1.2,
+      1.2
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.535,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "shield_blue",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint1A",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.3246
+     ],
+     "cframe": [
+      -0.06613,
+      0.37601,
+      -0.635,
+      0.0,
+      -0.94652,
+      0.32265,
+      0.0,
+      -0.32265,
+      -0.94652,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint1B",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.0853
+     ],
+     "cframe": [
+      0.0,
+      0.18203,
+      -0.635,
+      0.0,
+      -0.94652,
+      -0.32265,
+      -0.0,
+      -0.32265,
+      0.94652,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint2A",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.3246
+     ],
+     "cframe": [
+      -0.37804,
+      0.05331,
+      -0.635,
+      0.0,
+      0.01437,
+      0.9999,
+      0.0,
+      -0.9999,
+      0.01437,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint2B",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.0853
+     ],
+     "cframe": [
+      -0.17312,
+      0.05625,
+      -0.635,
+      0.0,
+      0.01437,
+      -0.9999,
+      0.0,
+      -0.9999,
+      -0.01437,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint3A",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.3246
+     ],
+     "cframe": [
+      -0.16752,
+      -0.34307,
+      -0.635,
+      0.0,
+      0.9554,
+      0.29532,
+      0.0,
+      -0.29532,
+      0.9554,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint3B",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.0853
+     ],
+     "cframe": [
+      -0.10699,
+      -0.14726,
+      -0.635,
+      0.0,
+      0.9554,
+      -0.29532,
+      0.0,
+      -0.29532,
+      -0.9554,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint4A",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.3246
+     ],
+     "cframe": [
+      0.27451,
+      -0.26533,
+      -0.635,
+      -0.0,
+      0.5761,
+      -0.81738,
+      0.0,
+      0.81738,
+      0.5761,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint4B",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.0853
+     ],
+     "cframe": [
+      0.10699,
+      -0.14726,
+      -0.635,
+      0.0,
+      0.5761,
+      0.81738,
+      0.0,
+      0.81738,
+      -0.5761,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint5A",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.0853
+     ],
+     "cframe": [
+      0.17312,
+      0.05625,
+      -0.635,
+      0.0,
+      -0.01437,
+      0.9999,
+      0.0,
+      -0.9999,
+      -0.01437,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarPoint5B",
+     "shape": "Wedge",
+     "size": [
+      0.06,
+      0.2504,
+      0.3246
+     ],
+     "cframe": [
+      0.37804,
+      0.05331,
+      -0.635,
+      0.0,
+      -0.01437,
+      -0.9999,
+      -0.0,
+      -0.9999,
+      0.01437,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    },
+    {
+     "name": "StarCore",
+     "shape": "Cylinder",
+     "size": [
+      0.06,
+      0.4545,
+      0.4545
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.635,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "shield_white",
+     "section": "Handle"
+    }
+   ]
+  },
+  {
+   "WeaponId": "PowerPole",
+   "DisplayName": "Power Pole",
+   "Description": "Extend! A long-range thrust that spins rivals like a top!",
+   "Parts": [
+    {
+     "name": "Grip",
+     "shape": "Cylinder",
+     "size": [
+      1.5,
+      0.36,
+      0.36
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "hero_red",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "ButtCap",
+     "shape": "Cylinder",
+     "size": [
+      0.38,
+      0.46,
+      0.46
+     ],
+     "cframe": [
+      0.0,
+      -0.94,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "gold",
+     "section": "Handle"
+    },
+    {
+     "name": "ButtRing",
+     "shape": "Cylinder",
+     "size": [
+      0.08,
+      0.52,
+      0.52
+     ],
+     "cframe": [
+      0.0,
+      -0.72,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "gold",
+     "section": "Handle"
+    },
+    {
+     "name": "Shaft",
+     "shape": "Cylinder",
+     "size": [
+      4.6,
+      0.36,
+      0.36
+     ],
+     "cframe": [
+      0.0,
+      2.3,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "hero_red",
+     "section": "Extend"
+    },
+    {
+     "name": "TipCap",
+     "shape": "Cylinder",
+     "size": [
+      0.38,
+      0.46,
+      0.46
+     ],
+     "cframe": [
+      0.0,
+      4.74,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "gold",
+     "section": "Tip",
+     "StretchLength": 4.6
+    },
+    {
+     "name": "TipRing",
+     "shape": "Cylinder",
+     "size": [
+      0.08,
+      0.52,
+      0.52
+     ],
+     "cframe": [
+      0.0,
+      4.52,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "gold",
+     "section": "Tip",
+     "StretchLength": 4.6
+    }
+   ]
+  },
+  {
+   "WeaponId": "WebShooter",
+   "DisplayName": "Web Shooter",
+   "Description": "Thwip! Webs rivals to the floor where they stand!",
+   "Parts": [
+    {
+     "name": "Cuff",
+     "shape": "Block",
+     "size": [
+      1.14,
+      1.14,
+      0.52
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.62,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "web_red_cloth",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "Stripe1",
+     "shape": "Block",
+     "size": [
+      1.17,
+      1.17,
+      0.07
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.42,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "web_blue_cloth",
+     "section": "Handle"
+    },
+    {
+     "name": "Stripe2",
+     "shape": "Block",
+     "size": [
+      1.17,
+      1.17,
+      0.07
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.82,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "web_blue_cloth",
+     "section": "Handle"
+    },
+    {
+     "name": "Housing",
+     "shape": "Block",
+     "size": [
+      0.52,
+      0.2,
+      0.44
+     ],
+     "cframe": [
+      0.0,
+      0.66,
+      0.6,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "Nozzle",
+     "shape": "Cylinder",
+     "size": [
+      0.42,
+      0.18,
+      0.18
+     ],
+     "cframe": [
+      0.0,
+      0.72,
+      0.26,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "NozzleTip",
+     "shape": "Ball",
+     "size": [
+      0.14,
+      0.14,
+      0.14
+     ],
+     "cframe": [
+      0.0,
+      0.72,
+      0.04,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "web_neon",
+     "section": "Handle"
+    },
+    {
+     "name": "Trigger",
+     "shape": "Block",
+     "size": [
+      0.16,
+      0.1,
+      0.16
+     ],
+     "cframe": [
+      0.0,
+      0.8,
+      0.7,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "web_red_cloth",
+     "section": "Handle"
+    },
+    {
+     "name": "Cartridge1",
+     "shape": "Cylinder",
+     "size": [
+      0.34,
+      0.22,
+      0.22
+     ],
+     "cframe": [
+      -0.64,
+      0.24,
+      0.62,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "Cartridge2",
+     "shape": "Cylinder",
+     "size": [
+      0.34,
+      0.22,
+      0.22
+     ],
+     "cframe": [
+      0.64,
+      0.24,
+      0.62,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "SpiderBody",
+     "shape": "Block",
+     "size": [
+      0.16,
+      0.05,
+      0.3
+     ],
+     "cframe": [
+      0.0,
+      -0.595,
+      0.62,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "SpiderLeg1",
+     "shape": "Block",
+     "size": [
+      0.3,
+      0.04,
+      0.04
+     ],
+     "cframe": [
+      -0.14,
+      -0.595,
+      0.54,
+      0.90631,
+      0.0,
+      -0.42262,
+      0.0,
+      1.0,
+      0.0,
+      0.42262,
+      0.0,
+      0.90631
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "SpiderLeg2",
+     "shape": "Block",
+     "size": [
+      0.3,
+      0.04,
+      0.04
+     ],
+     "cframe": [
+      0.14,
+      -0.595,
+      0.54,
+      0.90631,
+      0.0,
+      0.42262,
+      0.0,
+      1.0,
+      0.0,
+      -0.42262,
+      0.0,
+      0.90631
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "SpiderLeg3",
+     "shape": "Block",
+     "size": [
+      0.3,
+      0.04,
+      0.04
+     ],
+     "cframe": [
+      -0.14,
+      -0.595,
+      0.7,
+      0.90631,
+      0.0,
+      0.42262,
+      0.0,
+      1.0,
+      0.0,
+      -0.42262,
+      0.0,
+      0.90631
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "SpiderLeg4",
+     "shape": "Block",
+     "size": [
+      0.3,
+      0.04,
+      0.04
+     ],
+     "cframe": [
+      0.14,
+      -0.595,
+      0.7,
+      0.90631,
+      0.0,
+      -0.42262,
+      0.0,
+      1.0,
+      0.0,
+      0.42262,
+      0.0,
+      0.90631
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    }
+   ]
+  },
+  {
+   "WeaponId": "Batarang",
+   "DisplayName": "Batarang",
+   "Description": "A ranged throw that bursts into a smoke cloud!",
+   "Parts": [
+    {
+     "name": "Tail",
+     "shape": "Block",
+     "size": [
+      0.2,
+      0.62,
+      0.1
+     ],
+     "cframe": [
+      0.0,
+      0.08,
+      0.15,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "bat_black",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "Body",
+     "shape": "Block",
+     "size": [
+      0.28,
+      0.62,
+      0.1
+     ],
+     "cframe": [
+      0.0,
+      0.66,
+      0.15,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "EarLA",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.1086,
+      0.1368
+     ],
+     "cframe": [
+      -0.12,
+      1.045,
+      0.15,
+      0.0,
+      -0.90482,
+      0.4258,
+      0.0,
+      -0.4258,
+      -0.90482,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "EarLB",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.1086,
+      0.0511
+     ],
+     "cframe": [
+      -0.08,
+      0.96,
+      0.15,
+      0.0,
+      -0.90482,
+      -0.4258,
+      -0.0,
+      -0.4258,
+      0.90482,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL1A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.4061,
+      0.7874
+     ],
+     "cframe": [
+      -0.545,
+      0.815,
+      0.15,
+      0.0,
+      -0.11843,
+      -0.99296,
+      -0.0,
+      -0.99296,
+      0.11843,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL1B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.4061,
+      0.3103
+     ],
+     "cframe": [
+      -1.09,
+      0.88,
+      0.15,
+      0.0,
+      -0.11843,
+      0.99296,
+      0.0,
+      -0.99296,
+      -0.11843,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL2A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0682,
+      0.6684
+     ],
+     "cframe": [
+      -0.455,
+      0.885,
+      0.15,
+      0.0,
+      -0.34989,
+      -0.93679,
+      -0.0,
+      0.93679,
+      -0.34989,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL2B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0682,
+      0.2176
+     ],
+     "cframe": [
+      -0.87,
+      0.73,
+      0.15,
+      -0.0,
+      -0.34989,
+      0.93679,
+      0.0,
+      0.93679,
+      0.34989,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL3A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.3459,
+      0.5349
+     ],
+     "cframe": [
+      -0.345,
+      0.735,
+      0.15,
+      0.0,
+      0.25303,
+      -0.96746,
+      0.0,
+      -0.96746,
+      -0.25303,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL3B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.3459,
+      0.1369
+     ],
+     "cframe": [
+      -0.67,
+      0.65,
+      0.15,
+      0.0,
+      0.25303,
+      0.96746,
+      0.0,
+      -0.96746,
+      0.25303,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL4A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0383,
+      0.4122
+     ],
+     "cframe": [
+      -0.255,
+      0.805,
+      0.15,
+      0.0,
+      0.73781,
+      -0.67501,
+      0.0,
+      -0.67501,
+      -0.73781,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL4B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0383,
+      0.2248
+     ],
+     "cframe": [
+      -0.47,
+      0.57,
+      0.15,
+      0.0,
+      0.73781,
+      0.67501,
+      0.0,
+      -0.67501,
+      0.73781,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL5A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.25,
+      0.28
+     ],
+     "cframe": [
+      -0.255,
+      0.5,
+      0.15,
+      -0.0,
+      -1.0,
+      -0.0,
+      -0.0,
+      0.0,
+      1.0,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingL5B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.25,
+      0.33
+     ],
+     "cframe": [
+      -0.255,
+      0.805,
+      0.15,
+      0.0,
+      -1.0,
+      -0.0,
+      -0.0,
+      0.0,
+      -1.0,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "EarRA",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.1086,
+      0.1368
+     ],
+     "cframe": [
+      0.12,
+      1.045,
+      0.15,
+      0.0,
+      0.90482,
+      -0.4258,
+      0.0,
+      -0.4258,
+      -0.90482,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "EarRB",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.1086,
+      0.0511
+     ],
+     "cframe": [
+      0.08,
+      0.96,
+      0.15,
+      0.0,
+      0.90482,
+      0.4258,
+      0.0,
+      -0.4258,
+      0.90482,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR1A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.4061,
+      0.7874
+     ],
+     "cframe": [
+      0.545,
+      0.815,
+      0.15,
+      0.0,
+      0.11843,
+      0.99296,
+      0.0,
+      -0.99296,
+      0.11843,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR1B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.4061,
+      0.3103
+     ],
+     "cframe": [
+      1.09,
+      0.88,
+      0.15,
+      0.0,
+      0.11843,
+      -0.99296,
+      0.0,
+      -0.99296,
+      -0.11843,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR2A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0682,
+      0.6684
+     ],
+     "cframe": [
+      0.455,
+      0.885,
+      0.15,
+      0.0,
+      0.34989,
+      0.93679,
+      0.0,
+      0.93679,
+      -0.34989,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR2B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0682,
+      0.2176
+     ],
+     "cframe": [
+      0.87,
+      0.73,
+      0.15,
+      -0.0,
+      0.34989,
+      -0.93679,
+      0.0,
+      0.93679,
+      0.34989,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR3A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.3459,
+      0.5349
+     ],
+     "cframe": [
+      0.345,
+      0.735,
+      0.15,
+      0.0,
+      -0.25303,
+      0.96746,
+      0.0,
+      -0.96746,
+      -0.25303,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR3B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.3459,
+      0.1369
+     ],
+     "cframe": [
+      0.67,
+      0.65,
+      0.15,
+      0.0,
+      -0.25303,
+      -0.96746,
+      -0.0,
+      -0.96746,
+      0.25303,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR4A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0383,
+      0.4122
+     ],
+     "cframe": [
+      0.255,
+      0.805,
+      0.15,
+      0.0,
+      -0.73781,
+      0.67501,
+      0.0,
+      -0.67501,
+      -0.73781,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR4B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.0383,
+      0.2248
+     ],
+     "cframe": [
+      0.47,
+      0.57,
+      0.15,
+      0.0,
+      -0.73781,
+      -0.67501,
+      -0.0,
+      -0.67501,
+      0.73781,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR5A",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.25,
+      0.28
+     ],
+     "cframe": [
+      0.255,
+      0.5,
+      0.15,
+      -0.0,
+      1.0,
+      -0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "WingR5B",
+     "shape": "Wedge",
+     "size": [
+      0.1,
+      0.25,
+      0.33
+     ],
+     "cframe": [
+      0.255,
+      0.805,
+      0.15,
+      0.0,
+      1.0,
+      -0.0,
+      0.0,
+      0.0,
+      -1.0,
+      -1.0,
+      0.0,
+      -0.0
+     ],
+     "palette": "bat_black",
+     "section": "Blade"
+    },
+    {
+     "name": "Emblem",
+     "shape": "Cylinder",
+     "size": [
+      0.13,
+      0.34,
+      0.34
+     ],
+     "cframe": [
+      0.0,
+      0.72,
+      0.15,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "bat_yellow",
+     "section": "Blade"
+    }
+   ]
+  },
+  {
+   "WeaponId": "BakugoGauntlet",
+   "DisplayName": "Grenade Gauntlet",
+   "Description": "BOOM! A frontal blast that throws rivals back!",
+   "Parts": [
+    {
+     "name": "Body",
+     "shape": "Cylinder",
+     "size": [
+      1.5,
+      1.5,
+      1.5
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.5,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "bakugo_green",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "Rib1",
+     "shape": "Cylinder",
+     "size": [
+      0.12,
+      1.62,
+      1.62
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.12,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Rib2",
+     "shape": "Cylinder",
+     "size": [
+      0.12,
+      1.62,
+      1.62
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.5,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Rib3",
+     "shape": "Cylinder",
+     "size": [
+      0.12,
+      1.62,
+      1.62
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      1.12,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "FrontCap",
+     "shape": "Cylinder",
+     "size": [
+      0.32,
+      1.24,
+      1.24
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.38,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "NozzleRing",
+     "shape": "Cylinder",
+     "size": [
+      0.2,
+      0.86,
+      0.86
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.6,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "bakugo_orange",
+     "section": "Handle"
+    },
+    {
+     "name": "NozzleCore",
+     "shape": "Cylinder",
+     "size": [
+      0.12,
+      0.52,
+      0.52
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.7,
+      0.0,
+      0.0,
+      -1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     "palette": "gold_energy",
+     "section": "Handle"
+    },
+    {
+     "name": "Lever",
+     "shape": "Block",
+     "size": [
+      0.26,
+      0.14,
+      1.1
+     ],
+     "cframe": [
+      0.0,
+      0.8,
+      0.46,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "PinRing",
+     "shape": "Cylinder",
+     "size": [
+      0.07,
+      0.42,
+      0.42
+     ],
+     "cframe": [
+      0.0,
+      0.95,
+      -0.02,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "silver",
+     "section": "Handle"
+    },
+    {
+     "name": "PinHole",
+     "shape": "Cylinder",
+     "size": [
+      0.09,
+      0.24,
+      0.24
+     ],
+     "cframe": [
+      0.0,
+      0.95,
+      -0.02,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "bakugo_green",
+     "section": "Handle"
+    },
+    {
+     "name": "BandL",
+     "shape": "Block",
+     "size": [
+      0.08,
+      0.6,
+      0.9
+     ],
+     "cframe": [
+      -0.76,
+      0.0,
+      0.5,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "bakugo_orange",
+     "section": "Handle"
+    },
+    {
+     "name": "CrossL1",
+     "shape": "Block",
+     "size": [
+      0.07,
+      0.14,
+      0.62
+     ],
+     "cframe": [
+      -0.8,
+      0.0,
+      0.5,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.78801,
+      -0.61566,
+      0.0,
+      0.61566,
+      0.78801
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "CrossL2",
+     "shape": "Block",
+     "size": [
+      0.07,
+      0.14,
+      0.62
+     ],
+     "cframe": [
+      -0.8,
+      0.0,
+      0.5,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.78801,
+      0.61566,
+      0.0,
+      -0.61566,
+      0.78801
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "BandR",
+     "shape": "Block",
+     "size": [
+      0.08,
+      0.6,
+      0.9
+     ],
+     "cframe": [
+      0.76,
+      0.0,
+      0.5,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "bakugo_orange",
+     "section": "Handle"
+    },
+    {
+     "name": "CrossR1",
+     "shape": "Block",
+     "size": [
+      0.07,
+      0.14,
+      0.62
+     ],
+     "cframe": [
+      0.8,
+      0.0,
+      0.5,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.78801,
+      -0.61566,
+      0.0,
+      0.61566,
+      0.78801
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "CrossR2",
+     "shape": "Block",
+     "size": [
+      0.07,
+      0.14,
+      0.62
+     ],
+     "cframe": [
+      0.8,
+      0.0,
+      0.5,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.78801,
+      0.61566,
+      0.0,
+      -0.61566,
+      0.78801
+     ],
+     "palette": "steel_dark",
+     "section": "Handle"
+    }
+   ]
+  },
+  {
+   "WeaponId": "Mjolnir",
+   "DisplayName": "Mjolnir",
+   "Description": "Slam it down and electrocute every rival!",
+   "Parts": [
+    {
+     "name": "Grip",
+     "shape": "Cylinder",
+     "size": [
+      2.3,
+      0.32,
+      0.32
+     ],
+     "cframe": [
+      0.0,
+      0.05,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "leather",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "Wrap1",
+     "shape": "Cylinder",
+     "size": [
+      0.07,
+      0.36,
+      0.36
+     ],
+     "cframe": [
+      0.0,
+      -0.7,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Wrap2",
+     "shape": "Cylinder",
+     "size": [
+      0.07,
+      0.36,
+      0.36
+     ],
+     "cframe": [
+      0.0,
+      -0.25,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Wrap3",
+     "shape": "Cylinder",
+     "size": [
+      0.07,
+      0.36,
+      0.36
+     ],
+     "cframe": [
+      0.0,
+      0.2,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Wrap4",
+     "shape": "Cylinder",
+     "size": [
+      0.07,
+      0.36,
+      0.36
+     ],
+     "cframe": [
+      0.0,
+      0.65,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Pommel",
+     "shape": "Cylinder",
+     "size": [
+      0.22,
+      0.44,
+      0.44
+     ],
+     "cframe": [
+      0.0,
+      -1.18,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    },
+    {
+     "name": "Lanyard",
+     "shape": "Cylinder",
+     "size": [
+      0.08,
+      0.34,
+      0.34
+     ],
+     "cframe": [
+      0.0,
+      -1.44,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "leather_dark",
+     "section": "Handle"
+    },
+    {
+     "name": "Neck",
+     "shape": "Cylinder",
+     "size": [
+      0.24,
+      0.44,
+      0.44
+     ],
+     "cframe": [
+      0.0,
+      1.28,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    },
+    {
+     "name": "Head",
+     "shape": "Block",
+     "size": [
+      1.02,
+      1.02,
+      1.62
+     ],
+     "cframe": [
+      0.0,
+      1.94,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_forged",
+     "section": "Handle"
+    },
+    {
+     "name": "FaceF",
+     "shape": "Block",
+     "size": [
+      1.14,
+      1.14,
+      0.22
+     ],
+     "cframe": [
+      0.0,
+      1.94,
+      -0.84,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    },
+    {
+     "name": "FaceInsetF",
+     "shape": "Block",
+     "size": [
+      0.8,
+      0.8,
+      0.06
+     ],
+     "cframe": [
+      0.0,
+      1.94,
+      -0.97,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_forged",
+     "section": "Handle"
+    },
+    {
+     "name": "FaceB",
+     "shape": "Block",
+     "size": [
+      1.14,
+      1.14,
+      0.22
+     ],
+     "cframe": [
+      0.0,
+      1.94,
+      0.84,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    },
+    {
+     "name": "FaceInsetB",
+     "shape": "Block",
+     "size": [
+      0.8,
+      0.8,
+      0.06
+     ],
+     "cframe": [
+      0.0,
+      1.94,
+      0.97,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_forged",
+     "section": "Handle"
+    },
+    {
+     "name": "RuneL",
+     "shape": "Cylinder",
+     "size": [
+      0.04,
+      0.62,
+      0.62
+     ],
+     "cframe": [
+      -0.52,
+      1.94,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_inlay",
+     "section": "Handle"
+    },
+    {
+     "name": "RuneCoreL",
+     "shape": "Cylinder",
+     "size": [
+      0.06,
+      0.3,
+      0.3
+     ],
+     "cframe": [
+      -0.53,
+      1.94,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    },
+    {
+     "name": "RuneR",
+     "shape": "Cylinder",
+     "size": [
+      0.04,
+      0.62,
+      0.62
+     ],
+     "cframe": [
+      0.52,
+      1.94,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_inlay",
+     "section": "Handle"
+    },
+    {
+     "name": "RuneCoreR",
+     "shape": "Cylinder",
+     "size": [
+      0.06,
+      0.3,
+      0.3
+     ],
+     "cframe": [
+      0.53,
+      1.94,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    },
+    {
+     "name": "Cap",
+     "shape": "Block",
+     "size": [
+      0.9,
+      0.06,
+      1.4
+     ],
+     "cframe": [
+      0.0,
+      2.46,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "palette": "hammer_edge",
+     "section": "Handle"
+    }
+   ]
+  },
+  {
+   "WeaponId": "GomuFist",
+   "DisplayName": "Gum-Gum Fist",
+   "Description": "Gomu Gomu no... PISTOL! Sends rivals flying back!",
+   "Parts": [
+    {
+     "name": "Cuff",
+     "shape": "Block",
+     "size": [
+      1.1,
+      0.42,
+      1.1
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "hero_red",
+     "section": "Handle",
+     "handle": true
+    },
+    {
+     "name": "Rubber",
+     "shape": "Cylinder",
+     "size": [
+      1.35,
+      0.56,
+      0.56
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -0.675,
+      0.0,
+      -1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      -1.0,
+      -0.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Rubber"
+    },
+    {
+     "name": "Fist",
+     "shape": "Block",
+     "size": [
+      1.24,
+      1.02,
+      1.12
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -1.9,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Fist"
+    },
+    {
+     "name": "Knuckle1",
+     "shape": "Block",
+     "size": [
+      0.26,
+      0.2,
+      0.24
+     ],
+     "cframe": [
+      -0.45,
+      0.3,
+      -2.44,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Fist"
+    },
+    {
+     "name": "Finger1",
+     "shape": "Block",
+     "size": [
+      0.25,
+      0.08,
+      0.5
+     ],
+     "cframe": [
+      -0.45,
+      -0.16,
+      -2.43,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_shade",
+     "section": "Fist"
+    },
+    {
+     "name": "Knuckle2",
+     "shape": "Block",
+     "size": [
+      0.26,
+      0.2,
+      0.24
+     ],
+     "cframe": [
+      -0.15,
+      0.3,
+      -2.44,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Fist"
+    },
+    {
+     "name": "Finger2",
+     "shape": "Block",
+     "size": [
+      0.25,
+      0.08,
+      0.5
+     ],
+     "cframe": [
+      -0.15,
+      -0.16,
+      -2.43,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_shade",
+     "section": "Fist"
+    },
+    {
+     "name": "Knuckle3",
+     "shape": "Block",
+     "size": [
+      0.26,
+      0.2,
+      0.24
+     ],
+     "cframe": [
+      0.15,
+      0.3,
+      -2.44,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Fist"
+    },
+    {
+     "name": "Finger3",
+     "shape": "Block",
+     "size": [
+      0.25,
+      0.08,
+      0.5
+     ],
+     "cframe": [
+      0.15,
+      -0.16,
+      -2.43,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_shade",
+     "section": "Fist"
+    },
+    {
+     "name": "Knuckle4",
+     "shape": "Block",
+     "size": [
+      0.26,
+      0.2,
+      0.24
+     ],
+     "cframe": [
+      0.45,
+      0.3,
+      -2.44,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Fist"
+    },
+    {
+     "name": "Finger4",
+     "shape": "Block",
+     "size": [
+      0.25,
+      0.08,
+      0.5
+     ],
+     "cframe": [
+      0.45,
+      -0.16,
+      -2.43,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_shade",
+     "section": "Fist"
+    },
+    {
+     "name": "Thumb",
+     "shape": "Block",
+     "size": [
+      0.62,
+      0.26,
+      0.26
+     ],
+     "cframe": [
+      -0.3,
+      -0.4,
+      -2.48,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "rubber_skin",
+     "section": "Fist"
+    },
+    {
+     "name": "Wristband",
+     "shape": "Block",
+     "size": [
+      1.3,
+      0.2,
+      1.18
+     ],
+     "cframe": [
+      0.0,
+      0.0,
+      -1.38,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "palette": "hero_red",
+     "section": "Fist"
+    }
+   ]
+  }
+ ]
+}

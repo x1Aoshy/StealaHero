@@ -21,6 +21,14 @@ local Asserts = require(ReplicatedStorage.Library.Asserts)
 local ButtonFX = require(ReplicatedStorage.Library.Client.GUIFX.ButtonFX)
 local Gears = require(ReplicatedStorage.Directory.Gears)
 local Trove = require(ReplicatedStorage.Library.Modules.Packages.Trove)
+local WeaponPortrait = nil
+do
+	local module = ReplicatedStorage.Library.Client:FindFirstChild("WeaponPortrait")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		WeaponPortrait = if ok and type(result) == "table" then result else nil
+	end
+end
 
 require(script.Types.Interface)
 
@@ -177,6 +185,19 @@ function AreaIndexProgressComponent._render(self, sectionId: string, gearId: str
 	view.ProgressBar.ProgressText.TextLabel.Text = `{discovered}/{total}`
 	view.ProgressBar.BatImage.Image = config.Icon
 	view.EquipBat.BatImage.Image = config.Icon
+	-- hero weapons (owner 2026-09-27) show the weapon itself instead of the old bat image
+	if WeaponPortrait then
+		for _, image in ipairs({ view.ProgressBar.BatImage, view.EquipBat.BatImage }) do
+			local ok, portrait = pcall(WeaponPortrait.Mount, image, gearId)
+			if not (ok and portrait) then
+				local saved = image:GetAttribute(WeaponPortrait.SAVED_ATTRIBUTE)
+				if type(saved) == "number" then
+					image.ImageTransparency = saved
+					image:SetAttribute(WeaponPortrait.SAVED_ATTRIBUTE, nil)
+				end
+			end
+		end
+	end
 	view.ProgressBar.Visible = not complete
 	view.EquipBat.Visible = complete
 	view.EquipBat.NotificationBadge.Visible = complete and badge
