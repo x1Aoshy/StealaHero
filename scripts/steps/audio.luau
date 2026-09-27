@@ -19,6 +19,15 @@ AudioStep.SPEEDSTERS_AUDIO = {
 }
 AudioStep.SFX_ORDER = { "UI_CLICK", "UI_POP", "WINNER", "SUCCESS", "UPGRADE" }
 
+-- Owner exceptions to the Speedsters set, each asked for by the owner by id and placed on exactly one Sound.
+-- owner request 2026-09-27, Taco Rain music: Steal a Brainrot / Speedsters' Raining Tacos song on
+-- SoundService.TacoRainMusic (created by scripts/steps/post_taco_rain.luau, faded in and out by
+-- BranchControllers.TacoRainController). Roblox only plays it if the audio is shared with this experience; otherwise
+-- the one Sound stays silent.
+AudioStep.OWNER_AUDIO = {
+	TACO_RAIN_MUSIC = { id = 142376088, path = { "TacoRainMusic" } },
+}
+
 -- SoundService children played directly by scripts (MoneyUpdate, PlayHoverSound, NPC Option_UI) or used as
 -- clone sources. Everything else in SoundService stays silent.
 -- `subgroup` routes a sound through a SoundGroup nested in Default (effective volume = Volume x subgroup x
@@ -77,6 +86,9 @@ function AudioStep.Apply(place, spPlace, ctx)
 	local whitelist = {}
 	for _, id in pairs(ids) do
 		whitelist[tostring(id)] = true
+	end
+	for _, entry in pairs(AudioStep.OWNER_AUDIO) do
+		whitelist[tostring(entry.id)] = true
 	end
 
 	-- Cross-check the ids against the Speedsters place when it is available.
@@ -169,6 +181,22 @@ function AudioStep.Apply(place, spPlace, ctx)
 		end
 	end
 
+	-- 2b. The owner's exceptions: their single Sound under SoundService gets its id (after the final sanitize pass).
+	local ownerMapped = {}
+	for key, entry in pairs(AudioStep.OWNER_AUDIO) do
+		local node = soundService
+		for _, name in ipairs(entry.path) do
+			node = node and node:FindFirstChild(name)
+		end
+		if node and node:IsA("Sound") then
+			node.AudioContent = Content.fromAssetId(entry.id)
+			table.insert(ownerMapped, string.format("%s=%d", key, entry.id))
+		else
+			print(string.format("[Audio] SoundService.%s not found; %s skipped.", table.concat(entry.path, "."), key))
+		end
+	end
+	table.sort(ownerMapped)
+
 	-- 3. Enforce the whitelist across the whole place.
 	local total, audible, silenced = 0, 0, 0
 	local audibleIds = {}
@@ -194,8 +222,8 @@ function AudioStep.Apply(place, spPlace, ctx)
 		local id = tostring(ids[key])
 		table.insert(summary, string.format("%s=%s x%d", key, id, audibleIds[id] or 0))
 	end
-	print(string.format("[Audio] Speedsters audio applied: %d SoundService slots mapped, SpeedstersSfx has %d sounds.",
-		mapped, #sfx:GetChildren()))
+	print(string.format("[Audio] Speedsters audio applied: %d SoundService slots mapped, SpeedstersSfx has %d sounds; owner audio: %s.",
+		mapped, #sfx:GetChildren(), if #ownerMapped > 0 then table.concat(ownerMapped, ", ") else "none"))
 	print(string.format("[Audio] %d Sounds in place, %d audible (whitelisted), %d non-whitelisted reset to Content.none. %s",
 		total, audible, silenced, table.concat(summary, ", ")))
 end

@@ -1539,8 +1539,8 @@ function Step.Apply(place, spPlace, ctx)
 		end
 		if tool and tool:GetAttribute("SourceAsset") == Step.SOURCE_ASSET_PREFIX .. tier.model then
 			local meshes, maps = verifySkin(tool, tier, plotInfos)
-			print(string.format("%s tier %2d %-21s verified on %d plots: belt flush at floor+%.2f along the plate, Root over the plate facing TreadmillBottom.LookVector, no video set, one clear PhoneScreen facing the runner, %d meshes / %d texture sets kept.",
-				LOG_PREFIX, tier.level, tier.skin, #plotInfos, Step.GROUND_EPSILON, meshes, maps))
+			print(string.format("%s tier %2d %-21s verified on %d plots: belt top at floor+%.2f (raised) along the plate, Root over the plate facing TreadmillBottom.LookVector, no video set, one clear PhoneScreen facing the runner, %d meshes / %d texture sets kept.",
+				LOG_PREFIX, tier.level, tier.skin, #plotInfos, tool:GetAttribute(Step.LIFT_ATTRIBUTE) or Step.GROUND_EPSILON, meshes, maps))
 			if tier.level == 1 then
 				tier1 = { tool = tool, tier = tier }
 			end

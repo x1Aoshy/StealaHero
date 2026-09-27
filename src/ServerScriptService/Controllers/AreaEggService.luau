@@ -1783,4 +1783,40 @@ AreaEggService.IsInSafeZone = isInSafeZone
 AreaEggService.GetCarriedEggUid = getCarriedEggUid
 AreaEggService.DropCarriedEggFrom = dropCarriedEggFrom
 
+-- Taco Rain (owner 2026-09-27, ServerScriptService.BranchServices.TacoRainService): the eggs resting in their nests, and
+-- a mutation added to one of them. Only a resting ("Slot") egg is touched: a carried or dropped egg is left alone. The
+-- record's new Version re-renders it on every client (EggRenderer shows the mutation's particles) and a claim copies
+-- record.Mutations into the thief's inventory, so the hatched hero keeps it.
+function AreaEggService.GetRestingEggs()
+	local list = {}
+	for uid, record in pairs(records) do
+		if record.State == "Slot" and typeof(record.BottomCFrame) == "CFrame" then
+			table.insert(list, {
+				Uid = uid,
+				AreaId = record.AreaId,
+				AssetCategory = record.AssetCategory,
+				Position = record.BottomCFrame.Position,
+				Mutations = table.clone(record.Mutations or {}),
+			})
+		end
+	end
+	return list
+end
+
+function AreaEggService.AddRestingEggMutation(uid, mutation)
+	local record = type(uid) == "string" and records[uid] or nil
+	if record == nil or record.State ~= "Slot" or type(mutation) ~= "string" then
+		return false
+	end
+	record.Mutations = record.Mutations or {}
+	if table.find(record.Mutations, mutation) then
+		return false
+	end
+	table.insert(record.Mutations, mutation)
+	version += 1
+	record.Version = version
+	AreaEggUpdatedRemote:FireAllClients(record)
+	return true
+end
+
 return AreaEggService

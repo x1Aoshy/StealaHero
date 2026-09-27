@@ -534,12 +534,32 @@ local function showCaption(button, value)
 	end
 end
 
+-- The amount box a Give / Take button reads (its InputFrom attribute names the TextBox).
+local function inputOf(button)
+	local name = button:GetAttribute("InputFrom")
+	if type(name) ~= "string" then
+		return nil
+	end
+	for _, node in ipairs(pages:GetDescendants()) do
+		if node:IsA("TextBox") and node.Name == name then
+			return node
+		end
+	end
+	return nil
+end
+
+-- The command's arguments: its Arg* attributes, plus Amount = the typed text for an input button (sent as typed: the
+-- server parses "10M" / "2.5B" / "1e12" itself).
 local function argsOf(button)
 	local args = {}
 	for key, value in pairs(button:GetAttributes()) do
 		if #key > 3 and string.sub(key, 1, 3) == "Arg" then
 			args[string.sub(key, 4)] = value
 		end
+	end
+	local box = inputOf(button)
+	if box then
+		args.Amount = string.sub(box.Text, 1, 32)
 	end
 	return args
 end
@@ -574,6 +594,12 @@ local function run(button)
 		end
 		endConfirm(button)
 	end
+	local box = inputOf(button)
+	if box and string.match(box.Text, "^%s*$") then
+		toast("Type an amount first (e.g. 10M, 2.5B, 1e12)", "warn")
+		pcall(box.CaptureFocus, box)
+		return
+	end
 	local remote = getRemote()
 	if remote == nil then
 		toast("The admin service is not running on this server", "error")
@@ -602,6 +628,25 @@ for _, node in ipairs(window:GetDescendants()) do
 		feel(node)
 		node.Activated:Connect(function()
 			run(node)
+		end)
+	end
+end
+
+-- Enter in an amount box presses its GIVE button.
+for _, node in ipairs(pages:GetDescendants()) do
+	if node:IsA("TextBox") and node:GetAttribute("AmountInput") == true then
+		node.FocusLost:Connect(function(enterPressed)
+			if not enterPressed then
+				return
+			end
+			for _, candidate in ipairs(node.Parent.Parent:GetChildren()) do
+				local command = candidate:GetAttribute("Command")
+				if candidate:IsA("GuiButton") and candidate:GetAttribute("InputFrom") == node.Name and type(command) == "string"
+					and string.sub(command, 1, 4) == "Give" then
+					task.spawn(run, candidate)
+					break
+				end
+			end
 		end)
 	end
 end
@@ -712,6 +757,21 @@ updateStats = function()
 		end
 	end
 	setText(find(pages, "Page_Weapons.DummyCount"), string.format("%d / 4", count))
+	local tacoUntil = Workspace:GetAttribute("TacoRainUntil")
+	local tacoStatus = find(pages, "Page_World.TacoStatus.Text")
+	if type(tacoUntil) == "number" and tacoUntil > Workspace:GetServerTimeNow() then
+		local hits = tonumber(Workspace:GetAttribute("TacoRainHits")) or 0
+		setText(tacoStatus, string.format("RAINING TACOS: %s left   |   %d egg%s hit (x3)", clock(tacoUntil - Workspace:GetServerTimeNow()),
+			hits, if hits == 1 then "" else "s"))
+		if tacoStatus then
+			tacoStatus.TextColor3 = COLORS.gold
+		end
+	else
+		setText(tacoStatus, "Off. Tacos fall around everyone; one that lands on an egg (bases and stages) makes it x3.")
+		if tacoStatus then
+			tacoStatus.TextColor3 = COLORS.muted
+		end
+	end
 	renderInfo()
 end
 

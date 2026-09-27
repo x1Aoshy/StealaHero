@@ -59,9 +59,13 @@ T.check(ink ~= nil and ink:IsA("UIStroke") and ink.Color == roblox.Color3.fromRG
 local title = window:FindFirstChild("SpTitle")
 T.check(title ~= nil and title:IsA("TextLabel") and title.Text == "ADMIN PANEL", "the band title SpTitle 'ADMIN PANEL' missing")
 local close = window:FindFirstChild("Close")
-local closeArt = close and close:FindFirstChild("SpCloseArt")
-T.check(close ~= nil and close:IsA("GuiButton") and closeArt ~= nil and H.imageId(closeArt) == 110882579806743,
-	"the round red close (X art 110882579806743) missing")
+local closeArt = close and close:FindFirstChild("TextButton")
+T.check(close ~= nil and close:IsA("GuiButton") and closeArt ~= nil and closeArt:IsA("ImageLabel") and H.imageId(closeArt) == 110882579806743
+	and closeArt.ImageTransparency == 0 and closeArt.ImageColor3 == roblox.Color3.new(1, 1, 1),
+	"the round red close must draw the bright X art 110882579806743 on its TextButton glyph (like the Index window)")
+local emboss = close and close:FindFirstChild("SpEmboss")
+T.check(closeArt ~= nil and (emboss == nil or emboss.ZIndex < closeArt.ZIndex) and close:FindFirstChild("SpCloseArt") == nil,
+	"the close's dark emboss disc must sit UNDER the X (it dimmed it: owner round 10)")
 
 local rounded, nonStud = {}, {}
 local NON_STUD = { [116054484875156] = true, [86655919544454] = true, [130029461460330] = true, [118133511364596] = true,
@@ -91,6 +95,63 @@ for _, path in ipairs({ "Content/TargetBar/Prev", "Content/TargetBar/Next", "Con
 	"Content/Toast/Text", "Content/Toast/Dot", "ModeBadge/Text", "DragHandle" }) do
 	T.check(H.path(window, path) ~= nil, "Window.%s missing", path)
 end
+
+-- the header row: the close sits fully inside the band, above the rest of the header, and nothing overlaps it (owner
+-- round 10: "the X covers something")
+local function rect(node)
+	-- design px (every header node is placed in offsets, or in scale of the 820 x 500 window)
+	local w = node.Size.X.Scale * 820 + node.Size.X.Offset
+	local h = node.Size.Y.Scale * 500 + node.Size.Y.Offset
+	local x = node.Position.X.Scale * 820 + node.Position.X.Offset - node.AnchorPoint.X * w
+	local y = node.Position.Y.Scale * 500 + node.Position.Y.Offset - node.AnchorPoint.Y * h
+	return { x = x, y = y, w = w, h = h }
+end
+local function overlaps(a, b)
+	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+end
+local bandNode, badge = window:FindFirstChild("SpHeaderBand"), window:FindFirstChild("ModeBadge")
+local drag, crown3d = window:FindFirstChild("DragHandle"), window:FindFirstChild("Crown3D")
+if T.check(close and bandNode and badge and drag and crown3d and title, "header nodes missing") then
+	local c, b = rect(close), rect(bandNode)
+	local rim = 0.07 * c.w + 1 -- the close's ink rim (ScaledSize) spills out of its box
+	T.check(c.x - rim >= b.x + 4 and c.x + c.w + rim <= b.x + b.w - 4 and c.y - rim >= b.y + 2 and c.y + c.h + rim <= b.y + b.h - 2,
+		"the close (%.0f,%.0f %.0fx%.0f) must sit fully inside the band (%.0f,%.0f %.0fx%.0f) with its rim", c.x, c.y, c.w, c.h, b.x, b.y, b.w, b.h)
+	T.check(c.w >= 44, "the close must stay a >= 44 px touch target (%.0f)", c.w)
+	local clashes = {}
+	for _, other in ipairs({ badge, drag, crown3d, title }) do
+		if overlaps(c, rect(other)) then
+			table.insert(clashes, "close/" .. other.Name)
+		end
+	end
+	for _, other in ipairs({ drag, crown3d, title }) do
+		if overlaps(rect(badge), rect(other)) then
+			table.insert(clashes, "ModeBadge/" .. other.Name)
+		end
+	end
+	T.check(#clashes == 0, "header overlaps: %s", table.concat(clashes, ", "))
+	local topZ = 0
+	for _, other in ipairs({ bandNode, badge, drag, crown3d, title }) do
+		topZ = math.max(topZ, other.ZIndex)
+	end
+	T.check(close.ZIndex > topZ, "the close must be drawn above the header (ZIndex %d vs %d)", close.ZIndex, topZ)
+end
+
+-- the Economy page: an amount box + GIVE / TAKE for money and for speed (owner round 10)
+local economy = pages and pages:FindFirstChild("Page_Economy")
+for _, spec in ipairs({ { "MoneyAmount", "GiveMoney", "TakeMoney" }, { "SpeedAmount", "GiveSpeed", "TakeSpeed" } }) do
+	local box = economy and economy:FindFirstChild(spec[1], true)
+	T.check(box ~= nil and box:IsA("TextBox") and box:GetAttribute("AmountInput") == true and box.ClearTextOnFocus == false,
+		"Page_Economy.%s must be an amount TextBox", spec[1])
+	for i = 2, 3 do
+		local b = economy and economy:FindFirstChild(spec[i])
+		T.check(b ~= nil and b:IsA("GuiButton") and b:GetAttribute("Command") == spec[i] and b:GetAttribute("InputFrom") == spec[1],
+			"Page_Economy.%s must send the text of %s", spec[i], spec[1])
+	end
+end
+T.check(economy ~= nil and economy:FindFirstChild("AddMoney1K") == nil, "the fixed +1K / +100K / +10M buttons must be gone")
+local clientSource = H.normalize(gui:FindFirstChild("HeroAdminClient") and gui.HeroAdminClient.Source or "")
+T.check(H.has(clientSource, "FocusLost:Connect(function(enterPressed)") and H.has(clientSource, 'args.Amount = string.sub(box.Text, 1, 32)'),
+	"the client must send the typed amount and submit GIVE on Enter")
 
 -- 2. commands -----------------------------------------------------------------------------------------------------
 local service = H.path(sss, "BranchServices/HeroAdminService")
@@ -134,7 +195,8 @@ for name in pairs(handlers) do
 end
 table.sort(unused)
 T.check(#unused == 0, "every command must have a button: %s", first(unused))
-for _, name in ipairs({ "GiveAllWeapons", "GiveWeapon", "RemoveDevWeapons", "UnlockIndexWeapons", "AddMoney", "ResetMoney", "AddSpeed",
+for _, name in ipairs({ "GiveAllWeapons", "GiveWeapon", "RemoveDevWeapons", "UnlockIndexWeapons", "GiveMoney", "TakeMoney", "ResetMoney",
+	"GiveSpeed", "TakeSpeed", "TacoRainStart", "TacoRainStop",
 	"SetSpeed", "GiveEgg", "GrowEggs", "Teleport", "NightNow", "DayNow", "NormalCycle", "UnlockBaseThemes", "Release", "Respawn", "Heal",
 	"GoTo", "Bring", "SpawnDummy", "ClearDummies", "Inspect" }) do
 	T.check(handlers[name] == true, "HeroAdminService.COMMANDS.%s missing", name)
@@ -366,17 +428,42 @@ do
 		okCall, success, message = invoke("Heal", 12345, nil)
 		T.check(okCall and success == false and message == "That player is not in this server", "an absent target must be refused (got %s)", tostring(message))
 		now += 1
-		okCall, success, message = invoke("AddMoney", nil, { Amount = { 1 } })
+		okCall, success, message = invoke("GiveMoney", nil, { Amount = { 1 } })
 		T.check(okCall and success == false and message == "Invalid arguments", "a table argument must be refused (got %s)", tostring(message))
 		now += 1
-		okCall, success, message = invoke("AddMoney", nil, { Amount = -5 })
-		T.check(okCall and success == false and message == "Invalid amount", "a negative amount must be refused (got %s)", tostring(message))
+		okCall, success, message = invoke("GiveMoney", nil, { Amount = "-5M" })
+		T.check(okCall and success == false and H.has(tostring(message), "Not an amount"), "a negative amount must be refused (got %s)", tostring(message))
+		now += 1
+		okCall, success, message = invoke("TakeSpeed", nil, { Amount = "5Qi" })
+		T.check(okCall and success == false and H.has(tostring(message), "Too big"), "an amount over the cap must be refused (got %s)", tostring(message))
 		now += 1
 		okCall, success, message = invoke("GiveWeapon", nil, { Tool = "Admin Bat" })
 		T.check(okCall and success == false and message == "Unknown weapon", "a tool outside the hero weapons must be refused (got %s)", tostring(message))
 		now += 1
 		okCall, success, message = invoke(string.rep("x", 40), nil, nil)
 		T.check(okCall and success == false and message == "Invalid command", "an oversized command must be refused (got %s)", tostring(message))
+		-- the amount parser (round 10: "a text box, with numbers and letters like 10m, 10B")
+		if T.check(type(mod.ParseAmount) == "function", "HeroAdminService.ParseAmount missing") then
+			local CASES = {
+				{ "10m", 1e7 }, { "10M", 1e7 }, { "10 M", 1e7 }, { "2.5b", 2.5e9 }, { "2.5B", 2.5e9 }, { "1e12", 1e12 },
+				{ "1E3", 1e3 }, { "1,000,000", 1e6 }, { "25k", 25000 }, { "+7K", 7000 }, { ".5k", 500 }, { "3t", 3e12 },
+				{ "1qa", 1e15 }, { "1QA", 1e15 }, { "0.001Qi", 1e15 }, { "500", 500 }, { 250, 250 }, { "1.234", 1.23 },
+				{ "-5", nil }, { "-10m", nil }, { "0", nil }, { "0.001", nil }, { "abc", nil }, { "10x", nil }, { "10mm", nil },
+				{ "1e400", nil }, { "2qa", nil }, { "1qi", nil }, { "nan", nil }, { "inf", nil }, { "", nil }, { "1.2.3", nil },
+				{ "5.", nil }, { "e5", nil }, { "1e", nil }, { 0 / 0, nil }, { math.huge, nil }, { -3, nil }, { true, nil },
+				{ string.rep("9", 40), nil },
+			}
+			local wrong = {}
+			for _, case in ipairs(CASES) do
+				local okParse, value = pcall(mod.ParseAmount, case[1])
+				local expected = case[2]
+				local good = okParse and (if expected == nil then value == nil else (type(value) == "number" and math.abs(value - expected) <= expected * 1e-9))
+				if not good then
+					table.insert(wrong, string.format("%s -> %s (want %s)", tostring(case[1]), tostring(value), tostring(expected)))
+				end
+			end
+			T.check(#wrong == 0, "ParseAmount: %d wrong: %s", #wrong, table.concat(wrong, "; ", 1, math.min(#wrong, 6)))
+		end
 		-- rate limit: 8 in the same instant, the 9th is refused
 		now += 5
 		local refused = 0
@@ -391,8 +478,8 @@ do
 		now += 5
 		isAdmin = false
 		table.clear(warnings)
-		okCall, success, message = invoke("AddMoney", nil, { Amount = 1000 })
-		local _, success2 = invoke("AddMoney", nil, { Amount = 1000 })
+		okCall, success, message = invoke("GiveMoney", nil, { Amount = "1K" })
+		local _, success2 = invoke("GiveMoney", nil, { Amount = "1K" })
 		T.check(okCall and success == false and message == "Not allowed" and success2 == false, "a non-admin must be refused (got %s)", tostring(message))
 		T.check(#warnings == 1 and H.has(warnings[1], "[HeroAdmin] refused Dev"), "a refused call must be warned once (%d warnings)", #warnings)
 	end

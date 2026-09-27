@@ -118,6 +118,17 @@ Step.PAGE_INSET = 4 -- keeps the outer ink rims inside the scrolling clip
 Step.PAGE_INNER_W = 596
 Step.GAP = 8
 Step.SECTION_GAP = 14
+-- header row (design px, all inside the 64 px band; tests/smoke_admin_panel.luau checks none of them overlap):
+--   crown 12..98 (pops out of the band on purpose) | title 104..544 (the drag handle 100..580 lies over it) |
+--   mode badge 598..740 | close 761..807 (ink rim included it stays 9 px from the window's right edge)
+Step.TITLE_X, Step.TITLE_W = 104, 440
+Step.DRAG_X, Step.DRAG_W = 100, 480
+Step.BADGE = { x = 598, y = 17, w = 142, h = 30 }
+Step.CLOSE = { x = 784, y = 32, size = 46 } -- centre and side
+Step.CLOSE_Z = 20
+-- the amount boxes of the Economy page and the button columns next to them
+Step.INPUT_W = 180
+Step.INPUT_BUTTON_W = 96
 Step.STUD_TRANSPARENCY = 0.62 -- the stud texture reads on every surface (ui_98_square_studs' rule)
 Step.BUTTON_STUD_TILE = UDim2.fromOffset(14, 14)
 
@@ -187,6 +198,29 @@ local function button(parent, name, caption, x, y, w, h, color, command, args, o
 		node:SetAttribute("Confirm", true)
 	end
 	return node, label
+end
+
+-- A dark amount box (UiKit.input look): the TextBox `name` the Give / Take buttons read (their InputFrom attribute).
+local function amountInput(parent, name, x, y, w, h, placeholder)
+	local holder = UiKit.layer(parent, "Frame", name .. "Holder", 5)
+	place(holder, x, y, w, h)
+	local box = UiKit.layer(holder, "TextBox", name, 6)
+	box.Active = true
+	box.Selectable = true
+	box.Text = ""
+	box.PlaceholderText = placeholder
+	box.PlaceholderColor3 = Step.COLORS.muted
+	box.ClearTextOnFocus = false
+	box.MultiLine = false
+	box.BackgroundTransparency = 1
+	box.TextXAlignment = Enum.TextXAlignment.Center
+	box.TextYAlignment = Enum.TextYAlignment.Center
+	place(box, 10, 8, w - 20, h - 16)
+	UiKit.input(holder, box, Step.THEME)
+	Kit.styleText(box, "body", { color = UiKit.WHITE, scaled = true })
+	cap(box, 26)
+	box:SetAttribute("AmountInput", true)
+	return box
 end
 
 -- n equal columns across `width` with `gap` between them -> { {x, w}, ... }
@@ -453,25 +487,33 @@ end
 local function economyPage(pages)
 	local page = scrollPage(pages, "Economy")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
+	local inputW, buttonW = Step.INPUT_W, Step.INPUT_BUTTON_W
+	local col = function(i) -- the button columns right of the box
+		return x0 + inputW + gap + (i - 1) * (buttonW + gap)
+	end
 	local y = sectionHeader(page, "HeaderMoney", "MONEY", Step.PAGE_INSET)
-	local cols = columns(4, W, gap, x0)
-	button(page, "AddMoney1K", "+1K", cols[1][1], y, cols[1][2], Step.ROW_H, C.give, "AddMoney", { Amount = 1e3 }, { max = 26 })
-	button(page, "AddMoney100K", "+100K", cols[2][1], y, cols[2][2], Step.ROW_H, C.give, "AddMoney", { Amount = 1e5 }, { max = 26 })
-	button(page, "AddMoney10M", "+10M", cols[3][1], y, cols[3][2], Step.ROW_H, C.give, "AddMoney", { Amount = 1e7 }, { max = 26 })
-	button(page, "ResetMoney", "SET TO 0", cols[4][1], y, cols[4][2], Step.ROW_H, C.danger, "ResetMoney", nil, { confirm = true })
+	amountInput(page, "MoneyAmount", x0, y, inputW, Step.ROW_H, "e.g. 10M")
+	local give = button(page, "GiveMoney", "GIVE", col(1), y, buttonW, Step.ROW_H, C.give, "GiveMoney", nil, { max = 24 })
+	give:SetAttribute("InputFrom", "MoneyAmount")
+	local take = button(page, "TakeMoney", "TAKE", col(2), y, buttonW, Step.ROW_H, C.danger, "TakeMoney", nil, { max = 24 })
+	take:SetAttribute("InputFrom", "MoneyAmount")
+	button(page, "ResetMoney", "SET TO 0", col(3), y, 2 * buttonW + gap, Step.ROW_H, C.danger, "ResetMoney", nil, { confirm = true })
 	y += Step.ROW_H + Step.SECTION_GAP
 
 	y = sectionHeader(page, "HeaderSpeed", "SPEED POWER", y)
-	cols = columns(5, W, gap, x0)
-	button(page, "AddSpeed1K", "+1K", cols[1][1], y, cols[1][2], Step.ROW_H, C.speed, "AddSpeed", { Amount = 1e3 }, { max = 26 })
-	button(page, "AddSpeed100K", "+100K", cols[2][1], y, cols[2][2], Step.ROW_H, C.speed, "AddSpeed", { Amount = 1e5 }, { max = 26 })
-	button(page, "AddSpeed10M", "+10M", cols[3][1], y, cols[3][2], Step.ROW_H, C.speed, "AddSpeed", { Amount = 1e7 }, { max = 26 })
-	button(page, "MaxSpeed", "MAX", cols[4][1], y, cols[4][2], Step.ROW_H, C.gold, "SetSpeed", { Value = 5e11 }, { sub = "TOP SPEED" })
-	button(page, "ResetSpeed", "RESET", cols[5][1], y, cols[5][2], Step.ROW_H, C.danger, "SetSpeed", { Value = 10 }, { sub = "BACK TO 10", confirm = true })
+	amountInput(page, "SpeedAmount", x0, y, inputW, Step.ROW_H, "e.g. 2.5B")
+	give = button(page, "GiveSpeed", "GIVE", col(1), y, buttonW, Step.ROW_H, C.speed, "GiveSpeed", nil, { max = 24 })
+	give:SetAttribute("InputFrom", "SpeedAmount")
+	take = button(page, "TakeSpeed", "TAKE", col(2), y, buttonW, Step.ROW_H, C.danger, "TakeSpeed", nil, { max = 24 })
+	take:SetAttribute("InputFrom", "SpeedAmount")
+	button(page, "MaxSpeed", "MAX", col(3), y, buttonW, Step.ROW_H, C.gold, "SetSpeed", { Value = 5e11 }, { sub = "TOP SPEED" })
+	button(page, "ResetSpeed", "RESET", col(4), y, buttonW, Step.ROW_H, C.danger, "SetSpeed", { Value = 10 }, { sub = "BACK TO 10", confirm = true })
 	y += Step.ROW_H + 12
-	text(page, "Note", "Money and speed power are written to the target's saved profile.", "body", x0, y, W, 18, {
-		color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small,
-	})
+	text(page, "Hint", "Type an amount: 500, 25K, 10M, 2.5B or 1e12 (K M B T Qa Qi, up to 1Qa). Enter gives it.", "body", x0, y,
+		W, 18, { color = C.header, alignX = Enum.TextXAlignment.Left, max = T.small })
+	y += 22
+	text(page, "Note", "Taking more than they have leaves 0 (speed power stays at least 10). Saved to their profile.",
+		"body", x0, y, W, 18, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
 	y += 18
 	finishPage(page, y)
 	return page
@@ -512,8 +554,23 @@ end
 local function worldPage(pages, stages)
 	local page = scrollPage(pages, "World")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
-	local y = sectionHeader(page, "HeaderTeleport", "TELEPORT YOURSELF", Step.PAGE_INSET)
-	local cols = columns(4, W, gap, x0)
+	local y = sectionHeader(page, "HeaderTaco", "TACO RAIN EVENT", Step.PAGE_INSET)
+	local cols = columns(3, W, gap, x0)
+	button(page, "TacoRain60", "START 60 S", cols[1][1], y, cols[1][2], Step.ROW_H, C.gold, "TacoRainStart", { Duration = 60 },
+		{ sub = "TACO RAIN" })
+	button(page, "TacoRain90", "START 90 S", cols[2][1], y, cols[2][2], Step.ROW_H, C.gold, "TacoRainStart", { Duration = 90 },
+		{ sub = "TACO RAIN" })
+	button(page, "TacoRainStop", "STOP", cols[3][1], y, cols[3][2], Step.ROW_H, C.danger, "TacoRainStop", nil, { sub = "END IT NOW" })
+	y += Step.ROW_H + gap
+	local status = UiKit.layer(page, "Frame", "TacoStatus", 5)
+	place(status, x0, y, W, 34)
+	UiKit.panel(status, { color = Step.THEME.panel, strokeColor = Step.THEME.cardStroke, stroke = 0.04 })
+	text(status, "Text", "Off. Tacos fall around everyone; one that lands on an egg (bases and stages) makes it x3.", "body", 12, 5,
+		W - 24, 24, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = 15, zIndex = 3 })
+	y += 34 + Step.SECTION_GAP
+
+	y = sectionHeader(page, "HeaderTeleport", "TELEPORT YOURSELF", y)
+	cols = columns(4, W, gap, x0)
 	local spots = {
 		{ name = "TeleportLobby", caption = "LOBBY", sub = "HUB SPAWN", place = "Lobby" },
 		{ name = "TeleportPlot", caption = "MY BASE", sub = "YOUR PLOT", place = "Plot" },
@@ -705,6 +762,10 @@ function Step.build(place_)
 	close.Text = ""
 	close.Active = true
 	close.AutoButtonColor = false
+	-- the X glyph the kit skins (the ConsoleCmds name "TextButton", like every window's close): drawn above the kit's dark
+	-- emboss disc. Without it the kit made its own art layer UNDER the disc and the X looked dim (owner round 10)
+	local glyph = UiKit.layer(close, "ImageLabel", "TextButton", 3)
+	glyph.BackgroundTransparency = 1
 	local chrome = UiKit.chrome(window, window, Step.THEME, {
 		text = "ADMIN PANEL", placement = "inside", bandHeight = Step.BAND / Step.H, noIcon = true, close = close,
 		corner = 0.035, zBand = 3, zTop = 12,
@@ -715,8 +776,21 @@ function Step.build(place_)
 	end
 	local title = chrome.title
 	if title then
-		UiKit.placeTitle(title, chrome.box, { left = 104 / Step.W, width = 440 / Step.W, zIndex = 12 })
+		UiKit.placeTitle(title, chrome.box, { left = Step.TITLE_X / Step.W, width = Step.TITLE_W / Step.W, zIndex = 12 })
 		cap(title, Step.TEXT.title)
+	end
+	-- the close sits fully inside the band, above everything of the header, bright (the X over its emboss disc)
+	local c = Step.CLOSE
+	close.AnchorPoint = Vector2.new(0.5, 0.5)
+	close.Position = UDim2.fromOffset(c.x, c.y)
+	close.Size = UDim2.fromOffset(c.size, c.size)
+	close.ZIndex = Step.CLOSE_Z
+	glyph.ZIndex = 3
+	glyph.ImageTransparency = 0
+	glyph.ImageColor3 = UiKit.WHITE
+	local emboss = close:FindFirstChild("SpEmboss")
+	if emboss then
+		emboss.ZIndex = glyph.ZIndex - 1
 	end
 
 	-- header art: the 3D crown, popping out of the band
@@ -725,9 +799,9 @@ function Step.build(place_)
 
 	-- mode badge (the client writes STUDIO / LIVE SERVER)
 	local badge = UiKit.layer(window, "Frame", "ModeBadge", 12)
-	place(badge, 590, 17, 144, 30)
+	place(badge, Step.BADGE.x, Step.BADGE.y, Step.BADGE.w, Step.BADGE.h)
 	UiKit.panel(badge, { color = Step.THEME.panel, strokeColor = UiKit.INK, stroke = 0.08, transparency = 0.05 })
-	local badgeText = text(badge, "Text", "DEV TOOLS", "button", 0, 0, 144, 30, { max = 15, zIndex = 3 })
+	local badgeText = text(badge, "Text", "DEV TOOLS", "button", 0, 0, Step.BADGE.w, Step.BADGE.h, { max = 15, zIndex = 3 })
 	badgeText.Size = UDim2.fromScale(0.9, 0.8)
 	badgeText.Position = UDim2.fromScale(0.05, 0.1)
 
@@ -738,7 +812,7 @@ function Step.build(place_)
 	drag.AutoButtonColor = false
 	drag.Active = true
 	drag.Selectable = false
-	place(drag, 100, 0, 480, Step.BAND)
+	place(drag, Step.DRAG_X, 0, Step.DRAG_W, Step.BAND)
 
 	tabs(window)
 

@@ -20,8 +20,11 @@
 --   UnlockIndexWeapons                  completes every stage's Index (Directory.Areas DropTable, the stages of
 --                                       Directory.StageArt) so the Index EQUIP buttons of the stage weapons show; the
 --                                       same data as GearService's Studio DevCompleteIndex hook (re-implemented here).
---   AddMoney{Amount} / ResetMoney       profile Money (Database.SetAndBroadcast, like CmdrAdminHandler).
---   AddSpeed{Amount} / SetSpeed{Value}  profile SpeedPower (>= 10) + SpeedService.Refresh.
+--   GiveMoney / TakeMoney{Amount}       profile Money (Database.SetAndBroadcast, like CmdrAdminHandler); Amount is the
+--                                       text typed in the panel ("10m", "2.5B", "1e12"), parsed here (ParseAmount);
+--                                       taking more than they have leaves 0. ResetMoney: 0.
+--   GiveSpeed / TakeSpeed{Amount}       profile SpeedPower (clamped to [10, MAX_SPEED_POWER]) + SpeedService.Refresh;
+--   SetSpeed{Value}                     MAX / RESET.
 --   GiveEgg{Stage, Pick}                an egg of a stage's DropTable ("Random" = weighted roll, "Rarest" = the highest
 --                                       rarity) through EggService.GrantEgg + GrantEggTool (in hand).
 --   GrowEggs                            every placed egg of the target ready to hatch (Placement.ReadyAt).
@@ -30,6 +33,8 @@
 --                                       Workspace): start a night now; end the night (or restart the day); back to the
 --                                       server clock.
 --   UnlockBaseThemes                    every Directory.BaseThemes entry unlocked (IndexService's Studio hook, live).
+--   TacoRainStart{Duration} / TacoRainStop   the Taco Rain event (BranchServices.TacoRainService: tacos falling on
+--                                       eggs give them the x3 "Taco" mutation).
 --   Release / Respawn / Heal            ServerScriptService.GearReleaseRequest (ragdoll / trap / weapon state), a fresh
 --                                       character, full health.
 --   GoTo / Bring                        the caller to the target / the target to the caller.
@@ -53,7 +58,6 @@ HeroAdminService.RATE_PER_SECOND = 8 -- commands per second per player (token bu
 HeroAdminService.MAX_COMMAND_LENGTH = 32
 HeroAdminService.MAX_ARG_KEYS = 8
 HeroAdminService.MAX_ARG_STRING = 48
-HeroAdminService.MAX_AMOUNT = 1e12 -- one AddMoney / AddSpeed step
 HeroAdminService.MAX_SPEED_POWER = 5e11 -- walk speed is capped at 300 well before this (TreadmillUtil)
 HeroAdminService.MIN_SPEED_POWER = 10 -- TreadmillUtil.DEFAULT_BASE_SPEED_POWER
 HeroAdminService.DEV_PREFIX = "Dev "
@@ -164,7 +168,10 @@ local function compact(n)
 	local sign = if n < 0 then "-" else ""
 	n = math.abs(n)
 	if n < 1000 then
-		return sign .. tostring(math.floor(n))
+		if n % 1 == 0 then
+			return sign .. tostring(math.floor(n))
+		end
+		return sign .. (string.gsub(string.gsub(string.format("%.2f", n), "0+$", ""), "%.$", ""))
 	end
 	local magnitude = 0
 	while n >= 1000 and magnitude < #SUFFIXES do
@@ -178,6 +185,49 @@ HeroAdminService.Compact = compact
 
 local function finiteNumber(value, min, max)
 	return type(value) == "number" and value == value and value >= min and value <= max
+end
+
+-- The amount typed in a text box -> amount (a positive number, cents at most) | nil, reason. Suffixes K M B T Qa Qi in any
+-- case ("10m" = "10M" = 10,000,000; "2.5b" = 2.5e9), exponents ("1e12"), thousands separators ("1,000,000"), a leading
+-- "+". Negative, NaN, infinite, zero and anything over MAX_INPUT_AMOUNT are refused. A plain number is checked the same.
+HeroAdminService.MAX_INPUT_AMOUNT = 1e15
+HeroAdminService.AMOUNT_SUFFIXES = { k = 1e3, m = 1e6, b = 1e9, t = 1e12, qa = 1e15, qi = 1e18 }
+function HeroAdminService.ParseAmount(value)
+	local number = nil
+	if type(value) == "number" then
+		number = value
+	elseif type(value) == "string" then
+		if #value == 0 or #value > 32 then
+			return nil, "Type an amount first (e.g. 10M)"
+		end
+		local text = string.lower((string.gsub(value, "[%s,_]", "")))
+		if string.sub(text, 1, 1) == "+" then
+			text = string.sub(text, 2)
+		end
+		local digits, exponent, suffix = string.match(text, "^(%d*%.?%d+)(e?[%+%-]?%d*)(%a*)$")
+		if digits == nil or (exponent ~= "" and not string.match(exponent, "^e[%+%-]?%d+$")) then
+			return nil, "Not an amount: " .. value .. " (use 500, 25K, 10M, 2.5B, 1e12)"
+		end
+		local multiplier = if suffix == "" then 1 else HeroAdminService.AMOUNT_SUFFIXES[suffix]
+		if multiplier == nil then
+			return nil, "Unknown suffix '" .. suffix .. "' (K, M, B, T, Qa, Qi)"
+		end
+		local base = tonumber(digits .. exponent)
+		number = if base then base * multiplier else nil
+	else
+		return nil, "Type an amount first (e.g. 10M)"
+	end
+	if type(number) ~= "number" or number ~= number or number == math.huge or number == -math.huge then
+		return nil, "Not a valid amount"
+	end
+	if number > HeroAdminService.MAX_INPUT_AMOUNT then
+		return nil, "Too big: the most is " .. compact(HeroAdminService.MAX_INPUT_AMOUNT)
+	end
+	number = math.floor(number * 100 + 0.5) / 100
+	if number <= 0 then
+		return nil, "The amount must be more than 0"
+	end
+	return number
 end
 
 local function isStageKey(key)
@@ -624,18 +674,40 @@ end
 
 -- Economy -----------------------------------------------------------------------------------------
 
-COMMANDS.AddMoney = function(ctx)
-	local amount = ctx.Args.Amount
-	if not finiteNumber(amount, 1, HeroAdminService.MAX_AMOUNT) or amount % 1 ~= 0 then
-		return false, "Invalid amount"
+-- Money / speed amounts come from the panel's text boxes as typed ("10m", "2.5B", "1e12", "1,000,000"): parsed here,
+-- never trusted as a number from the client (ParseAmount).
+local function amountArg(ctx)
+	local amount, reason = HeroAdminService.ParseAmount(ctx.Args.Amount)
+	if amount == nil then
+		return nil, reason
+	end
+	return amount
+end
+
+local function changeMoney(ctx, sign)
+	local amount, reason = amountArg(ctx)
+	if amount == nil then
+		return false, reason
 	end
 	local profile, db = profileOf(ctx.Target)
 	if profile == nil then
 		return false, ctx.Target.Name .. "'s profile is not loaded yet"
 	end
-	local total = (tonumber(profile.Money) or 0) + amount
+	local before = tonumber(profile.Money) or 0
+	local total = math.max(0, before + sign * amount) -- taking more than they have leaves 0
 	db.SetAndBroadcast(ctx.Target, { Money = total })
-	return true, string.format("+%s money to %s (now %s)", compact(amount), ctx.Target.Name, compact(total))
+	if sign > 0 then
+		return true, string.format("+%s money to %s (now %s)", compact(amount), ctx.Target.Name, compact(total))
+	end
+	return true, string.format("-%s money from %s (now %s)", compact(math.min(amount, before)), ctx.Target.Name, compact(total))
+end
+
+COMMANDS.GiveMoney = function(ctx)
+	return changeMoney(ctx, 1)
+end
+
+COMMANDS.TakeMoney = function(ctx)
+	return changeMoney(ctx, -1)
 end
 
 COMMANDS.ResetMoney = function(ctx)
@@ -664,17 +736,32 @@ local function applySpeedPower(target, value)
 	return value
 end
 
-COMMANDS.AddSpeed = function(ctx)
-	local amount = ctx.Args.Amount
-	if not finiteNumber(amount, 1, HeroAdminService.MAX_AMOUNT) or amount % 1 ~= 0 then
-		return false, "Invalid amount"
+local function changeSpeed(ctx, sign)
+	local amount, reason = amountArg(ctx)
+	if amount == nil then
+		return false, reason
 	end
 	local profile = profileOf(ctx.Target)
 	if profile == nil then
 		return false, ctx.Target.Name .. "'s profile is not loaded yet"
 	end
-	local value = applySpeedPower(ctx.Target, (tonumber(profile.SpeedPower) or 0) + amount)
-	return value ~= nil, string.format("+%s speed power to %s (now %s)", compact(amount), ctx.Target.Name, compact(value or 0))
+	local before = tonumber(profile.SpeedPower) or HeroAdminService.MIN_SPEED_POWER
+	local value = applySpeedPower(ctx.Target, before + sign * amount) -- clamped to [MIN_SPEED_POWER, MAX_SPEED_POWER]
+	if value == nil then
+		return false, ctx.Target.Name .. "'s profile is not loaded yet"
+	end
+	if sign > 0 then
+		return true, string.format("+%s speed to %s (now %s)", compact(amount), ctx.Target.Name, compact(value))
+	end
+	return true, string.format("-%s speed from %s (now %s)", compact(math.max(0, before - value)), ctx.Target.Name, compact(value))
+end
+
+COMMANDS.GiveSpeed = function(ctx)
+	return changeSpeed(ctx, 1)
+end
+
+COMMANDS.TakeSpeed = function(ctx)
+	return changeSpeed(ctx, -1)
 end
 
 COMMANDS.SetSpeed = function(ctx)
@@ -900,6 +987,35 @@ COMMANDS.NormalCycle = function(_ctx)
 	end
 	util.ClearScheduleOverrides()
 	return true, "Night cycle back on the server clock: next night in " .. nextNightText(util)
+end
+
+local function tacoRain()
+	local module = script.Parent:FindFirstChild("TacoRainService")
+	if not (module and module:IsA("ModuleScript")) then
+		return nil
+	end
+	local ok, service = pcall(require, module) -- the same table Branch started
+	return if ok and type(service) == "table" then service else nil
+end
+
+COMMANDS.TacoRainStart = function(ctx)
+	local service = tacoRain()
+	if service == nil then
+		return false, "The Taco Rain service is not running"
+	end
+	local duration = ctx.Args.Duration
+	if duration ~= nil and not finiteNumber(duration, service.MIN_DURATION, service.MAX_DURATION) then
+		return false, string.format("Duration must be %d to %d s", service.MIN_DURATION, service.MAX_DURATION)
+	end
+	return service.Start(duration)
+end
+
+COMMANDS.TacoRainStop = function(_ctx)
+	local service = tacoRain()
+	if service == nil then
+		return false, "The Taco Rain service is not running"
+	end
+	return service.Stop("admin")
 end
 
 COMMANDS.UnlockBaseThemes = function(ctx)

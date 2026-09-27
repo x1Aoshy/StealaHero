@@ -174,6 +174,7 @@ T.check(fx ~= nil and not H.has(fx.Source, "IS CHASING YOU"), "the chase banner 
 
 -- 9. audio whitelist + branding
 local WHITELIST = { ["77120543307812"] = true, ["72264591133889"] = true, ["127039883737564"] = true, ["136993031050456"] = true, ["80736831159506"] = true }
+WHITELIST["142376088"] = true -- owner request 2026-09-27, Taco Rain music (scripts/steps/audio.luau OWNER_AUDIO; one Sound)
 local badSounds = {}
 for _, d in ipairs(place:GetDescendants()) do
 	if d:IsA("Sound") then

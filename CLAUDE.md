@@ -133,7 +133,26 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - The TopbarPlus `HeroAdminIcon` (a part-built 3D crown in a ViewportFrame) sits next to Backpack / Settings; F4
     also toggles it.
   - Tabs: weapons (give all / one / remove, unlock the Index weapons), training dummies, economy, eggs, world
-    (teleports, base themes, night / day), player, server stats.
+    (teleports, base themes, night / day, Taco Rain), player, server stats.
+  - Round 10: Economy takes typed amounts. The client sends the raw text; `HeroAdminService.ParseAmount` accepts K / M /
+    B / T / Qa / Qi (any case), decimals, `1e12` and commas, and refuses <= 0, NaN / inf and > 1e15. The commands are
+    `GiveMoney` / `TakeMoney` / `GiveSpeed` / `TakeSpeed`; money floors at 0 and speed is clamped to [10, 5e11].
+  - The close X was dim because the kit's emboss disc sat above its art. It now carries a `TextButton` glyph like the
+    Index window's, inside the band at ZIndex 20.
+- **Taco Rain** (owner 2026-09-27, admin World tab: start 60 / 90 s, stop), ported from V40's "Events / Raining Tacos":
+  - `BranchServices.TacoRainService` rolls every second: 15% chance to aim a taco at an egg placed on a player's base
+    or resting in a stage nest (`AreaEggService.GetRestingEggs` / `AddRestingEggMutation`), 30 hits max per event.
+  - When the taco lands (1.7 s), the server re-checks the egg and gives it the `Taco` mutation (`Mutations.luau`:
+    ValueMulti 3, never rolled). Mutations stack additively, so Rainbow + Taco = 5.5x. The mutation reaches the
+    hatched hero's income.
+  - `Network["TacoRain: Event"]` broadcasts Drop / Hit / Miss. The Workspace attributes `TacoRainUntil` /
+    `TacoRainHits` drive `BranchControllers.TacoRainController`: tint, TacoAmbient sky, pooled 3D tacos, StruckVFX
+    bursts, a floating "x3 TACO!", and a lighter mode on phones.
+  - `EggRenderer.ApplyMutationParticles` draws `Mutation_FX.Taco` on every render of a taco'd egg.
+  - Assets: `vendor/taco_rain.rbxm` (`scripts/tools/vendor_taco_rain.luau`, from the VFX library), published by
+    `post_taco_rain`.
+  - Music: `SoundService.TacoRainMusic` = 142376088, the only `AudioStep.OWNER_AUDIO` exception to the whitelist
+    (owner request). It stays silent if that audio is not shared with the experience.
 - **Treadmills** (`scripts/steps/treadmill.luau`, round 10): the skins used to sit ~1.2 studs sunk. Now each model
   keeps its full size and is lifted as far as its hull allows without clashing with plot furniture (lowest point
   `GROUND_CLEARANCE` above the floor). The Tool carries `BeltLift` (belt top above the floor).
@@ -149,7 +168,8 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
 ## Hard rules
 - No asset uploads by Claude, never invent asset ids (reuse ids already in the place/assets). Never use the Speedster
   Escape logo 92044769924002.
-- Audio whitelist only: 77120543307812, 72264591133889, 127039883737564, 136993031050456, 80736831159506.
+- Audio whitelist only: 77120543307812, 72264591133889, 127039883737564, 136993031050456, 80736831159506. The only
+  exception is 142376088, the Taco Rain music the owner asked for by id (`AudioStep.OWNER_AUDIO`, on one Sound).
 - UI: every window/popup uses the Free Gift / Sell All studded glossy style (`scripts/lib/ui_kit.luau`).
 - Economy: money was scaled down x125 on 2026-09-25 (Black Widow ~4 $/s max); publishing it needs a full server
   shutdown. Server-authoritative gameplay; validate remotes; keep identifiers other code looks up.
@@ -219,6 +239,13 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
 
   Test in Studio Play with 2+ clients (or a training dummy): aim with the mouse / a tap, the shield's curve and
   return, the batarang blast, Mjolnir's slam, the pole spin.
+- (2026-09-27, 10th pass) Test in Studio Play:
+  - Luffy's long punch and its reach, with 2+ clients or a dummy;
+  - the shield seen from behind;
+  - the dummies standing back up after every state;
+  - the raised treadmills: runner on the belt, the ramp, the moved upgrade signs;
+  - admin amounts like `10m` / `2.5B`, and the close X;
+  - Taco Rain: whether 142376088 plays, the sky and tint, the taco size, a hit on a base egg and on a stage egg.
 - (2026-09-27, 8th pass) The owner imported the 15 FBX models themselves and sent them as a raw `.rbxm`
   (`assets/user_models/HeroWeaponImports_owner_0927.rbxm`, extracted to `assets/hero_weapons/imports/`): every weapon
   now uses the owner's model (the kit's Prepare runs offline: grip from the import pivot = FBX origin, palette

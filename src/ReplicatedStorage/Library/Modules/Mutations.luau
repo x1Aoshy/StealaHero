@@ -2313,6 +2313,34 @@ local t26 = {
 		end,
 		_RemoveFX = function(_, _, _) -- line: 1846
 		end
+	},
+	-- Taco Rain (owner 2026-09-27; scripts/inject/admin_panel.luau injects this mirror): the mutation a falling taco of the
+	-- admin panel's Taco Rain gives the egg it lands on (ServerScriptService.BranchServices.TacoRainService). x3 value
+	-- (GetTotalMutationsEarningMulti adds ValueMulti - 1), never rolled (DropWeight 0, Odds 0). FX: the taco particles of
+	-- ReplicatedStorage.Mutation_FX.Taco (scripts/steps/post_taco_rain.luau) on the hero's FX part.
+	Taco = {
+		Name = "Taco",
+		ValueMulti = 3.0,
+		DropWeight = 0.0,
+		Odds = 0.0,
+		ActiveRunDropWeight = 0.0,
+		Color = Color3.fromRGB(255.0, 196.0, 36.0),
+		_AddFX = function(p190, p191, p192)
+			-- upvalues: applyVFXToFXPartWithTag (copy)
+			p190:_RemoveFX(p191, p192)
+
+			local Mutation_FX = game.ReplicatedStorage:FindFirstChild("Mutation_FX")
+
+			if p192 and Mutation_FX and Mutation_FX:FindFirstChild("Taco") then
+				applyVFXToFXPartWithTag(p192, "Taco", "Cleanup_TacoFX")
+			end
+		end,
+		_RemoveFX = function(_, _, p193)
+			-- upvalues: clearFXFromTag (copy)
+			if p193 then
+				clearFXFromTag(p193, "Cleanup_TacoFX")
+			end
+		end
 	}
 }
 local t27 = {}
