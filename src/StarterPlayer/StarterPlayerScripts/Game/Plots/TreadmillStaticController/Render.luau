@@ -99,11 +99,14 @@ function t1.Build(n2: number, n3: number, p2, n4: number, b1: boolean, p3) -- li
 
 	for _, descendant in ipairs(clone:GetDescendants()) do
 		if descendant:IsA("BasePart") then
+			-- StealaHero: the runner's invisible deck under the raised belt (TreadmillDeck) stays solid and out of
+			-- spatial queries; the rest is walked through
+			local deck = descendant:GetAttribute("TreadmillDeck") == true
 			descendant.Anchored = true
-			descendant.CanCollide = false
+			descendant.CanCollide = deck
 			-- StealaHero: the model's visual-only parts (TreadmillDecor, scripts/steps/treadmill.luau) stay out of
 			-- spatial queries; the functional parts (hitbox, PhoneScreen, ...) stay queryable as before.
-			descendant.CanQuery = descendant:GetAttribute("TreadmillDecor") ~= true
+			descendant.CanQuery = descendant:GetAttribute("TreadmillDecor") ~= true and not deck
 			descendant.CanTouch = false
 		elseif descendant:IsA("BaseScript") then
 			descendant:Destroy()

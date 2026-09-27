@@ -218,7 +218,36 @@ def web_shooter():
                      (0.26, recoil, "sine_inout"), (0.55, recover, "linear")]}
 
 
-CLIPS = {"Mjolnir": ("Mjolnir_JumpSlam", mjolnir), "PowerPole": ("Pole_SpinSweep", power_pole),
+def gomu_fist():
+    """Luffy: Gum-Gum Pistol - the arm winds back, the fist shoots out straight ahead at shoulder height on a long
+    rubber arm (Stretch keys, ~7.5x), hangs out there a beat and snaps back (owner 2026-09-27: "Luffy's fist must
+    stretch, and its hitbox must match"). The punch pose is solved so the stretch runs straight along -Z."""
+    ready = {"Root": (0, 0, 0, 0, 0, 0), "Waist": (0, 0, 0), "Neck": (0, 0, 0),
+             "RightShoulder": (70, 0, 8), "RightElbow": (22, 0, 0), "RightWrist": (0, 0, 0),
+             "LeftShoulder": (0, 0, -6), "LeftElbow": (8, 0, 0),
+             "RightHip": (0, 0, 0), "RightKnee": (0, 0, 0), "RightAnkle": (0, 0, 0),
+             "LeftHip": (0, 0, 0), "LeftKnee": (0, 0, 0), "LeftAnkle": (0, 0, 0)}
+    windup = {"Root": (-4, -18, 0, 0, -0.3, 0.2), "Waist": (-4, -26, 0), "Neck": (0, 30, 0),
+              "RightShoulder": (30, 0, 40), "RightElbow": (110, 0, 0), "RightWrist": (0, 0, 0),
+              "LeftShoulder": (70, 0, -10), "LeftElbow": (20, 0, 0),
+              "RightHip": (-12, 0, 6), "RightKnee": (-26, 0, 0), "RightAnkle": (8, 0, 0),
+              "LeftHip": (30, 0, -6), "LeftKnee": (-30, 0, 0), "LeftAnkle": (10, 0, 0)}
+    punch = {"Root": (-6, 8, 0, 0, -0.3, -0.3), "Waist": (-4, 20, 0), "Neck": (0, -18, 0),
+             "RightShoulder": (90, 20, 30), "RightElbow": (0, 0, 0), "RightWrist": (0, 0, 0),
+             "LeftShoulder": (20, 0, -40), "LeftElbow": (60, 0, 0),
+             "RightHip": (-20, 0, 6), "RightKnee": (-16, 0, 0), "RightAnkle": (6, 0, 0),
+             "LeftHip": (40, 0, -6), "LeftKnee": (-40, 0, 0), "LeftAnkle": (14, 0, 0)}
+    hold = dict(punch)
+    hold.update({"Root": (-5, 8, 0, 0, -0.28, -0.25)})
+    recover = dict(ready)
+    return {"length": 0.72, "impact": 0.28, "full_body": False,
+            "keys": [(0.0, ready, "sine_inout"), (0.16, windup, "quad_in"), (0.24, punch, "quad_out"),
+                     (0.44, hold, "sine_inout"), (0.72, recover, "linear")],
+            # the rubber arm's length factor (HeroWeaponTools.SetStretch): out at the punch, a beat, snaps back
+            "stretch": [(0.0, 1.0), (0.2, 1.0), (0.28, 7.5), (0.42, 7.5), (0.54, 2.0), (0.64, 1.0), (0.72, 1.0)]}
+
+
+CLIPS = {"Mjolnir": ("Mjolnir_JumpSlam", mjolnir), "GomuFist": ("Gomu_Pistol_Long", gomu_fist), "PowerPole": ("Pole_SpinSweep", power_pole),
          "CapShield": ("Shield_Throw", cap_shield), "Batarang": ("Batarang_Flick", batarang),
          "WebShooter": ("Web_Thwip", web_shooter)}
 
@@ -270,6 +299,9 @@ def write_module(weapon, clip_name, spec):
     if spec.get("extend"):
         body = ", ".join("{ " + fmt(t) + ", " + fmt(k) + " }" for t, k in spec["extend"])
         lines.append(f"\tExtend = {{ {body} }},")
+    if spec.get("stretch"):
+        body = ", ".join("{ " + fmt(t) + ", " + fmt(k) + " }" for t, k in spec["stretch"])
+        lines.append(f"\tStretch = {{ {body} }},")
     lines.append("\tTracks = {")
     for joint in JOINTS:
         keys = tracks.get(joint)
@@ -344,6 +376,36 @@ def extend_at(spec, t):
     return 1.0
 
 
+def stretch_at(spec, t):
+    keys = spec.get("stretch")
+    if not keys:
+        return 1.0
+    for (ta, ka), (tb, kb) in zip(keys[:-1], keys[1:]):
+        if ta <= t <= tb:
+            f = (t - ta) / (tb - ta)
+            f = f * f * (3 - 2 * f)
+            return ka + (kb - ka) * f
+    return 1.0
+
+
+def mesh_by_name(path):
+    """{mesh name: (triangles, colours)} of an FBX (the preview's per-mesh stretch)."""
+    import numpy as np
+    import fbx_inspect as F
+    import render_fbx_weapons as RF
+    sc = F.Scene(path)
+    out = {}
+    for oid, o in sc.models():
+        if len(o.props) > 2 and o.props[2] == "Mesh":
+            tris, _ = sc.mesh_triangles(oid)
+            if tris is None or not len(tris):
+                continue
+            mats = sc.materials_of(oid)
+            c = RF.colour(mats[0].props[1].split("\x00")[0] if mats else "")
+            out[o.props[1].split("\x00")[0]] = (tris, [c] * len(tris))
+    return out
+
+
 def render_clip(weapon, clip_name, spec, frames=7):
     import numpy as np
     from PIL import Image
@@ -366,6 +428,21 @@ def render_clip(weapon, clip_name, spec, frames=7):
         transforms = sample(spec, t)
         world = pose_rig(parts, joints, transforms)
         pts = tris.reshape(-1, 3).copy()
+        s_rubber = stretch_at(spec, t)
+        if s_rubber != 1.0:
+            # like HeroWeaponTools.SetStretch: the rubber grows from the hand along +Y, the fist rides its end
+            meshes = mesh_by_name(os.path.join(ROOT, "assets", "hero_weapons", "fbx", "weapons", fbx_name + ".fbx"))
+            parts_pts = []
+            rubber_far = 1.55
+            for name, (mt, mc) in meshes.items():
+                mp = mt.reshape(-1, 3).copy()
+                if "Rubber" in name:
+                    mp[:, 1] = mp[:, 1] * s_rubber
+                elif "Fist" in name:
+                    mp[:, 1] = mp[:, 1] + (s_rubber - 1) * rubber_far
+                parts_pts.append(mp)
+            pts = np.concatenate(parts_pts)
+            cols = sum((mc for _, (_, mc) in meshes.items()), [])
         k = extend_at(spec, t)
         if k != 1.0:
             ymin = pts[:, 1].min()

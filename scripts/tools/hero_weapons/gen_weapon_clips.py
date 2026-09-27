@@ -22,11 +22,11 @@ OUT_DIR = os.path.join(ROOT, "src", "ReplicatedStorage", "Directory", "WeaponAni
 
 # clip file -> weapon id (keep in sync with HeroWeapons.WEAPONS in src/ReplicatedStorage/Library/Modules/HeroWeapons.luau).
 # Round 9 (owner 2026-09-27): Mjolnir, the Power Pole, Cap's shield, the batarang and the web shooter play the clips
-# authored in author_weapon_clips.py (the jump slam, the spin sweep, the aimed throws); their rbxmx stay in the assets.
+# authored in author_weapon_clips.py (the jump slam, the spin sweep, the aimed throws), round 10 Luffy's fist too;
+# their rbxmx stay in the assets.
 CLIPS = {
     "Gauntlet_Blast": "BakugoGauntlet",
-    "Gomu_Pistol": "GomuFist",
-}
+}  # round 10: Luffy's long Gum-Gum Pistol is authored too (author_weapon_clips.py)
 
 # R15 pose (Part1) name -> Motor6D name
 JOINT_OF_POSE = {

@@ -452,6 +452,7 @@ local ragdolls = setmetatable({}, { __mode = "k" }) -- [character] = { token, mo
 local ragdollImmuneUntil = setmetatable({}, { __mode = "k" }) -- [character] = os.clock() deadline (debuffs too)
 local ragdollSerial = 0
 local debuffs = setmetatable({}, { __mode = "k" }) -- [character] = hero weapon debuff state (see below)
+local dummyCalmAt = setmetatable({}, { __mode = "k" }) -- [training dummy] = os.clock() when it may be put back
 local endDebuff -- (victim, character, token?) defined with the hero weapons below
 
 local function jointSpecFor(motorName)
@@ -877,6 +878,9 @@ endDebuff = function(victim, character, token)
 		ragdollImmuneUntil[character] = os.clock() + (HeroWeapons and HeroWeapons.IMMUNITY or 1.2)
 	end
 	fireBatFx({ Action = "DebuffEnd", Victim = victim, Token = state.token })
+	if not victim:IsA("Player") then
+		dummyCalmAt[character] = os.clock() + 0.8 -- a training dummy goes back to its spot a moment later
+	end
 end
 
 -- `victim` enters `weapon`'s state (HeroWeapons.EFFECTS[weapon.Effect]) for its duration. Movement is server-side
@@ -1047,7 +1051,10 @@ local function weaponTargets(player, root, weapon, range, minDot, maxTargets, ce
 					local away = flatUnit(seen - root.Position, flatForward)
 					local inside = centre ~= nil or away:Dot(flatForward) >= minDot
 					if inside and centre == nil and type(weapon.Width) == "number" then
-						local offset = seen - root.Position
+						-- the attack line starts at the arm's shoulder (LineOffset studs to the right of the middle)
+						local lineOrigin = root.Position + flatUnit(root.CFrame.RightVector, Vector3.new(1, 0, 0))
+							* (tonumber(weapon.LineOffset) or 0)
+						local offset = seen - lineOrigin
 						local along = offset:Dot(flatForward)
 						local lateral = (Vector3.new(offset.X, 0, offset.Z) - flatForward * along).Magnitude
 						inside = along > 0 and lateral <= weapon.Width
@@ -1347,6 +1354,73 @@ local function launchAimed(player, tool, root, weapon)
 		forward = flatUnit(finish - origin, Vector3.new(0, 0, -1)),
 		raycast = raycast,
 	})
+end
+
+-- Training dummies (the admin panel's HeroWeaponDummy models, owner 2026-09-27: "the dummy bugs, it stays weird"):
+-- no client moves them, so the server keeps them on their feet (no trip / ragdoll / physics states) and puts them back
+-- upright on their spot a moment after every state (a knockback slide, a spin, a lucky shove).
+local dummyHomes = setmetatable({}, { __mode = "k" }) -- [model] = its root's upright CFrame where it was placed
+local DUMMY_TRIP_STATES = { Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll,
+	Enum.HumanoidStateType.Physics, Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.PlatformStanding }
+
+local function watchDummy(model)
+	if not model:IsA("Model") or dummyHomes[model] ~= nil then
+		return
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if not (humanoid and root and root:IsA("BasePart")) then
+		return
+	end
+	for _, state in ipairs(DUMMY_TRIP_STATES) do
+		pcall(humanoid.SetStateEnabled, humanoid, state, false)
+	end
+	local _, yaw = root.CFrame:ToOrientation()
+	dummyHomes[model] = CFrame.new(root.Position) * CFrame.fromOrientation(0, yaw, 0)
+end
+
+local function settleDummy(model, root)
+	local home = dummyHomes[model]
+	if not home then
+		return
+	end
+	root.AssemblyLinearVelocity = Vector3.zero
+	root.AssemblyAngularVelocity = Vector3.zero
+	model:PivotTo(home * root.CFrame:ToObjectSpace(model:GetPivot()))
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Running)
+	end
+end
+
+if HeroWeapons then
+	CollectionService:GetInstanceAddedSignal(HeroWeapons.DUMMY_TAG):Connect(function(model)
+		task.defer(watchDummy, model) -- after the panel placed and parented it
+	end)
+	for _, model in ipairs(CollectionService:GetTagged(HeroWeapons.DUMMY_TAG)) do
+		watchDummy(model)
+	end
+	task.spawn(function()
+		while true do
+			task.wait(0.3)
+			local now = os.clock()
+			for model, home in pairs(dummyHomes) do
+				local root = model.Parent and model:FindFirstChild("HumanoidRootPart")
+				if not root then
+					dummyHomes[model] = nil
+				elseif debuffs[model] == nil and now >= (dummyCalmAt[model] or 0) then
+					local tilted = root.CFrame.UpVector.Y < 0.95
+					local away = (root.Position - home.Position).Magnitude > 0.75
+					if tilted or away then
+						local ok, err = pcall(settleDummy, model, root)
+						if not ok then
+							log("training dummy reset failed: " .. tostring(err))
+						end
+					end
+				end
+			end
+		end
+	end)
 end
 
 -- The Impact keyframe of the attack clip: pick the victims by the weapon's kind.

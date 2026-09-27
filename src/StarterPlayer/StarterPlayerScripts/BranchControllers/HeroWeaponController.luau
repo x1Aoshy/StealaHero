@@ -716,7 +716,7 @@ local function stopClip(character)
 	for name in pairs(play.written) do
 		releaseJoint(jointEntry(character, name))
 	end
-	if play.tool and Kit and play.weapon.Id == "GomuFist" then
+	if play.tool and Kit and (play.stretch or play.weapon.Id == "GomuFist") then
 		pcall(Kit.SetStretch, play.tool, 1)
 	end
 	restorePole(play)
@@ -748,6 +748,7 @@ local function playClip(character, weapon, options)
 		samples = {},
 		fullBody = data.FullBody == true,
 		extend = if type(data.Extend) == "table" then data.Extend else nil,
+		stretch = if type(data.Stretch) == "table" then data.Stretch else nil, -- Luffy's rubber arm length keys
 		legs = if data.FullBody == true or humanoid.MoveDirection.Magnitude <= 0.1 then 1 else 0,
 		written = {},
 		tool = tool,
@@ -803,7 +804,9 @@ local function stepClip(character, play, dt)
 			play.written[joint] = true
 		end
 	end
-	if play.tool and Kit and play.weapon.Id == "GomuFist" then
+	if play.tool and Kit and play.stretch then
+		pcall(Kit.SetStretch, play.tool, keyed(play.stretch, elapsed)) -- the long Gum-Gum Pistol
+	elseif play.tool and Kit and play.weapon.Id == "GomuFist" then
 		pcall(Kit.SetGomuTime, play.tool, elapsed)
 	end
 	if play.extend then
@@ -941,10 +944,12 @@ onImpact = function(character, play)
 		burstAt(feet + up * 0.3, T.dust(), { Emit = 16, Max = 16 }, 1.5)
 		playPop(root.Position, { 0.8, 0.9 }, 1.2)
 	elseif weapon.Id == "GomuFist" then
+		-- the fist at the end of the stretched arm: a slap burst and speed lines where it lands
 		local fist = sectionPart(tool, "Fist")
-		local at = if fist then fist.Position else root.Position + forward * 5
+		local at = if fist then fist.Position else root.Position + forward * 14
 		flashAt(at, Color3.new(1, 1, 1), 4.5, 1)
 		burstAt(at, T.slap(), { Max = 12 }, 1.2)
+		burstAt(at, T.lines(), { Scale = 0.5, Max = 7 }, 1)
 	end
 end
 

@@ -218,10 +218,13 @@ local function buildTreadmill(plotId, config)
 	-- queries; the functional parts (hitbox, PhoneScreen, ...) stay queryable.
 	for _, desc in ipairs(clone:GetDescendants()) do
 		if desc:IsA("BasePart") then
+			-- the runner's invisible deck under the raised belt (TreadmillDeck, scripts/steps/treadmill.luau) stays
+			-- solid and out of spatial queries; everything else is walked through
+			local deck = desc:GetAttribute("TreadmillDeck") == true
 			desc.Anchored = true
-			desc.CanCollide = false
+			desc.CanCollide = deck
 			desc.CanTouch = false
-			desc.CanQuery = desc:GetAttribute(DECOR_ATTRIBUTE) ~= true
+			desc.CanQuery = desc:GetAttribute(DECOR_ATTRIBUTE) ~= true and not deck
 		elseif desc:IsA("BaseScript") then
 			desc:Destroy()
 		end

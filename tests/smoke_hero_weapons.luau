@@ -490,3 +490,52 @@ do
 	T.check(H.path(rs, "Assets/Weather/ThunderstormWeather/LightningHit") ~= nil and H.path(rs, "Mutation_FX/Shocked") ~= nil,
 		"the storm's LightningHit and the Shocked mutation (Mjolnir's particles) must be in the place")
 end
+
+-- 7. round 10 (owner 2026-09-27): the shield seen from behind, Luffy's long stretch with a matching hitbox, hitboxes
+--    that match what each weapon draws, training dummies kept on their feet
+do
+	local shield = shopItems and shopItems:FindFirstChild("Bat")
+	if shield and shield:GetAttribute("HeroWeaponModel") == "Import" then
+		local backs = 0
+		for _, part in ipairs(shield:GetChildren()) do
+			if part:IsA("BasePart") and part:GetAttribute("HeroBackface") == true then
+				backs += 1
+				T.check(part:FindFirstChild("HeroWeaponWeld") ~= nil, "the shield's backface copy %s must be welded", part.Name)
+			end
+		end
+		T.check(backs >= 4, "the shield's single-sided discs need their backward copies (%d)", backs)
+	end
+	local fist = shopItems and shopItems:FindFirstChild("Volcano Bat")
+	if fist and fist:GetAttribute("HeroWeaponModel") == "Import" then
+		for _, part in ipairs(fist:GetChildren()) do
+			if part:IsA("BasePart") and part:GetAttribute("HeroSection") == "Fist" then
+				local length = part:GetAttribute("StretchLength")
+				T.check(type(length) == "number" and math.abs(length - 1.55) < 0.05,
+					"the fist must ride the rubber arm's end (StretchLength %s, expected ~1.55)", tostring(length))
+			end
+		end
+	end
+	local gomu = clipFolder and clipFolder:FindFirstChild("GomuFist")
+	local gomuData = gomu and H.sandbox(src(gomu), {})() or {}
+	local peak = 0
+	for _, key in ipairs(gomuData.Stretch or {}) do
+		peak = math.max(peak, key[2])
+	end
+	T.check(gomuData.Clip == "Gomu_Pistol_Long" and peak >= 6, "Luffy's fist must stretch far (x%.1f)", peak)
+	local cfg = configModule and H.sandbox(src(configModule), { Color3 = roblox.Color3, Vector3 = roblox.Vector3 })()
+	if cfg then
+		local g = cfg.WEAPONS.GomuFist
+		-- the fist's reach: the hand ~2.65 ahead of the root + 3.0 to the fist tip + 1.55 per unit of stretch
+		local reach = 2.65 + 3.0 + 1.55 * (peak - 1)
+		T.check(math.abs(g.Range - reach) < 1.2 and g.Width <= 2.6 and (g.LineOffset or 0) > 1,
+			"the Gum-Gum hitbox must match the stretched arm (Range %.1f vs reach %.1f)", g.Range, reach)
+		T.check(cfg.WEAPONS.BakugoGauntlet.Range <= 11, "Bakugo's blast reaches as far as its fireballs (~10 studs)")
+		T.check(cfg.WEAPONS.PowerPole.Radius >= 13, "the Power Pole's sweep reaches its extended tip")
+	end
+	T.check(H.has(controllerSrc, "pcall(Kit.SetStretch, play.tool, keyed(play.stretch, elapsed))"), "the controller must play the clip's Stretch keys")
+	for _, needle in ipairs({ "local function watchDummy(model)", "local function settleDummy(model, root)",
+		"CollectionService:GetInstanceAddedSignal(HeroWeapons.DUMMY_TAG)", "dummyCalmAt[character] = os.clock() + 0.8",
+		"* (tonumber(weapon.LineOffset) or 0)" }) do
+		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
+	end
+end

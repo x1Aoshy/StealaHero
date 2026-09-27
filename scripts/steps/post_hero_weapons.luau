@@ -83,6 +83,17 @@ Step.DROP_CLASSES = { "BasePart", "Animation", "LuaSourceContainer", "ParticleEm
 
 -- The grip adjustment of a model in the hand: CFrame.Angles(0, Twist, 0) * CFrame.new(Shift) (FBX origin space).
 local gripAdjustCache = nil
+-- Palettes of a model's single-sided flat meshes that get a backward-facing copy (grip_adjust.json BackfaceCopies).
+function Step.BackfacePalettes(weaponId)
+	Step.GripAdjust(weaponId) -- loads the file
+	local entry = gripAdjustCache[weaponId]
+	local set = {}
+	for _, palette in ipairs(type(entry) == "table" and entry.BackfaceCopies or {}) do
+		set[palette] = true
+	end
+	return set
+end
+
 function Step.GripAdjust(weaponId)
 	if gripAdjustCache == nil then
 		gripAdjustCache = if fs.isFile(Step.GRIP_ADJUST) then serde.decode("json", fs.readFile(Step.GRIP_ADJUST)) else {}
@@ -329,6 +340,44 @@ function Step.BuildWeaponFromImport(tool, imported, config, weaponId)
 		end
 	end
 	assert(handle ~= nil, weaponId .. " import has no Handle")
+	-- single-sided flat meshes (the shield's discs) get a copy turned about their own vertical axis, facing backward:
+	-- DoubleSided alone did not show them from behind in Studio
+	local backface = Step.BackfacePalettes(weaponId)
+	for index = #parts, 1, -1 do
+		local part = parts[index]
+		if backface[part:GetAttribute("HeroPalette") or ""] then
+			local copy = part:Clone()
+			copy.Name = part.Name .. "__Back"
+			copy.CFrame = part.CFrame * CFrame.Angles(0, math.pi, 0)
+			copy:SetAttribute("HeroBackface", true)
+			copy.Parent = tool
+			table.insert(parts, copy)
+		end
+	end
+	-- a stretching weapon (Luffy's rubber arm): its Fist rides the end of the Rubber section, so it moves by the
+	-- rubber's far-end distance per unit of stretch (HeroWeaponTools.SetStretch's StretchLength)
+	local rubber = nil
+	for _, part in ipairs(parts) do
+		if part:GetAttribute("HeroSection") == "Rubber" then
+			rubber = part
+			break
+		end
+	end
+	if rubber then
+		local offset = handle.CFrame:PointToObjectSpace(rubber.CFrame.Position)
+		if offset.Magnitude > 1e-3 then
+			local dir = offset.Unit
+			local localDir = rubber.CFrame:VectorToObjectSpace(handle.CFrame:VectorToWorldSpace(dir))
+			local half = (math.abs(localDir.X) * rubber.Size.X + math.abs(localDir.Y) * rubber.Size.Y
+				+ math.abs(localDir.Z) * rubber.Size.Z) / 2
+			local far = math.floor((offset:Dot(dir) + half) * 1000 + 0.5) / 1000
+			for _, part in ipairs(parts) do
+				if part:GetAttribute("HeroSection") == "Fist" then
+					part:SetAttribute("StretchLength", far)
+				end
+			end
+		end
+	end
 	for _, part in ipairs(parts) do
 		if part ~= handle then
 			local weld = Instance.new("Weld")

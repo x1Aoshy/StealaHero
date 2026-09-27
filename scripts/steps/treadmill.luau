@@ -144,7 +144,20 @@ Step.UNLOCK_PRICE_TEXT = "$8" -- PlotService BASE_TIERS[1].Cost (first base upgr
 Step.FLOOR_ATTRIBUTE = "TreadmillFloorY" -- on each plot Model: walkable floor top under TreadmillBottom
 Step.FLOOR_ALIGNED_ATTRIBUTE = "FloorAligned" -- on the skin Tool: renderers apply the floor correction
 Step.MAX_FLOOR_CORRECTION = 2 -- renderers ignore larger corrections (same constant at runtime)
-Step.GROUND_EPSILON = 0.05 -- belt top sits this far above the walkable floor (no z-fighting)
+Step.GROUND_EPSILON = 0.05 -- belt top sits at least this far above the walkable floor (no z-fighting)
+-- Owner 2026-09-27 (round 10): "the treadmills are a bit sunk into the floor, raise them". Each model keeps its size
+-- and is lifted as far as it goes - up to its lowest visible point GROUND_CLEARANCE above the floor (it used to sit
+-- belt-top-level with the floor, the frame ~1.2 studs under it) - without touching a plot part (an upgrade sign hangs
+-- over some consoles); its belt top is then BeltLift above the floor (a Tool attribute), and the runner stands on an
+-- invisible collidable deck under the belt (+ a ramp behind it) flagged TreadmillDeck, which both renderers keep
+-- solid (and out of spatial queries).
+Step.GROUND_CLEARANCE = 0.03
+Step.LIFT_ATTRIBUTE = "BeltLift"
+Step.DECK_ATTRIBUTE = "TreadmillDeck"
+Step.DECK_NAME = "BeltDeck"
+Step.RAMP_NAME = "BeltRamp"
+Step.RAMP_LENGTH = 2.6
+Step.SIGN_NUDGE_MAX = 2 -- studs an upgrade sign may move away from the plate to make room for a raised treadmill
 Step.ROOT_HEIGHT = 3.9 -- Root above the floor (the original skin's Root sat 3.9 above TreadmillBottom)
 -- D4: the video set every skin loses (looked up recursively; the runtime video player is gone).
 Step.VIDEO_PART_NAMES = { "VideoFeedScreen", "VideoDecorationPart", "SwapLeft", "SwapRight" }
@@ -546,9 +559,10 @@ end
 
 -- Where the phone screen goes on this console: centre SCREEN_CENTER_HEIGHT above the floor on the belt's centre line,
 -- its back face CONSOLE_CLEARANCE in front of the nearest console point inside the screen's (widened) outline.
-function Step.PlacePhoneScreen(points, screenSize)
+function Step.PlacePhoneScreen(points, screenSize, lift)
 	local halfW = screenSize.X / 2 + Step.SCREEN_SIDE_MARGIN
-	local y = Step.SCREEN_CENTER_HEIGHT
+	-- at the runner's eye height: raised with the belt
+	local y = Step.SCREEN_CENTER_HEIGHT + ((lift or Step.GROUND_EPSILON) - Step.GROUND_EPSILON)
 	local bottom = y - screenSize.Y / 2 - Step.SCREEN_HEIGHT_MARGIN
 	local top = y + screenSize.Y / 2 + Step.SCREEN_HEIGHT_MARGIN
 	local consoleAhead = math.huge
@@ -582,6 +596,45 @@ local function furnitureClashes(points, furniture)
 		end
 	end
 	return hits
+end
+
+-- A tier's hull in the floor frame F': the model's points scaled to the plate (baseScale), its lowest point below the
+-- belt top (lowRel, unscaled), and pointsAt(fit, lift): the points above the floor at that fit and belt-top lift.
+function Step.HullLayout(info, tbLength)
+	local baseScale = tbLength / info.beltLength
+	local lowRel = 0
+	for _, w in ipairs(info.framePoints) do
+		lowRel = math.min(lowRel, info.S:PointToObjectSpace(w).Y)
+	end
+	local sourcePoints = {}
+	for _, w in ipairs(info.framePoints) do
+		local p = info.S:PointToObjectSpace(w) * baseScale
+		table.insert(sourcePoints, { p.X, p.Y, p.Z })
+	end
+	local layout = { baseScale = baseScale }
+	-- the belt top above the floor that sets the model's lowest point GROUND_CLEARANCE above it
+	function layout.fullLift(scale)
+		return math.max(Step.GROUND_EPSILON, -lowRel * scale + Step.GROUND_CLEARANCE)
+	end
+	function layout.pointsAt(f, lifted)
+		local out = {}
+		for _, p in ipairs(sourcePoints) do
+			local y = p[2] * f + lifted
+			if y >= 0 then
+				table.insert(out, { p[1] * f, y, p[3] * f })
+			end
+		end
+		return out
+	end
+	-- the size as before the raise (belt flush with the floor): shrunk in FIT_STEP steps until clear of the furniture
+	function layout.fit(furniture, clashes)
+		local fit = 1
+		while fit > Step.MIN_FIT + 1e-6 and #clashes(layout.pointsAt(fit, Step.GROUND_EPSILON), furniture) > 0 do
+			fit -= Step.FIT_STEP
+		end
+		return math.max(fit, Step.MIN_FIT)
+	end
+	return layout
 end
 
 -- Converts one skin in place (tier row of Step.TIERS, analysed source model). Returns a summary table.
@@ -646,27 +699,16 @@ local function convertSkin(tool, screenSize, tier, info, tbLength, furniture)
 	-- 2. The model: clone the whole subtree once, strip what has no place in a static skin, then seat every part in
 	--    the floor frame, scaled so the belt is as long as the plate, or a little shorter where the model would touch
 	--    a plot part above the floor (the hidden part under the floor never counts).
-	local baseScale = tbLength / info.beltLength
-	local sourcePoints = {}
-	for _, w in ipairs(info.framePoints) do
-		local p = info.S:PointToObjectSpace(w) * baseScale
-		if p.Y + Step.GROUND_EPSILON >= 0 then
-			table.insert(sourcePoints, { p.X, p.Y, p.Z })
-		end
+	-- 1) the size as before (belt flush with the floor), 2) raised as far as it goes at that size without touching a
+	-- plot part (the upgrade signs were nudged clear beforehand), up to sitting fully on the floor
+	local hull = Step.HullLayout(info, tbLength)
+	local pointsAt = hull.pointsAt
+	local fit = hull.fit(furniture, furnitureClashes)
+	local scale = hull.baseScale * fit
+	local lift = hull.fullLift(scale)
+	while lift > Step.GROUND_EPSILON + 1e-6 and #furnitureClashes(pointsAt(fit, lift), furniture) > 0 do
+		lift = math.max(Step.GROUND_EPSILON, lift - 0.05)
 	end
-	local function pointsAt(f)
-		local out = table.create(#sourcePoints)
-		for i, p in ipairs(sourcePoints) do
-			out[i] = { p[1] * f, p[2] * f + Step.GROUND_EPSILON, p[3] * f }
-		end
-		return out
-	end
-	local fit = 1
-	while fit > Step.MIN_FIT + 1e-6 and #furnitureClashes(pointsAt(fit), furniture) > 0 do
-		fit -= Step.FIT_STEP
-	end
-	fit = math.max(fit, Step.MIN_FIT)
-	local scale = baseScale * fit
 	local clone = info.model:Clone()
 	for _, d in ipairs(clone:GetDescendants()) do
 		if d.Parent ~= nil and isA(d, STRIP_CLASSES) then
@@ -689,7 +731,7 @@ local function convertSkin(tool, screenSize, tier, info, tbLength, furniture)
 	assert(belt, tier.model .. ": the clone lost its belt " .. info.belt.Name)
 	for _, d in ipairs(parts) do
 		local rel = info.S:ToObjectSpace(d.CFrame)
-		local L = CFrame.new(0, Step.GROUND_EPSILON, 0) * CFrame.new(rel.Position * scale) * rel.Rotation
+		local L = CFrame.new(0, lift, 0) * CFrame.new(rel.Position * scale) * rel.Rotation
 		d.Size = d.Size * scale
 		d.CFrame = toTemplate * L
 		d.Anchored = true
@@ -709,7 +751,7 @@ local function convertSkin(tool, screenSize, tier, info, tbLength, furniture)
 
 	-- 4. The phone screen on the console, the rate sign above it.
 	local points, exact = floorPoints(frames, toTemplate)
-	local placement = Step.PlacePhoneScreen(points, screenSize)
+	local placement = Step.PlacePhoneScreen(points, screenSize, lift)
 	assert(placement.ahead >= Step.SCREEN_MIN_AHEAD, string.format("%s <- %s: the console leaves the phone screen only %.2f studs ahead of the runner (min %.2f)",
 		tier.skin, tier.model, placement.ahead, Step.SCREEN_MIN_AHEAD))
 	local screenLocal = CFrame.new(0, placement.y, -placement.ahead) * CFrame.Angles(0, math.pi, 0) -- Front face -> runner
@@ -719,12 +761,12 @@ local function convertSkin(tool, screenSize, tier, info, tbLength, furniture)
 	ratePart.Anchored = true
 
 	-- 5. Plot parts the model still touches at the smallest fit (reported; the plots are not identical).
-	local clashes = furnitureClashes(pointsAt(fit), furniture)
+	local clashes = furnitureClashes(pointsAt(fit, lift), furniture)
 	if #clashes > 0 then
 		print(string.format("%s WARNING: %s <- %s touches plot parts: %s", LOG_PREFIX, tier.skin, tier.model, table.concat(clashes, ", ", 1, math.min(#clashes, 6))))
 	end
 
-	local pivot = toTemplate * CFrame.new(0, Step.GROUND_EPSILON, 0)
+	local pivot = toTemplate * CFrame.new(0, lift, 0)
 	for _, m in ipairs(clone:GetDescendants()) do
 		if m:IsA("Model") then
 			pcall(function()
@@ -743,6 +785,36 @@ local function convertSkin(tool, screenSize, tier, info, tbLength, furniture)
 	-- 6. Root stays the template frame F (= floor frame at ROOT_HEIGHT over the plate centre).
 	root.CFrame = toTemplate * CFrame.new(0, Step.ROOT_HEIGHT, 0)
 	root.Anchored = true
+
+	-- 6b. The runner's deck: an invisible solid block under the belt, its top the belt top, and a ramp up to it from
+	--     behind (the side away from the console), so the raised belt is walked onto, not clipped into.
+	for _, name in ipairs({ Step.DECK_NAME, Step.RAMP_NAME }) do
+		local old = tool:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
+	end
+	local beltLength, beltWidth = info.beltLength * scale, info.beltWidth * scale
+	local function deckPart(part, name, size, localCFrame)
+		part.Name = name
+		part.Size = size
+		part.CFrame = toTemplate * localCFrame
+		part.Transparency = 1
+		part.Anchored = true
+		part.CanCollide = true
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.TopSurface = Enum.SurfaceType.Smooth
+		part.BottomSurface = Enum.SurfaceType.Smooth
+		part:SetAttribute(Step.DECK_ATTRIBUTE, true)
+		part.Parent = tool
+		return part
+	end
+	deckPart(Instance.new("Part"), Step.DECK_NAME, Vector3.new(beltWidth, lift, beltLength), CFrame.new(0, lift / 2, 0))
+	-- a WedgePart rises toward its -Z end turned around: high edge at the belt's back (+Z), low at the floor behind it
+	deckPart(Instance.new("WedgePart"), Step.RAMP_NAME, Vector3.new(beltWidth, lift, Step.RAMP_LENGTH),
+		CFrame.new(0, lift / 2, beltLength / 2 + Step.RAMP_LENGTH / 2) * CFrame.Angles(0, math.pi, 0))
 
 	-- 7. BoundingBoxPart: centred on the plate (the grounding centres it there), enclosing the visible skin.
 	local minV, maxV
@@ -778,6 +850,7 @@ local function convertSkin(tool, screenSize, tier, info, tbLength, furniture)
 
 	-- Grounding puts the box bottom `Offset` above the plate; the floor correction then makes it the floor.
 	tool:SetAttribute("Offset", minV.Y)
+	tool:SetAttribute(Step.LIFT_ATTRIBUTE, lift)
 	tool:SetAttribute(Step.FLOOR_ALIGNED_ATTRIBUTE, true)
 	tool:SetAttribute("SourceAsset", Step.SOURCE_ASSET_PREFIX .. info.model.Name)
 	tool:SetAttribute(Step.MODEL_ATTRIBUTE, info.model.Name)
@@ -853,7 +926,8 @@ local function verifySkin(tool, tier, plotInfos)
 	assert(phoneScreen.CFrame.LookVector:Dot(F.LookVector) <= -0.99,
 		tier.skin .. ": " .. Step.PHONE_SCREEN_NAME .. " Front face must face the runner (against Root.LookVector)")
 	assert(-screenRel.Position.Z >= Step.SCREEN_MIN_AHEAD - 0.01 and math.abs(screenRel.Position.X) <= 0.05
-		and math.abs(screenRel.Position.Y - (Step.SCREEN_CENTER_HEIGHT - Step.ROOT_HEIGHT)) <= 0.05,
+		and math.abs(screenRel.Position.Y - (Step.SCREEN_CENTER_HEIGHT + ((tool:GetAttribute(Step.LIFT_ATTRIBUTE) or Step.GROUND_EPSILON)
+			- Step.GROUND_EPSILON) - Step.ROOT_HEIGHT)) <= 0.05,
 		string.format("%s: %s at %s from Root, expected ahead of the runner at eye height", tier.skin, Step.PHONE_SCREEN_NAME, tostring(screenRel.Position)))
 	assert(phoneScreen.Anchored and not phoneScreen.CanCollide and not phoneScreen.CanTouch and phoneScreen.CanQuery,
 		tier.skin .. ": " .. Step.PHONE_SCREEN_NAME .. " must be anchored, non-colliding, no touch, queryable")
@@ -907,7 +981,7 @@ local function verifySkin(tool, tier, plotInfos)
 		local beltTop = (beltWorld * Vector3.new(0, belt.Size.Y / 2, 0)).Y
 		local beltLocal = tb.CFrame:PointToObjectSpace(beltWorld.Position)
 		local rootLocal = tb.CFrame:PointToObjectSpace(rootWorld.Position)
-		local expected = floorY + Step.GROUND_EPSILON
+		local expected = floorY + (tool:GetAttribute(Step.LIFT_ATTRIBUTE) or Step.GROUND_EPSILON)
 		assert(math.abs(beltTop - expected) <= 0.01,
 			string.format("%s plot %s: belt top %.3f, expected %.3f", tier.skin, info.plot.Name, beltTop, expected))
 		assert(math.abs(beltLocal.X) <= 0.05 and math.abs(beltLocal.Z) <= 0.05,
@@ -1168,6 +1242,7 @@ local function buildDisplay(plotInfo, tier1, billboardTemplate)
 	billboard.Parent = anchor
 
 	display:SetAttribute("SourceAsset", Step.SOURCE_ASSET_PREFIX .. tier1.tier.model)
+	display:SetAttribute(Step.LIFT_ATTRIBUTE, tool:GetAttribute(Step.LIFT_ATTRIBUTE))
 	display:SetAttribute("PlotId", tonumber(plotInfo.plot.Name) or plotInfo.plot.Name)
 	display:SetAttribute("VisualOnly", true)
 	display:SetAttribute(Step.DISPLAY_STATE_ATTRIBUTE, "Locked")
@@ -1199,8 +1274,9 @@ local function verifyDisplay(display, plotInfo)
 	assert(#belts == 1, string.format("plot %s: display has %d belts, expected 1", plotInfo.plot.Name, #belts))
 	local belt = belts[1]
 	local beltTop = (belt.CFrame * Vector3.new(0, belt.Size.Y / 2, 0)).Y
-	assert(math.abs(beltTop - (floorY + Step.GROUND_EPSILON)) <= 0.01,
-		string.format("plot %s: display belt top %.3f, expected %.3f", plotInfo.plot.Name, beltTop, floorY + Step.GROUND_EPSILON))
+	local lift = display:GetAttribute(Step.LIFT_ATTRIBUTE) or Step.GROUND_EPSILON
+	assert(math.abs(beltTop - (floorY + lift)) <= 0.01,
+		string.format("plot %s: display belt top %.3f, expected %.3f", plotInfo.plot.Name, beltTop, floorY + lift))
 	local centre = tb.CFrame:PointToObjectSpace(belt.CFrame.Position)
 	assert(math.abs(centre.X) <= 0.05 and math.abs(centre.Z) <= 0.05,
 		string.format("plot %s: display belt off the plate centre (%.3f, %.3f)", plotInfo.plot.Name, centre.X, centre.Z))
@@ -1303,33 +1379,132 @@ function Step.Apply(place, spPlace, ctx)
 
 	-- Every plot's own visible parts near its plate, in its floor frame F' (TreadmillBottom X/Z and rotation,
 	-- Y = floor): a skin sits in F' on every plot, so it is checked against all of them at once.
-	local furniture = {}
-	for _, info in ipairs(plotInfos) do
-		local tbPos = info.tb.CFrame.Position
-		local toFloor = (CFrame.new(tbPos.X, info.floorY, tbPos.Z) * info.tb.CFrame.Rotation):Inverse()
-		for _, d in ipairs(info.plot:GetDescendants()) do
-			if d:IsA("BasePart") and d ~= info.tb and d.Transparency < 1 then
-				local cf = toFloor * d.CFrame
-				local lo, hi
-				forEachCorner(cf, d.Size, function(w)
-					lo = lo and lo:Min(w) or w
-					hi = hi and hi:Max(w) or w
-				end)
-				if hi.X > -16 and lo.X < 16 and hi.Z > -16 and lo.Z < 16 and lo.Y < 16 then
-					local grow = if (d.Name == "Sign" or d.Name == "Support") and d.Parent and Step.UPGRADE_SIGN_MODELS[d.Parent.Name]
-						then Step.UPGRADE_SIGN_MARGIN
-						else Step.FURNITURE_MARGIN
-					local margin = Vector3.new(grow, grow, grow)
-					table.insert(furniture, {
-						cf = cf,
-						size = d.Size + margin * 2,
-						name = info.plot.Name .. "." .. d.Name,
-						lo = lo - margin,
-						hi = hi + margin,
-					})
+	local function buildFurniture()
+		local furniture = {}
+		for _, info in ipairs(plotInfos) do
+			local tbPos = info.tb.CFrame.Position
+			local toFloor = (CFrame.new(tbPos.X, info.floorY, tbPos.Z) * info.tb.CFrame.Rotation):Inverse()
+			for _, d in ipairs(info.plot:GetDescendants()) do
+				if d:IsA("BasePart") and d ~= info.tb and d.Transparency < 1 then
+					local cf = toFloor * d.CFrame
+					local lo, hi
+					forEachCorner(cf, d.Size, function(w)
+						lo = lo and lo:Min(w) or w
+						hi = hi and hi:Max(w) or w
+					end)
+					if hi.X > -16 and lo.X < 16 and hi.Z > -16 and lo.Z < 16 and lo.Y < 16 then
+						local grow = if (d.Name == "Sign" or d.Name == "Support") and d.Parent and Step.UPGRADE_SIGN_MODELS[d.Parent.Name]
+							then Step.UPGRADE_SIGN_MARGIN
+							else Step.FURNITURE_MARGIN
+						local margin = Vector3.new(grow, grow, grow)
+						table.insert(furniture, {
+							cf = cf,
+							size = d.Size + margin * 2,
+							name = info.plot.Name .. "." .. d.Name,
+							lo = lo - margin,
+							hi = hi + margin,
+							plot = info.plot,
+							model = d.Parent,
+						})
+					end
 				end
 			end
 		end
+		return furniture
+	end
+	local furniture = buildFurniture()
+
+	-- 2b. Round 10: the treadmills sit ON the floor now, and an upgrade sign stands close behind some consoles (its
+	--     frame bars ~1 stud above the floor). Every tier's hull at its size, fully raised: a sign one of them would
+	--     touch moves straight away from the plate a quarter stud at a time (at most SIGN_NUDGE_MAX), where it clears
+	--     every tier and none of its plot's other parts. post_hub_remodel frames it at its new spot later.
+	local liftedHull = {}
+	for _, tier in ipairs(Step.TIERS) do
+		local info = source and getModel(tier.model)
+		if info then
+			local hull = Step.HullLayout(info, tbLength)
+			local fit = hull.fit(furniture, furnitureClashes)
+			for _, p in ipairs(hull.pointsAt(fit, hull.fullLift(hull.baseScale * fit))) do
+				table.insert(liftedHull, p)
+			end
+		end
+	end
+	local nudged = {}
+	for _, info in ipairs(plotInfos) do
+		local tbPos = info.tb.CFrame.Position
+		local floorFrame = CFrame.new(tbPos.X, info.floorY, tbPos.Z) * info.tb.CFrame.Rotation
+		for kind in pairs(Step.UPGRADE_SIGN_MODELS) do
+			local model = info.plot:FindFirstChild(kind)
+			local boxes = {}
+			for _, box in ipairs(furniture) do
+				if box.plot == info.plot and box.model == model then
+					table.insert(boxes, box)
+				end
+			end
+			local function clashesAt(offset)
+				local shifted = {}
+				for _, box in ipairs(boxes) do
+					table.insert(shifted, { cf = box.cf + offset, size = box.size, name = box.name, lo = box.lo + offset, hi = box.hi + offset })
+				end
+				return #furnitureClashes(liftedHull, shifted) > 0
+			end
+			if model and #boxes > 0 and clashesAt(Vector3.zero) then
+				-- straight away from the plate centre, on the floor plane
+				local centre, n = Vector3.zero, 0
+				for _, box in ipairs(boxes) do
+					centre += box.cf.Position
+					n += 1
+				end
+				centre /= n
+				local away = Vector3.new(centre.X, 0, centre.Z)
+				away = if away.Magnitude > 1e-3 then away.Unit else Vector3.new(0, 0, 1)
+				local chosen = nil
+				for k = 1, math.floor(Step.SIGN_NUDGE_MAX / 0.25 + 0.5) do
+					local offset = away * (k * 0.25)
+					if not clashesAt(offset) then
+						-- the moved sign must stay clear of the plot's other parts (the floor it stands on aside)
+						local blocked = false
+						local worldShift = floorFrame:VectorToWorldSpace(offset)
+						for _, part in ipairs(model:GetDescendants()) do
+							if part:IsA("BasePart") and not blocked then
+								local moved = part.CFrame + worldShift
+								for _, other in ipairs(info.plot:GetDescendants()) do
+									if other:IsA("BasePart") and not other:IsDescendantOf(model) and other ~= info.tb
+										and other.Transparency < 1 and (other.CFrame.Position.Y + other.Size.Y / 2) > info.floorY + 0.15
+										and Step.BoxesOverlap(moved, part.Size, other.CFrame, other.Size, 0.05) then
+										blocked = true
+										break
+									end
+								end
+							end
+						end
+						if not blocked then
+							chosen = offset
+						end
+						break
+					end
+				end
+				if chosen then
+					local worldShift = floorFrame:VectorToWorldSpace(chosen)
+					for _, part in ipairs(model:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.CFrame = part.CFrame + worldShift
+						end
+					end
+					pcall(function()
+						(model :: any).WorldPivotData = (model :: any).WorldPivotData + worldShift
+					end)
+					table.insert(nudged, string.format("%s.%s %.2f", info.plot.Name, kind, chosen.Magnitude))
+				else
+					print(string.format("%s WARNING: plot %s %s stays where it is: the raised treadmills that reach it keep lower",
+						LOG_PREFIX, info.plot.Name, kind))
+				end
+			end
+		end
+	end
+	if #nudged > 0 then
+		print(LOG_PREFIX .. " upgrade signs moved clear of the raised treadmills: " .. table.concat(nudged, ", "))
+		furniture = buildFurniture()
 	end
 
 	-- 3. Convert + verify every tier.

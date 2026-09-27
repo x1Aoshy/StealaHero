@@ -564,11 +564,13 @@ do
 			and beams == 1 and loose == 0 and rate <= 150.01) then
 			table.insert(badSkins, string.format("%s (%s: %d meshes, %d blank, %d belts, %d beams, %d loose, %.0f p/s)", skinName, modelName, meshes, blank, #belts, beams, loose, rate))
 		else
-			-- Root sits 3.9 above the floor on the belt line; the screen centre 5.1 above it, 2.5-6.5 studs ahead, over the belt
+			-- Root sits 3.9 above the floor on the belt line; the screen centre 5.1 above the floor (raised with the belt:
+			-- BeltLift - 0.05, round 10), 2.5-6.5 studs ahead, over the belt
 			local root, screen, belt = tool:FindFirstChild("Root"), tool:FindFirstChild("PhoneScreen"), belts[1]
 			local rel = screen and root and root.CFrame:PointToObjectSpace(screen.CFrame.Position)
 			local beltEnd = root and root.CFrame:PointToObjectSpace(belt.CFrame.Position).Z - math.max(belt.Size.X, belt.Size.Z) / 2
-			if not (rel and math.abs(rel.X) < 0.05 and -rel.Z >= 2.5 and -rel.Z <= 6.5 and math.abs(rel.Y - 1.2) < 0.05 and rel.Z > beltEnd) then
+			local raised = (tonumber(tool:GetAttribute("BeltLift")) or 0.05) - 0.05
+			if not (rel and math.abs(rel.X) < 0.05 and -rel.Z >= 2.5 and -rel.Z <= 6.5 and math.abs(rel.Y - 1.2 - raised) < 0.05 and rel.Z > beltEnd) then
 				table.insert(badScreens, skinName)
 			end
 		end

@@ -66,6 +66,7 @@ export type Weapon = {
 	MinDot: number,
 	Aimed: boolean?,
 	Width: number?,
+	LineOffset: number?,
 	Speed: number?,
 	ReturnSpeed: number?,
 	Curve: number?,
@@ -89,7 +90,8 @@ HeroWeapons.WEAPONS = {
 	},
 	PowerPole = {
 		DisplayName = "Power Pole", Hero = "Goku", Effect = "SpinTornado", Kind = "Spin", Cooldown = 1.3,
-		Range = 12.5, MinDot = -1, Radius = 12.5, MaxTargets = 4, Shake = 0.8,
+		-- the pole's tip at full length sweeps ~14 studs out: a rival's middle within 13.5 is under it
+		Range = 13.5, MinDot = -1, Radius = 13.5, MaxTargets = 4, Shake = 0.8,
 		Color = Color3.fromRGB(204, 30, 34), Accent = Color3.fromRGB(255, 190, 40),
 	},
 	WebShooter = {
@@ -104,7 +106,8 @@ HeroWeapons.WEAPONS = {
 	},
 	BakugoGauntlet = {
 		DisplayName = "Grenade Gauntlet", Hero = "Bakugo", Effect = "ExplosionBlast", Kind = "Blast", Cooldown = 1.3,
-		Range = 15, MinDot = 0.5, MaxTargets = 3, Push = 26, Shake = 1,
+		-- the blast's fireballs roll ~10 studs out of the gauntlet: that is its reach
+		Range = 10.5, MinDot = 0.5, MaxTargets = 3, Push = 26, Shake = 1,
 		Color = Color3.fromRGB(255, 140, 30), Accent = Color3.fromRGB(255, 230, 120),
 	},
 	Mjolnir = {
@@ -113,8 +116,10 @@ HeroWeapons.WEAPONS = {
 		Color = Color3.fromRGB(150, 220, 255), Accent = Color3.fromRGB(235, 250, 255),
 	},
 	GomuFist = {
-		DisplayName = "Gum-Gum Fist", Hero = "Luffy", Effect = "CleanKnockback", Kind = "Thrust", Cooldown = 1.1,
-		Range = 17, MinDot = 0.6, Width = 3.4, Push = 45, Shake = 0.7,
+		DisplayName = "Gum-Gum Fist", Hero = "Luffy", Effect = "CleanKnockback", Kind = "Thrust", Cooldown = 1.2,
+		-- the rubber arm shoots straight out from the right shoulder (1.35 studs right of the middle) to ~15.5 studs:
+		-- the hitbox is that line, as wide as the fist + a body (its clip's Stretch keys, 7.5x at the Impact)
+		Range = 15.5, MinDot = 0.6, Width = 2.3, LineOffset = 1.35, Push = 45, Shake = 0.7,
 		Color = Color3.fromRGB(250, 200, 158), Accent = Color3.fromRGB(204, 30, 34),
 	},
 } :: { [string]: any }
