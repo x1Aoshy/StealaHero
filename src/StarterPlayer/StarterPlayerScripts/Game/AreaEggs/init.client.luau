@@ -1078,6 +1078,92 @@ local function renderGuardCarry(record)
 	end)
 end
 
+-- Grab (owner 2026-09-27: "an animation of grabbing the eggs"): when a player takes an egg (the record turns Carried),
+-- every client plays a short procedural grab on that player's R15 character -- crouch, reach down, lift the egg to
+-- the chest, back up -- as Motor6D.C0 offsets over the rest pose (attribute VfxBaseC0), on top of what the Animator
+-- plays. R6 or missing joints: nothing.
+local GRAB_TIME = 0.6
+local GRAB_KEYS = {
+	{ 0, {} },
+	{ 0.35, { Waist = { 28, 0, 0 }, RightHip = { 22, 0, 0 }, LeftHip = { 22, 0, 0 }, RightKnee = { -40, 0, 0 }, LeftKnee = { -40, 0, 0 },
+		RightShoulder = { 62, 0, 8 }, LeftShoulder = { 62, 0, -8 }, RightElbow = { 10, 0, 0 }, LeftElbow = { 10, 0, 0 } } },
+	{ 0.7, { Waist = { 6, 0, 0 }, RightShoulder = { 45, 0, 10 }, LeftShoulder = { 45, 0, -10 }, RightElbow = { 70, 0, 0 }, LeftElbow = { 70, 0, 0 } } },
+	{ 1, {} },
+}
+local GRAB_JOINTS = { "Waist", "RightHip", "LeftHip", "RightKnee", "LeftKnee", "RightShoulder", "LeftShoulder", "RightElbow", "LeftElbow" }
+local grabTokens = setmetatable({}, { __mode = "k" }) -- [character] = number
+
+local function grabPose(t)
+	local a, b = GRAB_KEYS[1], GRAB_KEYS[#GRAB_KEYS]
+	for i = 1, #GRAB_KEYS - 1 do
+		if t >= GRAB_KEYS[i][1] and t <= GRAB_KEYS[i + 1][1] then
+			a, b = GRAB_KEYS[i], GRAB_KEYS[i + 1]
+			break
+		end
+	end
+	local alpha = math.clamp((t - a[1]) / math.max(b[1] - a[1], 1e-3), 0, 1)
+	alpha = alpha * alpha * (3 - 2 * alpha)
+	local pose = {}
+	for _, joint in ipairs(GRAB_JOINTS) do
+		local from = a[2][joint] or { 0, 0, 0 }
+		local to = b[2][joint] or { 0, 0, 0 }
+		pose[joint] = CFrame.Angles(math.rad(from[1] + (to[1] - from[1]) * alpha), math.rad(from[2] + (to[2] - from[2]) * alpha),
+			math.rad(from[3] + (to[3] - from[3]) * alpha))
+	end
+	return pose
+end
+
+local function playGrab(character)
+	if character == nil or character:FindFirstChild("UpperTorso") == nil then
+		return
+	end
+	local motors = {}
+	for _, joint in ipairs(GRAB_JOINTS) do
+		local motor = character:FindFirstChild(joint, true)
+		if motor and motor:IsA("Motor6D") then
+			motors[joint] = { motor = motor, base = restC0(motor) }
+		end
+	end
+	if next(motors) == nil then
+		return
+	end
+	local token = (grabTokens[character] or 0) + 1
+	grabTokens[character] = token
+	local started = os.clock()
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		local t = (os.clock() - started) / GRAB_TIME
+		local done = t >= 1 or grabTokens[character] ~= token or character.Parent == nil
+		local pose = if done then nil else grabPose(t)
+		for name, info in pairs(motors) do
+			if info.motor.Parent then
+				info.motor.C0 = if pose then info.base * pose[name] else info.base
+			end
+		end
+		if done then
+			connection:Disconnect()
+		end
+	end)
+end
+
+local lastGrabbed = {} -- [uid] = carrier userId the grab was played for
+EggCmds.AreaEggUpdated:Connect(function(record)
+	if record == nil then
+		return
+	end
+	if record.State == States.Carried and record.CarrierUserId ~= nil then
+		if lastGrabbed[record.Uid] ~= record.CarrierUserId then
+			lastGrabbed[record.Uid] = record.CarrierUserId
+			local carrier = Players:GetPlayerByUserId(record.CarrierUserId)
+			if carrier then
+				playGrab(carrier.Character)
+			end
+		end
+	else
+		lastGrabbed[record.Uid] = nil
+	end
+end)
+
 EggCmds.AreaEggUpdated:Connect(function(record)
 	if record == nil then
 		return

@@ -91,8 +91,8 @@ local WHITE = Kit.Colors.white
 local BLACK = Kit.Colors.black
 UiKit.INK, UiKit.WHITE, UiKit.BLACK = INK, WHITE, BLACK
 
-UiKit.STUD_TILE = UDim2.fromOffset(16, 16)
-UiKit.STUD_TRANSPARENCY = 0.85 -- the studs show at ~15 %
+UiKit.STUD_TILE = UDim2.fromOffset(18, 18)
+UiKit.STUD_TRANSPARENCY = 0.6 -- the studs show at ~40 % (owner 2026-09-27: "stud texture on every UI, and visible")
 -- Multiplied into a button's BackgroundColor3: light top, a darker lip along the bottom edge (the relief). Because it
 -- multiplies, a script that recolours the button (claim state, selection) keeps the glossy look.
 UiKit.GLOSS_FILL = { { 0, "#ffffff" }, { 0.46, "#f2f2f2" }, { 0.79, "#c8c8c8" }, { 0.83, "#8c8c8c" }, { 1, "#747474" } }
@@ -438,8 +438,11 @@ function UiKit.streaks(parent, zIndex, layerAspect)
 end
 
 -- The theme's faint background pattern (SpPattern): tiled (theme.patternTile) or stretched (theme.patternStretch).
+-- Owner 2026-09-27: the Roblox stud texture is the only UI texture (the studs layer UiKit.body draws); no theme pattern
+-- (stars, flames, sparkles, blocks, money, big studs) is drawn any more, an old one is hidden.
+UiKit.THEME_PATTERNS = false
 function UiKit.pattern(parent, zIndex, theme)
-	if theme == nil or theme.pattern == nil then
+	if theme == nil or theme.pattern == nil or not UiKit.THEME_PATTERNS then
 		local old = parent:FindFirstChild("SpPattern")
 		if old and old:IsA("ImageLabel") and old.Name == "SpPattern" and old:GetAttribute("SpThemePattern") then
 			old.ImageTransparency = 1
@@ -513,8 +516,10 @@ function UiKit.body(root, painter, opts)
 		z = bg.ZIndex
 	end
 	if opts.theme and opts.theme.pattern and not Kit.hasLayout(painter) then
-		local art = UiKit.pattern(painter, z, opts.theme)
-		Kit.setCorner(art, opts.corner)
+		local art = UiKit.pattern(painter, z, opts.theme) -- nil while UiKit.THEME_PATTERNS is off (stud texture only)
+		if art then
+			Kit.setCorner(art, opts.corner)
+		end
 	end
 	if not opts.noStuds and not Kit.hasLayout(painter) then
 		UiKit.studs(painter, z, { corner = opts.corner })

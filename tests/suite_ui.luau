@@ -414,7 +414,8 @@ if T.check(cardFrame ~= nil, "Index stage card template (IndexEntries.Template.F
 	T.check(isClass(image, "ImageLabel") and image.ScaleType == Enum.ScaleType.Crop, "stage card Frame.Image must be an ImageLabel with ScaleType Crop")
 	for _, node in ipairs({ cardFrame, image, fallback }) do
 		if node then
-			T.check(allCorners(node:FindFirstChildOfClass("UICorner"), UDim.new(0, 10)), "%s: UICorner radii must be 10 px", node:GetFullName())
+			-- owner 2026-09-27: square UI (was 10 px)
+			T.check(allCorners(node:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)), "%s: UICorner radii must be square (0)", node:GetFullName())
 		end
 	end
 	if T.check(isClass(fallback, "Frame"), "stage card SpStageFallback (Frame) missing") then
@@ -446,7 +447,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- D7 HUD: sidebar Shop / Index buttons, currency pills, night timer
 ---------------------------------------------------------------------------------------------------
-local SIDEBAR_WRAPPER_SIZE = { 1, 0.2210759 } -- Elements.Left.Tools.Shop/Index Size before the visual pass
+local SIDEBAR_WRAPPER_SIZE = { 1, 0.22 } -- Elements.Left.Tools.Shop/Index: a square tile of the left column (owner 2026-09-27)
 local sideButtons = { { "Shop", "#4ed61b", "ShopIcon", 96787567013749 }, { "Index", "#14c4f4", "HeroIcon", 140189242202677 } }
 for _, spec in ipairs(sideButtons) do
 	local wrapper = H.path(sg, "Elements/Left/Tools/" .. spec[1])
@@ -467,12 +468,14 @@ for _, spec in ipairs(sideButtons) do
 		local icon = button:FindFirstChild(spec[3])
 		T.check(icon ~= nil and icon.Visible and H.imageId(icon) == spec[4] and (plate == nil or icon.ZIndex > plate.ZIndex),
 			"%s: visible %s (%d) above the sticker plate missing", label, spec[3], spec[4])
-		-- D7 keeps the sidebar's position and shape: the pre-pass wrapper size and pill corner (0.3)
+		-- owner 2026-09-27: square minimalist stud tiles (were 190x70 pills with a 0.3 corner), square corners
 		local size = wrapper.Size
 		T.check(math.abs(size.X.Scale - SIDEBAR_WRAPPER_SIZE[1]) < 1e-3 and size.X.Offset == 0 and math.abs(size.Y.Scale - SIDEBAR_WRAPPER_SIZE[2]) < 1e-3
-			and size.Y.Offset == 0, "%s: wrapper Size must stay {%g,0,%g,0} (D7 keeps the shape), found %s", spec[1], SIDEBAR_WRAPPER_SIZE[1], SIDEBAR_WRAPPER_SIZE[2],
+			and size.Y.Offset == 0, "%s: wrapper Size must be {%g,0,%g,0} (square tile), found %s", spec[1], SIDEBAR_WRAPPER_SIZE[1], SIDEBAR_WRAPPER_SIZE[2],
 			tostring(size))
-		T.check(allCorners(button:FindFirstChildOfClass("UICorner"), UDim.new(0.3, 0)), "%s: button corner radius must stay 0.3", label)
+		T.check(allCorners(button:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)), "%s: button corners must be square", label)
+		local ratio = wrapper:FindFirstChildOfClass("UIAspectRatioConstraint")
+		T.check(ratio ~= nil and math.abs(ratio.AspectRatio - 1) < 1e-3, "%s: the sidebar tile must be square (aspect 1)", label)
 	end
 end
 if left then
@@ -592,8 +595,8 @@ if T.check(timer ~= nil, "StarterGui.GameResetTimer missing") then
 			local pill = root:FindFirstChild("Background")
 			local g = pill and pill:FindFirstChildOfClass("UIGradient")
 			T.check(pill ~= nil and math.abs(pill.BackgroundTransparency - 0.22) < 0.01 and g ~= nil and hex(g.Color.Keypoints[1].Value) == "#2c4a9c"
-				and allCorners(pill:FindFirstChildOfClass("UICorner"), UDim.new(0.5, 0)) and isClass(pill:FindFirstChild("SpStroke"), "UIStroke"),
-				"GameResetTimer.%s must be a translucent night-blue pill (#2c4a9c, 0.22, rounded, SpStroke rim)", spec[1])
+				and allCorners(pill:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)) and isClass(pill:FindFirstChild("SpStroke"), "UIStroke"),
+				"GameResetTimer.%s must be a translucent night-blue band (#2c4a9c, 0.22, square, SpStroke rim)", spec[1])
 			local shadow = root:FindFirstChild("SpShadow")
 			T.check(pill ~= nil and shadow ~= nil and shadow.ZIndex == pill.ZIndex - 1, "GameResetTimer.%s.SpShadow must sit one ZIndex below the pill", spec[1])
 			local iconFrame = H.path(root, "Main/Frame")

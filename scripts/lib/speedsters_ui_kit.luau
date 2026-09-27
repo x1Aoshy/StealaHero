@@ -771,8 +771,11 @@ end
 
 -- Writes the four per-corner radii (CornerRadius is not persisted by Lune) on the first UICorner, creating one
 -- when absent. radius: UDim or a scale number (0.05 -> UDim(0.05, 0)).
+-- Owner 2026-09-27: "no more rounded UI, leave them square with a separation": with Kit.SQUARE_UI every corner the
+-- kits and steps write is square (radius 0), whatever radius the caller asks for.
+Kit.SQUARE_UI = true
 function Kit.setCorner(inst, radius)
-	local r = udim(radius)
+	local r = if Kit.SQUARE_UI then UDim.new(0, 0) else udim(radius)
 	local corner = inst:FindFirstChildOfClass("UICorner")
 	if not corner then
 		corner = Instance.new("UICorner")

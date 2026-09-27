@@ -161,15 +161,15 @@ local GLOSSY = {
 local GLOSSY_GEOMETRY = {
 	-- the pill keeps TOOL_PILL_ASPECT (2.714) through its wrapper's aspect constraint, so scale tiles stay square:
 	-- 8 studs across, ~2.7 rows
-	studColumns = 8,
-	studTransparency = 0.72,
+	studColumns = 5,
+	studTransparency = 0.55,
 	glossTop = 0.07, glossWidth = 0.94, glossHeight = 0.42, glossCornerTop = 0.45, glossCornerBottom = 0.2,
-	glossFrom = 0.45, glossTo = 0.95,
+	glossFrom = 0.72, glossTo = 0.97, -- a faint gloss (minimalist tiles)
 	outline = 0.055, ring = 0.035, ringOffset = -0.05,
-	iconCenter = UDim2.fromScale(0.2, 0.5), iconSize = UDim2.fromScale(0.36, 0.86),
+	iconCenter = UDim2.fromScale(0.5, 0.4), iconSize = UDim2.fromScale(0.56, 0.56),
 	plateSize = UDim2.fromScale(0.74, 0.74), plateTransparency = 0.2, plateRim = 0.075, plateInk = 0.13,
-	labelPosition = UDim2.fromScale(0.37, 0.5), labelSize = UDim2.fromScale(0.59, 0.54), labelStroke = 0.13,
-	badgeSize = UDim2.fromScale(0.5, 0.5), badgePosition = UDim2.fromScale(0.965, 0.1),
+	labelPosition = UDim2.fromScale(0.06, 0.84), labelSize = UDim2.fromScale(0.88, 0.24), labelStroke = 0.13,
+	badgeSize = UDim2.fromScale(0.36, 0.36), badgePosition = UDim2.fromScale(0.96, 0.06),
 	z = { studs = 2, gloss = 2, plate = 3, icon = 4, label = 5, badge = 7 },
 }
 
@@ -260,14 +260,16 @@ local NIGHT = {
 ---------------------------------------------------------------------------------------------------
 
 -- Left tool "pill": wider than tall, icon left + label right (reference "Tienda" / "Indice").
-local TOOL_PILL_ASPECT = 2.714 -- 190 x 70
-local TOOL_PILL_CORNER = UDim.new(0.3, 0)
-local LEFT_BOX_ASPECT = 0.6 -- 190 x 317: room for 4 pills + gaps, and the premium pill on its own row
-local LEFT_BOX_WIDTH = 0.1494 -- of the Elements content width, BEFORE Left's own UIScale (1.1) -> 190 px
+-- Owner 2026-09-27: "separate the Shop and Hero Index buttons a bit, more minimalist, square, keep the stud style":
+-- the pills became square stud tiles (icon on top, word under it), square corners, a wider gap.
+local TOOL_PILL_ASPECT = 1 -- square tiles (were 190 x 70 pills)
+local TOOL_PILL_CORNER = UDim.new(0, 0) -- square
+local LEFT_BOX_ASPECT = 0.22 -- 4 tiles + 3 gaps: width / height
+local LEFT_BOX_WIDTH = 0.068 -- of the Elements content width, BEFORE Left's own UIScale (1.1) -> ~86 px tiles
 -- left edge, vertically centred (UIScale scales about the AnchorPoint, so the 1.1 scale keeps the centre)
 local LEFT_BOX_POSITION = UDim2.fromScale(0.012, 0.5)
 local LEFT_BOX_ANCHOR = Vector2.new(0, 0.5)
-local LEFT_ROW_PADDING = 0.032 -- of the box height -> ~10 px gap
+local LEFT_ROW_PADDING = 0.045 -- of the box height -> ~17 px gap between the tiles
 local TOOL_ICON = {
 	size = UDim2.fromScale(0.26, 0.7), position = UDim2.fromScale(0.055, 0.5), anchor = Vector2.new(0, 0.5),
 }
@@ -834,6 +836,7 @@ local function skinGlossyTool(button, spec, icon, label)
 	Kit.setCorner(plate, 0.5)
 	Kit.addStroke(plate, { name = "SpStrokeRim", color = C.white, thickness = g.plateRim, zIndex = 2 })
 	Kit.addStroke(plate, { name = Kit.Names.strokeDark, color = spec.outline, thickness = g.plateInk, zIndex = 1 })
+	plate.Visible = false -- minimalist square tiles (owner 2026-09-27): the icon sits straight on the studded face
 	if icon then
 		place(icon, g.iconSize, g.iconCenter, Vector2.new(0.5, 0.5))
 		icon.BackgroundTransparency = 1
@@ -849,6 +852,9 @@ local function skinGlossyTool(button, spec, icon, label)
 		place(label, g.labelSize, g.labelPosition, Vector2.new(0, 0.5))
 		label.ZIndex = g.z.label
 		Kit.styleText(label, "sidebar", { strokeThickness = g.labelStroke, strokeColor = spec.outline })
+		if Kit.isText(label) then
+			label.TextXAlignment = Enum.TextXAlignment.Center
+		end
 		aspect(label, g.labelSize.X.Scale / g.labelSize.Y.Scale * TOOL_PILL_ASPECT)
 	end
 
