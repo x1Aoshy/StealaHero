@@ -959,6 +959,139 @@ WorkspaceEggVisibility.ModelAdded:Connect(function(p19) -- line: 373
 		end)
 	end
 end)
+-- Villain carry (owner 2026-09-27: "the villains pick the eggs up, carry them and put them in their basket"): an egg
+-- the stage villain lifted (State "GuardCarried", set by AreaEggService when GuardChaseService reaches a Dropped egg)
+-- rides in front of the villain's chest, sized to the villain, with its arms posed around it (Motor6D.C0 offsets on
+-- the shared base VfxBaseC0, restored when the carry ends), until the server sets it down in its nest (Slot) or
+-- returns it some other way.
+local GUARD_CARRIED = "GuardCarried"
+local GUARD_CARRY_POSE = {
+	RightShoulder = { 72, 0, 14 },
+	LeftShoulder = { 72, 0, -14 },
+	RightElbow = { 38, 0, 0 },
+	LeftElbow = { 38, 0, 0 },
+}
+local guardCarryRenders = {} -- [uid] = Trove
+
+local function guardModelFor(areaId)
+	local ok, guard = pcall(function()
+		return __OBJECTS.Areas.GuardAreas[areaId]:FindFirstChild("Guard")
+	end)
+	return if ok and guard and guard:IsA("Model") then guard else nil
+end
+
+-- The joint's rest C0, shared with VillainChaseFx's punch so the two poses never stack.
+local function restC0(motor)
+	local base = motor:GetAttribute("VfxBaseC0")
+	if typeof(base) ~= "CFrame" then
+		base = motor.C0
+		motor:SetAttribute("VfxBaseC0", base)
+	end
+	return base
+end
+
+local function clearGuardCarry(uid)
+	local trove = guardCarryRenders[uid]
+	if trove then
+		guardCarryRenders[uid] = nil
+		pcall(function()
+			trove:Destroy()
+		end)
+	end
+end
+
+local function renderGuardCarry(record)
+	if record == nil or record.State ~= GUARD_CARRIED or guardCarryRenders[record.Uid] then
+		return
+	end
+	local guard = guardModelFor(record.AreaId)
+	local torso = guard and (guard:FindFirstChild("UpperTorso") or guard:FindFirstChild("HumanoidRootPart"))
+	if not (torso and torso:IsA("BasePart")) then
+		return
+	end
+	local trove = Trove.new()
+	guardCarryRenders[record.Uid] = trove
+	local ok, resultOrErr = pcall(function()
+		return EggRenderer.RenderVisual({
+			OwnerUserId = 0,
+			ScaleAlpha = 1.0,
+			UID = record.Uid .. "_GuardCarried",
+			ModelName = record.Uid .. "_GuardCarried",
+			Record = {
+				AssetCategory = record.AssetCategory,
+				AssetScale = record.AssetScale,
+				AssetEyeColor = record.AssetEyeColor,
+				AssetColorSeed = record.AssetColorSeed,
+				AssetColorIndex = record.AssetColorIndex,
+				Mutations = table.clone(record.Mutations or {}),
+				BaseMutation = record.BaseMutation,
+			},
+		}, Folder, false)
+	end)
+	if not ok or not resultOrErr or not resultOrErr.Model then
+		clearGuardCarry(record.Uid)
+		return
+	end
+	local model = resultOrErr.Model
+	local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	if not primary then
+		model:Destroy()
+		clearGuardCarry(record.Uid)
+		return
+	end
+	trove:Add(model)
+	for _, desc in ipairs(model:GetDescendants()) do
+		if desc:IsA("BasePart") then
+			desc.Anchored = false
+			desc.CanCollide = false
+			desc.CanQuery = false
+			desc.CanTouch = false
+			desc.Massless = true
+		end
+	end
+	-- about 1.8 studs of egg per unit of villain scale, held just in front of the chest
+	local rigScale = tonumber(guard:GetAttribute("RigScale")) or 1
+	pcall(function()
+		local _, size = model:GetBoundingBox()
+		model:ScaleTo(model:GetScale() * (1.8 * rigScale) / math.max(size.Y, 0.1))
+	end)
+	local _, size = model:GetBoundingBox()
+	local offset = CFrame.new(0, -0.25 * rigScale, -(torso.Size.Z / 2 + size.Z / 2 + 0.15 * rigScale))
+	model:PivotTo(torso.CFrame * offset)
+	trove:Add(Weld(primary, torso, torso.CFrame:ToObjectSpace(primary.CFrame)))
+	-- arms around the egg
+	local posed = {}
+	for name, angles in pairs(GUARD_CARRY_POSE) do
+		local motor = guard:FindFirstChild(name, true)
+		if motor and motor:IsA("Motor6D") then
+			local base = restC0(motor)
+			motor.C0 = base * CFrame.Angles(math.rad(angles[1]), math.rad(angles[2]), math.rad(angles[3]))
+			posed[motor] = base
+		end
+	end
+	trove:Add(function()
+		for motor, base in pairs(posed) do
+			if motor.Parent then
+				motor.C0 = base
+			end
+		end
+	end)
+end
+
+EggCmds.AreaEggUpdated:Connect(function(record)
+	if record == nil then
+		return
+	end
+	if record.State == GUARD_CARRIED then
+		task.defer(renderGuardCarry, record)
+	else
+		clearGuardCarry(record.Uid)
+	end
+end)
+EggCmds.AreaEggRemoved:Connect(function(uid)
+	clearGuardCarry(uid)
+end)
+
 CarryRunBackEffects.Start()
 WorkspaceEggVisibility.Start()
 RareEggHighlight.Start()

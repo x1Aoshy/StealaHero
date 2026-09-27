@@ -10,4 +10,11 @@ return {
 		source = "src/ReplicatedStorage/Library/Client/HeroPortrait.luau",
 		create = true,
 	},
+	-- owner 2026-09-27: egg icons (hotbar / backpack, growing-egg list, Sell Heroes) show the hero's own voxel egg
+	{
+		target = "ReplicatedStorage/Library/Client/EggPortrait",
+		class = "ModuleScript",
+		source = "src/ReplicatedStorage/Library/Client/EggPortrait.luau",
+		create = true,
+	},
 }

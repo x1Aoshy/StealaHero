@@ -369,17 +369,24 @@ do
 	T.check(consts.VERTICAL_CATCH_BASE == 3 and consts.VERTICAL_CATCH_PER_SCALE == 2.5, "A3: catch height limit must be 2.5 * scale + 3")
 	local globals = {
 		Vector3 = Vector3,
+		Enum = H.roblox.Enum,
+		GROUND_PROBE_DEPTH = H.constant(chase, "GROUND_PROBE_DEPTH") or 40,
 		isInSafeZone = function(p)
 			return p.X <= PLAN.HUB_MAX_X
 		end,
-		castRay = function(g)
+		-- a downward probe (the jump check) finds the floor at g.floorY; any other ray hits only when g.blocked
+		castRay = function(g, origin, direction)
+			if direction.X == 0 and direction.Z == 0 and direction.Y < 0 and g.floorY then
+				return { Position = Vector3.new(origin.X, g.floorY, origin.Z) }
+			end
 			return if g.blocked then {} else nil
 		end,
 	}
 	for k, v in pairs(consts) do
 		globals[k] = v
 	end
-	local canCatch = loadPieces("A3", nil, { "catchDistance", "canCatch" }, chase, globals, "canCatch")
+	-- canCatch judges a jumping carrier where they will land (standingPosition; owner 2026-09-27 jump fix)
+	local canCatch = loadPieces("A3", nil, { "catchDistance", "standingPosition", "canCatch" }, chase, globals, "canCatch")
 	if canCatch then
 		for _, stage in ipairs(PLAN.STAGES) do
 			local s = stage.scale
@@ -400,6 +407,21 @@ do
 			T.check(try("step", Vector3.new(201, villainY + limit - 0.5, 0), 1) == true, "A3 %s: a carrier just inside the height limit must be caught", stage.villain)
 			T.check(try("below", Vector3.new(201, villainY - limit - 0.5, 0), 1) == false, "A3 %s: a carrier far below must not be caught", stage.villain)
 			T.check(try("wall", near, 1, true) == false, "A3 %s: nothing solid may stand between villain and carrier", stage.villain)
+			-- mid-jump above the height limit, over the villain's own floor: judged at the floor, so caught
+			local g = { hitDistance = 3, scale = s, floorY = groundY, hrp = { Position = Vector3.new(200, villainY, 0) } }
+			local jumper = {
+				Position = Vector3.new(201, villainY + limit + 2, 0),
+				Size = Vector3.new(2, 2, 1),
+				AssemblyLinearVelocity = Vector3.new(0, 0, 0),
+				Parent = {
+					FindFirstChildOfClass = function(_, className)
+						return if className == "Humanoid" then { FloorMaterial = H.roblox.Enum.Material.Air, HipHeight = 2 } else nil
+					end,
+				},
+			}
+			local okJump, jumpCaught = pcall(canCatch, g, jumper, 1)
+			T.check(okJump and jumpCaught == true, "A3 %s: a carrier mid-jump over the villain's floor must be catchable (%s)", stage.villain,
+				tostring(jumpCaught))
 		end
 		local g = { hitDistance = 3, scale = 1, hrp = { Position = Vector3.new(76, groundY + 3, 0) } }
 		local ok, result = pcall(canCatch, g, { Position = Vector3.new(74, groundY + 3, 0), AssemblyLinearVelocity = Vector3.new(0, 0, 0) }, 2)

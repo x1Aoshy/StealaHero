@@ -1,9 +1,11 @@
 -- ServerScriptService.Controllers.EggService
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local Database = require(game.ServerScriptService.Library.Database)
 local EggItemUtil = require(ReplicatedStorage.Library.Util.EggItemUtil)
+local AreaEggResetTimeUtil = require(ReplicatedStorage.Library.Util.AreaEggResetTimeUtil)
 local Assets = require(ReplicatedStorage.Directory.Assets)
 local ItemDisplay = require(ReplicatedStorage.Library.Modules.ItemDisplay)
 local AssetService = require(script.Parent.AssetService)
@@ -136,6 +138,12 @@ local function withPlacementForMath(egg)
 	return clone
 end
 
+-- The clock growth is judged on: the same one the clients use (Workspace:GetServerTimeNow), so a timer that reads
+-- 0 on screen is ready on the server too (os.time() lagged up to a second behind).
+local function serverNow()
+	return Workspace:GetServerTimeNow()
+end
+
 local function isReady(egg, now, growthSpeedMultiplier)
 	if not egg.Placement then return false end
 	if egg.Placement.ReadyAt ~= nil then return true end
@@ -231,7 +239,16 @@ RequestHatchEggRemote.OnServerInvoke = function(player, uid)
 	local profile = Database.Get(player)
 	local egg = profile and type(uid) == "string" and profile.EggInventory[uid]
 	if not egg or not egg.Placement then return false, "Egg not placed" end
-	return isReady(egg, os.time(), growthSpeedMultiplierFor(player)) and true or false, "Egg is not ready yet"
+	if not isReady(egg, serverNow(), growthSpeedMultiplierFor(player)) then
+		return false, "Egg is not ready yet"
+	end
+	-- Lock it ready (owner 2026-09-27: "the egg showed hatched but did not hatch and got smaller"): the hatch
+	-- animation runs ~6.6 s before RequestCompleteHatchEgg, and an egg that was ready only thanks to the night bonus
+	-- used to fail that second check once day came. Placement.ReadyAt makes it ready for good (GetGrowthAlpha = 1).
+	if egg.Placement.ReadyAt == nil then
+		egg.Placement.ReadyAt = os.time()
+	end
+	return true
 end
 
 local function findExistingAssetTool(player, uid)
@@ -332,7 +349,7 @@ RequestCompleteHatchEggRemote.OnServerInvoke = function(player, uid)
 	local profile = Database.Get(player)
 	local egg = profile and type(uid) == "string" and profile.EggInventory[uid]
 	if not egg or not egg.Placement then return false, "Egg not placed" end
-	if not isReady(egg, os.time(), growthSpeedMultiplierFor(player)) then return false, "Egg is not ready yet" end
+	if not isReady(egg, serverNow(), growthSpeedMultiplierFor(player)) then return false, "Egg is not ready yet" end
 	local ok, itemData = pcall(EggItemUtil.BuildAssetItemData, withPlacementForMath(egg))
 	if not ok then warn("[EggService] BuildAssetItemData failed: " .. tostring(itemData)); return false, "Failed to hatch" end
 	local petUid = newUid("Pet")
@@ -365,5 +382,74 @@ end
 
 RequestAreaEggSnapshotRemote.OnServerInvoke = function() return { Records = {}, ServerTime = os.time() } end
 RequestAreaEggRareSpawnPresentationsRemote.OnServerInvoke = function() return true, {} end
+
+-- Night growth commit (owner 2026-09-27: "the egg shows ready but does not hatch and gets smaller: the timer must be
+-- accurate"). During the night placed eggs grow AreaEggResetTimeUtil.GetNightGrowthBonusRate() times faster; the
+-- server and the clients both add that live credit, but nothing ever saved it, so at day start the server's egg lost
+-- it while the client's night animation (NightEggTimeSkipAnimation) waited forever for the commit and kept showing
+-- the egg grown / "Ready!". At each day start every loaded player's placed eggs get the night they just lived:
+-- GrowthCreditSeconds += credit, NightGrowthPeriodIndex = the new period, NightGrowthCreditSeconds = the night's
+-- total -- exactly what the client's AcknowledgeRecord expects -- and the owner's records are broadcast.
+local function commitNightGrowth(player, dayStartsAt)
+	local profile = Database.Get(player)
+	if not profile or type(profile.EggInventory) ~= "table" then
+		return 0
+	end
+	local mult = growthSpeedMultiplierFor(player)
+	local nightStartsAt = dayStartsAt - AreaEggResetTimeUtil.GetNightDurationSeconds()
+	local periodIndex = AreaEggResetTimeUtil.GetPeriodIndex(dayStartsAt)
+	local committedEggs = 0
+	for _, egg in pairs(profile.EggInventory) do
+		local placement = egg.Placement
+		if placement and placement.ReadyAt == nil and type(placement.PlacedAt) == "number" and placement.PlacedAt <= nightStartsAt then
+			local ok, credit = pcall(function()
+				return EggItemUtil.GetNightGrowthCreditSecondsAt(withPlacementForMath(egg), dayStartsAt, mult, nightStartsAt, periodIndex)
+			end)
+			if ok and type(credit) == "number" and credit == credit and credit > 0 then
+				local already = if placement.NightGrowthPeriodIndex == periodIndex then (placement.NightGrowthCreditSeconds or 0) else 0
+				placement.GrowthCreditSeconds = (placement.GrowthCreditSeconds or 0) + credit
+				placement.NightGrowthPeriodIndex = periodIndex
+				placement.NightGrowthCreditSeconds = already + credit
+				committedEggs += 1
+			end
+		end
+	end
+	if committedEggs > 0 then
+		Database.Set(player, { EggInventory = profile.EggInventory })
+		broadcastOwnerRecords(player)
+	end
+	return committedEggs
+end
+EggService.CommitNightGrowth = commitNightGrowth
+
+task.spawn(function()
+	local lastIndex = AreaEggResetTimeUtil.GetPeriodIndex(serverNow())
+	while true do
+		task.wait(0.25)
+		local index = AreaEggResetTimeUtil.GetPeriodIndex(serverNow())
+		if index > lastIndex then
+			lastIndex = index
+			local dayStartsAt = AreaEggResetTimeUtil.GetPeriodStartsAt(index)
+			for _, player in ipairs(Players:GetPlayers()) do
+				local ok, err = pcall(commitNightGrowth, player, dayStartsAt)
+				if not ok then
+					warn("[EggService] night growth commit failed for " .. player.Name .. ": " .. tostring(err))
+				end
+			end
+		end
+	end
+end)
+
+-- The x2 Growth pass changes the growth multiplier the clients time eggs with (GamepassService only sets the player
+-- attribute): re-broadcast the owner's records so their timers follow at once.
+local function watchGrowthPass(player)
+	player:GetAttributeChangedSignal("MonetizationX2GrowthGamepassOwned"):Connect(function()
+		pcall(broadcastOwnerRecords, player)
+	end)
+end
+Players.PlayerAdded:Connect(watchGrowthPass)
+for _, player in ipairs(Players:GetPlayers()) do
+	watchGrowthPass(player)
+end
 
 return EggService

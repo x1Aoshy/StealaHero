@@ -12,7 +12,8 @@ local v5 = not require(ReplicatedStorage.Library.Globals.Constants).IS_STUDIO an
 local t1 = {
 	EndingSoonSeconds = 20.0,
 	FinalBlinkSeconds = 10.0,
-	NightGrowthSkipSeconds = 300.0,
+	NightGrowthSkipSeconds = 1000.0, -- = a whole night of GetNightGrowthBonusRate() (1000 / night length); was 300 while the
+	-- bonus gave 1000, so the client's night animation ended short of the real credit and the egg visibly shrank at dawn
 	MinNightDurationSeconds = 1.0,
 	SchedulePollSeconds = 0.25,
 	ResetPeriodSeconds = v5

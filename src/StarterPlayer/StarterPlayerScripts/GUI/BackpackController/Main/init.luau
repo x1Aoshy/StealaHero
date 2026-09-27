@@ -224,6 +224,42 @@ function resolveEggIcon(category, fallback)
 end
 pcall(resolveEggIcon, nil, "")
 
+-- Owner 2026-09-27: an egg slot shows the hero's own voxel egg (Library.Client.EggPortrait ViewportFrame on the slot
+-- Icon, its image hidden) instead of the generic egg image. Globals, like the chunk above. EggPortraitModule caches
+-- the module (false = missing). clearEggPortrait restores the Icon's image when the slot shows something else.
+EggPortraitModule = nil
+function mountEggPortrait(icon, category)
+	if EggPortraitModule == nil then
+		local library = ReplicatedStorage:FindFirstChild("Library")
+		local client = library and library:FindFirstChild("Client")
+		local module = client and client:FindFirstChild("EggPortrait")
+		local ok, result = pcall(require, module)
+		EggPortraitModule = if ok and type(result) == "table" then result else false
+	end
+	if not EggPortraitModule or type(category) ~= "string" then
+		return false
+	end
+	local ok, portrait = pcall(EggPortraitModule.Mount, icon, category)
+	if ok and portrait ~= nil then
+		if icon:GetAttribute("EggPortraitImageTransparency") == nil then
+			icon:SetAttribute("EggPortraitImageTransparency", icon.ImageTransparency)
+		end
+		icon.ImageTransparency = 1
+		return true
+	end
+	return false
+end
+function clearEggPortrait(icon)
+	if EggPortraitModule then
+		pcall(EggPortraitModule.Clear, icon)
+	end
+	local saved = icon:GetAttribute("EggPortraitImageTransparency")
+	if type(saved) == "number" then
+		icon.ImageTransparency = saved
+		icon:SetAttribute("EggPortraitImageTransparency", nil)
+	end
+end
+
 local Gears = require(ReplicatedStorage.Directory.Gears)
 
 Lock = require(ReplicatedStorage.Library.Functions.Lock)
@@ -3359,6 +3395,7 @@ function MakeSlot(p121, p122) -- line: 2573
 			local TextureId = p135.TextureId
 
 			AssetIconShape.Clear(Icon)
+			clearEggPortrait(Icon)
 			Icon.Image = TextureId
 			Icon.ScaleType = Enum.ScaleType.Fit
 			ToolName.TextXAlignment = TextXAlignment
@@ -3448,6 +3485,7 @@ function MakeSlot(p121, p122) -- line: 2573
 				if v1092 and v1093 then
 					Icon.Image = resolveEggIcon(v1091.AssetCategory, v1092.Icon ~= "" and v1092.Icon or TextureId)
 					Icon.ImageColor3 = Color3.new(1.0, 1.0, 1.0)
+					mountEggPortrait(Icon, v1091.AssetCategory)
 
 					if not v1092.HideRarity and v1093.Rarity and v1093.Rarity.Gradient then
 						local v1094 = ToolName

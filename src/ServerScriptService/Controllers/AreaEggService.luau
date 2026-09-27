@@ -1136,14 +1136,39 @@ local function dropCarriedEgg(player, eggUid, guardCFrame, reason)
 	return record
 end
 
--- Guard retrieval finished (or timed out): put a still-Dropped egg back in its nest.
+-- Guard retrieval finished (or timed out): put a still-Dropped (or villain-carried) egg back in its nest.
 -- returnToNest retires the egg instead when its nest was refilled meanwhile.
 local function returnDroppedEggToNest(uid)
 	local record = type(uid) == "string" and records[uid]
-	if not record or record.State ~= "Dropped" then
+	if not record or (record.State ~= "Dropped" and record.State ~= "GuardCarried") then
 		return false
 	end
 	return returnToNest(record, "GuardRetrieved")
+end
+
+-- The zone's villain lifts a Dropped egg to carry it back to its nest (owner 2026-09-27: "they pick the eggs up,
+-- carry them and put them in their basket"). State "GuardCarried": nobody can grab it (attemptCarry only takes
+-- Slot / Dropped eggs), every client shows it in the villain's arms (AreaEggs client), and the villain drops it into
+-- the nest through returnDroppedEggToNest. Returns the nest pose the villain walks to (nil: not a Dropped egg).
+-- A carry that never arrives (the villain was pulled away) is returned by the backstop timer.
+local GUARD_CARRY_BACKSTOP_SECONDS = 30
+local function pickUpDroppedEggByGuard(uid)
+	local record = type(uid) == "string" and records[uid]
+	if not record or record.State ~= "Dropped" then
+		return nil
+	end
+	version += 1
+	record.State = "GuardCarried"
+	record.CarrierUserId = nil
+	record.Version = version
+	AreaEggUpdatedRemote:FireAllClients(record)
+	local carryVersion = record.Version
+	task.delay(GUARD_CARRY_BACKSTOP_SECONDS, function()
+		if records[record.Uid] == record and record.State == "GuardCarried" and record.Version == carryVersion then
+			returnToNest(record, "GuardCarryTimeout")
+		end
+	end)
+	return record.NestBottomCFrame or record.BottomCFrame
 end
 
 local function getCarriersForArea(areaId)
@@ -1386,7 +1411,7 @@ prepareNightTeleports = function()
 	-- Loose eggs go home as well: nobody is left out there to pick them up, and the reset reshuffles them.
 	local loose = {}
 	for _, record in pairs(records) do
-		if record.State == "Dropped" then
+		if record.State == "Dropped" or record.State == "GuardCarried" then
 			table.insert(loose, record)
 		end
 	end
@@ -1722,6 +1747,7 @@ if GuardChaseService then
 		end,
 		OnGuardCaughtPlayer = onGuardCaughtPlayer,
 		ReturnDroppedEggToNest = returnDroppedEggToNest,
+		PickUpDroppedEgg = pickUpDroppedEggByGuard,
 	})
 	if not ok then
 		warn("[AreaEggService] GuardChaseService.Init failed: " .. tostring(err))

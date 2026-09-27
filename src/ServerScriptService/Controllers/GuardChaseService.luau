@@ -94,6 +94,7 @@ local IGNORE_RELEASE_DISTANCE = 6 -- a carrier given up on is chased again once 
 local RETRIEVE_REACH = 6
 local RETRIEVE_TIMEOUT = 15
 local ATTACK_PAUSE = 0.6
+local RETRIEVE_PICKUP_PAUSE = 0.45 -- the villain stops this long to lift a dropped egg before carrying it home
 local NETWORK_OWNER_REFRESH = 2
 local SETUP_WAIT_SECONDS = 15
 local RUN_ANIMATION_BASE_SPEED = 16
@@ -348,6 +349,21 @@ local function returnDroppedEgg(uid)
 	end
 end
 
+-- Lifts a Dropped egg into the villain's arms (AreaEggService state GuardCarried). Returns the egg's nest position,
+-- or nil when it could not be picked up (then the caller returns it to its nest the old way).
+local function pickUpDroppedEgg(uid)
+	local fn = callbacks.PickUpDroppedEgg
+	if not fn then
+		return nil
+	end
+	local ok, nest = pcall(fn, uid)
+	if not ok then
+		warnOnce("pickup-dropped", "PickUpDroppedEgg failed: " .. tostring(nest))
+		return nil
+	end
+	return if typeof(nest) == "CFrame" then nest.Position else nil
+end
+
 -- Policy wrappers: reuse RS GuardChasePolicy when it loads, same maths inline otherwise.
 local function resolveWakingDuration()
 	if GuardChasePolicy and GuardChasePolicy.GetWakingDuration then
@@ -515,15 +531,35 @@ local function castRay(g, origin, direction)
 	return nil
 end
 
+-- Where a carrier's root would be if they stood on the floor under them. A jumping carrier (FloorMaterial Air) is
+-- read at that height, so a jump never lifts the chase goal off the floor (isLineClear refused every airborne goal:
+-- the villain stopped, repathed and stuttered on each hop; owner 2026-09-27 "the pathfinder bugs while I jump")
+-- nor makes the carrier uncatchable in mid-air. Grounded carriers (and a fall with no floor below) keep their
+-- real position.
+local function standingPosition(g, root)
+	local position = root.Position
+	local humanoid = root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
+	if humanoid == nil or humanoid.FloorMaterial ~= Enum.Material.Air then
+		return position
+	end
+	local hit = castRay(g, position, Vector3.new(0, -GROUND_PROBE_DEPTH, 0))
+	if hit == nil then
+		return position
+	end
+	local standing = hit.Position.Y + humanoid.HipHeight + root.Size.Y / 2
+	return Vector3.new(position.X, math.min(position.Y, standing), position.Z)
+end
+
 -- 3D catch: within flat reach, roots at most 2.5*scale + 3 apart in height (a carrier on a roof or a
--- ledge above the villain is out of reach), nothing solid in between, never in the safe zone.
+-- ledge above the villain is out of reach; a jumping one is judged where they will land), nothing solid in
+-- between, never in the safe zone.
 local function canCatch(g, root, distance)
 	if distance > catchDistance(g, root) or isInSafeZone(root.Position) then
 		return false
 	end
 	local origin = g.hrp.Position
 	local target = root.Position
-	if math.abs(target.Y - origin.Y) > VERTICAL_CATCH_BASE + VERTICAL_CATCH_PER_SCALE * g.scale then
+	if math.abs(standingPosition(g, root).Y - origin.Y) > VERTICAL_CATCH_BASE + VERTICAL_CATCH_PER_SCALE * g.scale then
 		return false
 	end
 	return castRay(g, origin, target - origin) == nil
@@ -805,7 +841,16 @@ end
 
 local enterChasing, enterReturning, enterRetrieving, enterSleeping, finishChase, configureSignature
 
+-- A villain pulled out of a retrieval while it holds an egg (sleep, return, teleport home) sets it back in its nest.
+local function releaseCarriedEgg(g)
+	if g.carryNest ~= nil and g.retrieveUid ~= nil then
+		returnDroppedEgg(g.retrieveUid)
+	end
+	g.carryNest = nil
+end
+
 enterSleeping = function(g, now)
+	releaseCarriedEgg(g)
 	g.state = STATE_SLEEPING
 	g.target = nil
 	g.retrieveUid = nil
@@ -861,6 +906,7 @@ local function enterWaking(g, now, player, root)
 end
 
 enterChasing = function(g, now)
+	releaseCarriedEgg(g)
 	g.state = STATE_CHASING
 	g.nextMoveAt = 0
 	g.outOfReachSince = nil
@@ -876,6 +922,7 @@ enterChasing = function(g, now)
 end
 
 enterReturning = function(g, now)
+	releaseCarriedEgg(g)
 	g.state = STATE_RETURNING
 	g.target = nil
 	g.retrieveUid = nil
@@ -899,6 +946,7 @@ enterReturning = function(g, now)
 end
 
 enterRetrieving = function(g, now, uid)
+	releaseCarriedEgg(g)
 	g.state = STATE_RETRIEVING
 	g.target = nil
 	g.retrieveUid = uid
@@ -1169,7 +1217,9 @@ end
 
 local function catchPlayer(g, player, uid, now)
 	g.lastAttackAt = now
-	playAttack(g)
+	-- the swing: a procedural punch every client plays on the villain's joints (VillainChaseFx "Punch"; owner
+	-- 2026-09-27), instead of the stock tool-slash track
+	fireFx(g, "Punch", player, ATTACK_PAUSE)
 
 	if serverHitRemote then
 		pcall(serverHitRemote.FireClient, serverHitRemote, player, {
@@ -1291,7 +1341,8 @@ local function stepChasing(g, now)
 
 	local velocity = root.AssemblyLinearVelocity
 	local lead = math.min(distance / math.max(speed, 1), LEAD_MAX_SECONDS)
-	local goal = clampGoal(root.Position + Vector3.new(velocity.X, 0, velocity.Z) * lead)
+	-- the floor-level position of a jumping carrier (standingPosition): the goal stays walkable during a hop
+	local goal = clampGoal(standingPosition(g, root) + Vector3.new(velocity.X, 0, velocity.Z) * lead)
 	local heading = moveToward(g, goal, now, speed)
 
 	local closeEnough = g.hitDistance + 4
@@ -1319,22 +1370,32 @@ local function stepChasing(g, now)
 	end
 end
 
+-- Retrieval (owner 2026-09-27): walk to the dropped egg, lift it (GuardCarried: every client shows it in the
+-- villain's arms), carry it to its nest and set it down there. A new carrier to chase, a timeout or a stall sends
+-- the egg straight home (returnDroppedEgg) as before.
 local function stepRetrieving(g, now)
+	local uid = g.retrieveUid
+	local record = getRecord(uid)
+	local carrying = record ~= nil and record.State == "GuardCarried" and g.carryNest ~= nil
+
 	if now >= g.nextScanAt then
 		g.nextScanAt = now + TARGET_SCAN_INTERVAL
 		if selectTarget(g) then
+			if carrying then
+				returnDroppedEgg(uid) -- put it home before chasing again: never chase with an egg in the arms
+			end
+			g.carryNest = nil
 			enterChasing(g, now)
 			return
 		end
 	end
 
-	local uid = g.retrieveUid
-	local record = getRecord(uid)
-	if not record or record.State ~= "Dropped" or typeof(record.BottomCFrame) ~= "CFrame" then
+	if not record or (record.State ~= "Dropped" and not carrying) or typeof(record.BottomCFrame) ~= "CFrame" then
 		-- Re-stolen, claimed or already returned by someone else.
 		if uid then
 			g.pendingDropped[uid] = nil
 		end
+		g.carryNest = nil
 		finishChase(g, now)
 		return
 	end
@@ -1342,17 +1403,39 @@ local function stepRetrieving(g, now)
 	if now - g.retrieveStartedAt > RETRIEVE_TIMEOUT then
 		g.pendingDropped[uid] = nil
 		returnDroppedEgg(uid)
+		g.carryNest = nil
 		finishChase(g, now)
 		return
 	end
 
-	local eggPosition = record.BottomCFrame.Position
+	local eggPosition = if carrying then g.carryNest else record.BottomCFrame.Position
 	local goal = clampGoal(eggPosition)
 	local distance = flatDistance(g.hrp.Position, eggPosition)
 	if distance <= RETRIEVE_REACH + (goal.X - eggPosition.X) then
 		g.pendingDropped[uid] = nil
-		returnDroppedEgg(uid)
-		finishChase(g, now)
+		if carrying then
+			-- at the nest: set the egg down
+			returnDroppedEgg(uid)
+			g.carryNest = nil
+			finishChase(g, now)
+			return
+		end
+		local nest = pickUpDroppedEgg(uid)
+		if nest == nil then
+			returnDroppedEgg(uid)
+			finishChase(g, now)
+			return
+		end
+		-- lifted: now carry it to the nest (a fresh timeout for the walk; a short stop to pick it up)
+		g.carryNest = nest
+		g.retrieveStartedAt = now
+		g.pauseUntil = now + RETRIEVE_PICKUP_PAUSE
+		g.nextMoveAt = 0
+		g.progressPos = g.hrp.Position
+		g.progressAt = g.pauseUntil
+		pcall(function()
+			g.humanoid:MoveTo(g.hrp.Position)
+		end)
 		return
 	end
 
@@ -1370,6 +1453,7 @@ local function stepRetrieving(g, now)
 	if stalled >= NO_PROGRESS_SECONDS then
 		g.pendingDropped[uid] = nil
 		returnDroppedEgg(uid)
+		g.carryNest = nil
 		teleportHome(g, now, "stuck while retrieving an egg")
 	else
 		repathIfStuck(g, now, stalled)
