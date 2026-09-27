@@ -8,13 +8,16 @@ local Workspace = game:GetService("Workspace")
 
 local ZERO = UDim.new(0, 0)
 
--- Owner 2026-09-27: "the topbar UI is not square, leave it round": TopbarPlus's icons (PlayerGui.TopbarStandard /
--- TopbarCentered, and any clone it makes) keep their round corners.
+-- Owner 2026-09-27: "the topbar UI is not square, leave it round" and "the prompt to grab the eggs must be round like
+-- before, not square": TopbarPlus's icons (PlayerGui.TopbarStandard / TopbarCentered, and any clone it makes) and the
+-- proximity prompts (Game.ProximityPromptScript clones its templates into PlayerGui.ProximityPrompts) keep their round
+-- corners.
+local ROUND_GUIS = { ProximityPrompts = true }
 local function isTopbar(inst)
 	local node = inst
 	while node ~= nil do
 		if node:IsA("ScreenGui") then
-			return string.sub(node.Name, 1, 6) == "Topbar"
+			return string.sub(node.Name, 1, 6) == "Topbar" or ROUND_GUIS[node.Name] == true
 		end
 		node = node.Parent
 	end

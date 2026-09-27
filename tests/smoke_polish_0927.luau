@@ -62,7 +62,8 @@ local backpack = H.path(sps, "GUI/BackpackController/Main")
 T.check(H.has(src(backpack), "function mountHeroPortrait(") and H.has(src(backpack), "if not mountHeroPortrait(Icon, v1084) then"),
 	"hero slots must mount the hero's headshot (HeroPortrait)")
 local squareUi = H.path(sps, "GUI/SquareUi")
-T.check(H.has(src(squareUi), "local function isTopbar(") and H.has(src(squareUi), "not isTopbar(corner)"), "SquareUi must leave the topbar round")
+T.check(H.has(src(squareUi), "local function isTopbar(") and H.has(src(squareUi), "not isTopbar(corner)")
+	and H.has(src(squareUi), "ProximityPrompts = true"), "SquareUi must leave the topbar and the egg prompts round")
 
 -- 5. claimed muted green / charcoal hotbar / pixel night icon
 local claim = nil
