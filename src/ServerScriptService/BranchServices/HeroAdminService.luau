@@ -33,17 +33,34 @@
 --                                       Workspace): start a night now; end the night (or restart the day); back to the
 --                                       server clock.
 --   UnlockBaseThemes                    every Directory.BaseThemes entry unlocked (IndexService's Studio hook, live).
---   TacoRainStart{Duration} / TacoRainStop   the Taco Rain event (BranchServices.TacoRainService: tacos falling on
---                                       eggs give them the x3 "Taco" mutation).
+--   TacoRainStart{Duration, Scope} / TacoRainStop{Scope}   the Taco Rain event (BranchServices.TacoRainService: tacos
+--                                       falling on eggs give them the x3 "Taco" mutation). Scope "Server" (default) =
+--                                       this server; "All" = this server at once, then every other server through
+--                                       BranchServices.HeroBroadcastService (MessagingService topic "HeroAdmin_Global";
+--                                       the handler registered at Start runs it there). An all-server send inside the
+--                                       admin's cooldown is refused before anything runs; when MessagingService fails
+--                                       the action stays on this server and the answer says so (kind "warn").
+--   Announce{Text, Scope}               a filtered announcement banner on every screen of this server / of every server
+--                                       (HeroBroadcastService.Announce: TextService filter first, rate limited).
+--   WipeData{ConfirmUserId}             resets the target's saved profile to a brand new player's
+--                                       (Library.Database.WipeProfile: saved at once, every later save of that session
+--                                       writes the fresh payload), kicks them with WIPE_KICK_MESSAGE after
+--                                       WIPE_KICK_DELAY s and, once they are gone, removes them from the leaderboard
+--                                       OrderedDataStores (LEADERBOARD_STORES). The panel's second tap sends
+--                                       ConfirmUserId = the target's UserId; anything else is refused. One wipe per
+--                                       WIPE_COOLDOWN s per admin, logged as "[HeroAdmin] WIPE ...".
 --   Release / Respawn / Heal            ServerScriptService.GearReleaseRequest (ragdoll / trap / weapon state), a fresh
 --                                       character, full health.
 --   GoTo / Bring                        the caller to the target / the target to the caller.
 --   SpawnDummy / ClearDummies           R15 "TrainingDummy" models in Workspace.HeroWeaponDummies (tag HeroWeaponDummy,
 --                                       attribute DummyOwner, at most MAX_DUMMIES), standing, server-owned physics.
 --   Inspect                             only the summary (the panel's target card).
+-- A handler returns (ok, message[, "warn"]); the remote answers (ok, message, summary, kind) - kind "warn" = done, but
+-- only partly (e.g. an all-server action that stayed on this server).
 -- The older admin systems of the place (AdminStatusHandler, CmdrAdminHandler, TrollFreeAdmin...) are not touched.
 
 local CollectionService = game:GetService("CollectionService")
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -69,12 +86,26 @@ HeroAdminService.DUMMY_NAME = "TrainingDummy"
 HeroAdminService.DUMMY_DISTANCE = 8
 HeroAdminService.STAGE_INSET = 14 -- studs past a stage's entrance (its ClosestExitPoint) a stage teleport lands
 HeroAdminService.REFUSAL_WARN_EVERY = 10 -- s between two "refused" warnings for the same player
+HeroAdminService.LONG_ARGS = { Text = 600 } -- string args allowed past MAX_ARG_STRING (bytes): the announcement text
+HeroAdminService.SCOPES = { Server = true, All = true }
+HeroAdminService.WIPE_COOLDOWN = 15 -- s between two wipes of the same admin
+HeroAdminService.WIPE_KICK_DELAY = 2 -- s: the answer reaches the panel first (a self-wipe reads its toast)
+HeroAdminService.WIPE_KICK_MESSAGE = "Your data was reset by an admin. Rejoin to start from zero."
+-- the per-player entries a wipe removes once the player is gone (their own services write them again from the fresh
+-- profile): ServerScriptService.LeaderboardService's "Leaderboard_<stat>_v1" stores (the HERO BOARD pages; Money is the
+-- old page name) and FlappyService's "FlappyBest_v1" (it only ever raises a best, so it would never go back to 0)
+HeroAdminService.LEADERBOARD_STORES = {
+	"Leaderboard_Networth_v1", "Leaderboard_SpeedPower_v1", "Leaderboard_TimePlayed_v1", "Leaderboard_EggsHatched_v1",
+	"Leaderboard_Money_v1", "FlappyBest_v1",
+}
+HeroAdminService.LEADERBOARD_CLEAR_DELAY = 8 -- s after the kick (the leave saves / the Flappy flush land first)
 
 local Access = require(ServerScriptService:WaitForChild("HeroAdminAccess", 10))
 
 local remote = nil
 local buckets = {} -- [Player] = { tokens = n, at = os.clock() }
 local lastRefusalWarn = {} -- [Player] = os.clock()
+local lastWipe = {} -- [Player] = os.clock() of their last wipe
 
 ----------------------------------------------------------------------------------------------------
 -- helpers
@@ -998,6 +1029,50 @@ local function tacoRain()
 	return if ok and type(service) == "table" then service else nil
 end
 
+local function broadcast()
+	local module = script.Parent:FindFirstChild("HeroBroadcastService")
+	if not (module and module:IsA("ModuleScript")) then
+		return nil
+	end
+	local ok, service = pcall(require, module) -- the same table Branch started
+	return if ok and type(service) == "table" then service else nil
+end
+
+-- ctx.Args.Scope -> "Server" | "All" | nil, reason
+local function scopeOf(ctx)
+	local scope = ctx.Args.Scope
+	if scope == nil then
+		return "Server"
+	end
+	if type(scope) ~= "string" or HeroAdminService.SCOPES[scope] ~= true then
+		return nil, "Scope must be this server or all servers"
+	end
+	return scope
+end
+
+-- An all-server action may start only when the cross-server send will not be refused by its rate limit (nothing runs
+-- at all then). A missing HeroBroadcastService still lets it run here (publishAll reports it).
+local function mayPublish(ctx)
+	local service = broadcast()
+	if service == nil then
+		return true
+	end
+	return service.CanPublish(ctx.Caller)
+end
+
+-- After the local run: the same action to every other server. -> ok, message[, "warn"]
+local function publishAll(ctx, kind, data, localMessage)
+	local service = broadcast()
+	local ok, err = false, "the cross-server service is not running"
+	if service then
+		ok, err = service.Publish(kind, data, ctx.Caller)
+	end
+	if ok then
+		return true, localMessage .. " (sent to every server)"
+	end
+	return true, localMessage .. ". THIS SERVER ONLY: " .. tostring(err), "warn"
+end
+
 COMMANDS.TacoRainStart = function(ctx)
 	local service = tacoRain()
 	if service == nil then
@@ -1007,15 +1082,74 @@ COMMANDS.TacoRainStart = function(ctx)
 	if duration ~= nil and not finiteNumber(duration, service.MIN_DURATION, service.MAX_DURATION) then
 		return false, string.format("Duration must be %d to %d s", service.MIN_DURATION, service.MAX_DURATION)
 	end
-	return service.StartRain(duration or service.DEFAULT_DURATION)
+	duration = duration or service.DEFAULT_DURATION
+	local scope, why = scopeOf(ctx)
+	if scope == nil then
+		return false, why
+	end
+	if scope == "All" then
+		local allowed, reason = mayPublish(ctx)
+		if not allowed then
+			return false, reason
+		end
+	end
+	local ok, message = service.StartRain(duration)
+	if not ok or scope == "Server" then
+		return ok, message
+	end
+	return publishAll(ctx, "TacoRain", { Action = "Start", Duration = duration }, tostring(message))
 end
 
-COMMANDS.TacoRainStop = function(_ctx)
+COMMANDS.TacoRainStop = function(ctx)
 	local service = tacoRain()
 	if service == nil then
 		return false, "The Taco Rain service is not running"
 	end
-	return service.StopRain("admin")
+	local scope, why = scopeOf(ctx)
+	if scope == nil then
+		return false, why
+	end
+	if scope == "Server" then
+		return service.StopRain("admin")
+	end
+	local allowed, reason = mayPublish(ctx)
+	if not allowed then
+		return false, reason
+	end
+	-- the other servers may still be raining even when this one is not
+	local _, message = service.StopRain("admin, all servers")
+	return publishAll(ctx, "TacoRain", { Action = "Stop" }, "Stop: " .. tostring(message))
+end
+
+-- A Taco Rain another server's admin sent to every server (HeroBroadcastService validated and clamped it).
+local function runGlobalTacoRain(data)
+	local service = tacoRain()
+	if service == nil then
+		warn("[HeroAdmin] all-server Taco Rain ignored: the Taco Rain service is not running")
+		return
+	end
+	if data.Action == "Start" then
+		local duration = math.clamp(tonumber(data.Duration) or service.DEFAULT_DURATION, service.MIN_DURATION, service.MAX_DURATION)
+		local _, message = service.StartRain(duration)
+		print(string.format("[HeroAdmin] all-server Taco Rain from %s: %s", tostring(data.By or "?"), tostring(message)))
+	elseif data.Action == "Stop" then
+		service.StopRain("all servers, " .. tostring(data.By or "?"))
+	end
+end
+HeroAdminService._runGlobalTacoRain = runGlobalTacoRain
+
+-- Server ------------------------------------------------------------------------------------------
+
+COMMANDS.Announce = function(ctx)
+	local service = broadcast()
+	if service == nil then
+		return false, "The announcement service is not running"
+	end
+	local scope, why = scopeOf(ctx)
+	if scope == nil then
+		return false, why
+	end
+	return service.Announce(ctx.Caller, ctx.Args.Text, scope)
 end
 
 COMMANDS.UnlockBaseThemes = function(ctx)
@@ -1100,6 +1234,64 @@ COMMANDS.Bring = function(ctx)
 	return true, ctx.Target.Name .. " brought to you"
 end
 
+-- The wiped player's rows on the leaderboards (best effort: every call pcall'd, Studio without API access just logs).
+local function clearLeaderboards(userId, name)
+	local key, cleared, failed = tostring(userId), 0, nil
+	for _, storeName in ipairs(HeroAdminService.LEADERBOARD_STORES) do
+		local ok, err = pcall(function()
+			DataStoreService:GetOrderedDataStore(storeName):RemoveAsync(key)
+		end)
+		if ok then
+			cleared += 1
+		else
+			failed = failed or tostring(err)
+		end
+	end
+	print(string.format("[HeroAdmin] WIPE %s (%d): %d / %d leaderboard entries removed%s", name, userId, cleared,
+		#HeroAdminService.LEADERBOARD_STORES, if failed then " (" .. failed .. ")" else ""))
+end
+HeroAdminService._clearLeaderboards = clearLeaderboards
+
+COMMANDS.WipeData = function(ctx)
+	local caller, target = ctx.Caller, ctx.Target
+	if ctx.Args.ConfirmUserId ~= target.UserId then
+		return false, "Wipe not confirmed for " .. target.Name .. ": press WIPE, then CONFIRM within 4 s"
+	end
+	local now = os.clock()
+	local last = lastWipe[caller]
+	if last ~= nil and now - last < HeroAdminService.WIPE_COOLDOWN then
+		return false, string.format("Wait %d s before the next wipe", math.ceil(HeroAdminService.WIPE_COOLDOWN - (now - last)))
+	end
+	local db = database()
+	if not (db and type(db.WipeProfile) == "function") then
+		return false, "Library.Database cannot wipe profiles"
+	end
+	if type(db.IsWiped) == "function" and db.IsWiped(target) then
+		return false, target.Name .. " was already wiped: they are being kicked"
+	end
+	if profileOf(target) == nil then
+		return false, target.Name .. "'s profile is not loaded yet"
+	end
+	lastWipe[caller] = now
+	warn(string.format("[HeroAdmin] WIPE %s (%d) resets the saved data of %s (%d)", caller.Name, caller.UserId, target.Name, target.UserId))
+	local ok, saved, reason = pcall(db.WipeProfile, target)
+	if not ok then
+		return false, "Wipe failed: " .. tostring(saved)
+	end
+	local userId, name = target.UserId, target.Name
+	task.delay(HeroAdminService.WIPE_KICK_DELAY, function()
+		if target.Parent == Players then
+			pcall(target.Kick, target, HeroAdminService.WIPE_KICK_MESSAGE)
+		end
+	end)
+	task.delay(HeroAdminService.WIPE_KICK_DELAY + HeroAdminService.LEADERBOARD_CLEAR_DELAY, clearLeaderboards, userId, name)
+	if saved == true then
+		return true, string.format("%s's data was wiped and saved. Kicking them in %d s", name, HeroAdminService.WIPE_KICK_DELAY)
+	end
+	return true, string.format("%s's data was wiped, but the save failed (%s). Kicking them: their leave save retries it", name,
+		tostring(reason)), "warn"
+end
+
 ----------------------------------------------------------------------------------------------------
 -- remote
 ----------------------------------------------------------------------------------------------------
@@ -1136,7 +1328,7 @@ local function cleanArgs(args)
 		end
 		local kind = type(value)
 		if kind == "string" then
-			if #value > HeroAdminService.MAX_ARG_STRING then
+			if #value > (HeroAdminService.LONG_ARGS[key] or HeroAdminService.MAX_ARG_STRING) then
 				return nil
 			end
 		elseif kind == "number" then
@@ -1187,12 +1379,13 @@ local function onInvoke(player, command, targetUserId, args)
 	if command ~= "Inspect" then
 		print(string.format("[HeroAdmin] %s %s -> %s", player.Name, command, target.Name))
 	end
-	local ok, success, message = pcall(handler, { Caller = player, Target = target, Args = clean })
+	local ok, success, message, kind = pcall(handler, { Caller = player, Target = target, Args = clean })
 	if not ok then
 		warn(string.format("[HeroAdmin] %s %s -> %s failed: %s", player.Name, command, target.Name, tostring(success)))
 		return false, "Command failed (see the server log)", summaryOf(target)
 	end
-	return success == true, tostring(message or (if success then "Done" else "Failed")), summaryOf(target)
+	return success == true, tostring(message or (if success then "Done" else "Failed")), summaryOf(target),
+		if kind == "warn" then "warn" else nil
 end
 HeroAdminService._onInvoke = onInvoke
 
@@ -1238,6 +1431,13 @@ end
 
 function HeroAdminService:Start()
 	remote.OnServerInvoke = onInvoke
+	-- all-server Taco Rains sent by another server's admin (HeroBroadcastService validates them first)
+	local service = broadcast()
+	if service and type(service.OnGlobal) == "function" then
+		service.OnGlobal("TacoRain", runGlobalTacoRain)
+	else
+		warn("[HeroAdmin] HeroBroadcastService missing: all-server events will not reach this server")
+	end
 end
 
 function HeroAdminService:PlayerAdded(player)
@@ -1257,6 +1457,7 @@ end
 function HeroAdminService:PlayerRemoving(player)
 	buckets[player] = nil
 	lastRefusalWarn[player] = nil
+	lastWipe[player] = nil
 	Access.Forget(player)
 	for _, model in ipairs(dummies()) do
 		if model:GetAttribute("DummyOwner") == player.UserId then

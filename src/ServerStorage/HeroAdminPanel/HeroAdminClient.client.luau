@@ -8,12 +8,19 @@
 --     ViewportFrame over the icon image, slowly orbiting with a gentle tilt; the base game's crown image under it only
 --     shows if the viewport is missing. Shown while the Player attribute HeroAdmin is true.
 --   * buttons: every GuiButton with a Command attribute invokes Network["Admin: Command"](Command, targetUserId,
---     { <Arg* attributes> }); Confirm = true buttons need a second tap within CONFIRM_SECONDS. The answer lands in the
---     Toast line (green / red dot) and the target card refreshes from the returned summary.
+--     { <Arg* attributes> }); Confirm = true buttons need a second tap within CONFIRM_SECONDS (ConfirmSeconds /
+--     ConfirmText override it: the wipe turns into "CONFIRM WIPE <name>" for 4 s). SendTargetId adds ConfirmUserId = the
+--     target's UserId (the server refuses a wipe without it); TargetSelf acts on yourself whatever the target; InputFrom
+--     sends the named TextBox's text as its ArgName (Amount / Text). The answer lands in the Toast line (green / amber /
+--     red dot: amber = done only partly, e.g. an all-server event that stayed on this server) and the target card
+--     refreshes from the returned summary. Changing the target cancels a pending confirm.
 --   * target: the < > arrows cycle through the players in the server (ME = back to yourself); the card shows the
---     avatar, live money (leaderstats) and the summary (speed power, eggs, heroes, plot).
---   * tabs: Weapons / Economy / Eggs / World / Player / Server pages; Server shows the live Workspace attributes
---     ServerHz / ServerFrameMs / ServerMemoryMB (BranchServices.ServerStatsService), players, uptime and the next night.
+--     avatar, "n / total", live money (leaderstats) and the summary (speed power, eggs, heroes, plot). It shows on the
+--     tabs whose buttons act on the target (UsesTarget: PLAYER, EGGS).
+--   * tabs: PLAYER (sub-tabs ACTIONS / ECONOMY / WEAPONS / DATA), DUMMIES, EGGS, WORLD, SERVER. WORLD's event buttons
+--     obey the scope toggle THIS SERVER / ALL SERVERS (ALL SERVERS needs a second tap). SERVER sends announcements (a
+--     live character counter) and shows the live Workspace attributes ServerHz / ServerFrameMs / ServerMemoryMB
+--     (BranchServices.ServerStatsService), players, uptime, the next night and the cross-server link.
 --   * size: the 820 x 500 design is fitted with its UIScale (SpPanelScale) to 97 % x 94 % of the screen, never over
 --     1.15; the smallest button (64 px) stays >= 44 px on a landscape phone. The band drags the window around.
 --   * HUD: while open the panel counts as a menu for BranchControllers.MenuMotionController (the HUD slides away), by
@@ -35,6 +42,9 @@ local content = window:WaitForChild("Content")
 local pages = content:WaitForChild("Pages")
 local targetBar = content:WaitForChild("TargetBar")
 local toastFrame = content:WaitForChild("Toast")
+local playerPage = pages:WaitForChild("Page_Player")
+local subTabs = playerPage:WaitForChild("SubTabs")
+local subPages = playerPage:WaitForChild("SubPages")
 
 gui.IgnoreGuiInset = true -- the build writes ScreenInsets None; the window may use the whole screen height
 
@@ -44,6 +54,8 @@ local ICON_NAME = "HeroAdminIcon"
 local ICON_ORDER = 3 -- InventoryIcon is -5, the Settings gear ~1.0x (TopbarPlus creation order)
 local TOGGLE_KEY = Enum.KeyCode.F4
 local CONFIRM_SECONDS = 2.5
+local ANNOUNCE_REMOTE = "Announcement: Show"
+local MAX_TEXT_BYTES = 600 -- = HeroAdminService.LONG_ARGS.Text
 local STATS_EVERY = 0.5
 local SPIN_HZ = 30
 local DESIGN_W = gui:GetAttribute("DesignWidth") or 820
@@ -58,6 +70,7 @@ local COLORS = {
 	idle = Color3.fromRGB(79, 86, 116),
 	tabOn = Color3.fromRGB(255, 182, 39),
 	tabOff = Color3.fromRGB(57, 66, 115),
+	scopeAll = Color3.fromRGB(232, 54, 61),
 	confirm = Color3.fromRGB(150, 22, 34),
 	white = Color3.new(1, 1, 1),
 	black = Color3.new(0, 0, 0),
@@ -272,6 +285,17 @@ local function restColor(button)
 	if type(tab) == "string" then
 		return if tabsColumn:GetAttribute("Selected") == tab then COLORS.tabOn else COLORS.tabOff
 	end
+	local sub = button:GetAttribute("SubTab")
+	if type(sub) == "string" then
+		return if subTabs:GetAttribute("Selected") == sub then COLORS.tabOn else COLORS.tabOff
+	end
+	local scope = button:GetAttribute("ScopeValue")
+	if type(scope) == "string" and button.Parent then
+		if button.Parent:GetAttribute("Selected") ~= scope then
+			return COLORS.tabOff
+		end
+		return if scope == "All" then COLORS.scopeAll else COLORS.tabOn
+	end
 	return baseColors[button] or button.BackgroundColor3
 end
 
@@ -319,14 +343,16 @@ end
 -- tabs
 ----------------------------------------------------------------------------------------------------
 
+local cancelConfirms -- defined with the commands
+
 local function selectTab(id)
 	tabsColumn:SetAttribute("Selected", id)
+	local usesTarget = false
 	for _, tab in ipairs(tabsColumn:GetChildren()) do
 		if tab:IsA("GuiButton") then
 			paint(tab, "rest")
-			local label = tab:FindFirstChild("Label")
-			if label and label:IsA("TextLabel") then
-				label.TextColor3 = COLORS.white
+			if tab:GetAttribute("Tab") == id then
+				usesTarget = tab:GetAttribute("UsesTarget") == true
 			end
 		end
 	end
@@ -335,8 +361,29 @@ local function selectTab(id)
 			page.Visible = page:GetAttribute("Tab") == id
 		end
 	end
+	targetBar.Visible = usesTarget -- the target card only where the buttons act on the target
+	if cancelConfirms then
+		cancelConfirms()
+	end
 	if id == "Server" then
 		updateStats()
+	end
+end
+
+local function selectSubTab(id)
+	subTabs:SetAttribute("Selected", id)
+	for _, tab in ipairs(subTabs:GetChildren()) do
+		if tab:IsA("GuiButton") then
+			paint(tab, "rest")
+		end
+	end
+	for _, page in ipairs(subPages:GetChildren()) do
+		if page:IsA("GuiObject") and page:GetAttribute("SubTab") ~= nil then
+			page.Visible = page:GetAttribute("SubTab") == id
+		end
+	end
+	if cancelConfirms then
+		cancelConfirms()
 	end
 end
 
@@ -348,7 +395,16 @@ for _, tab in ipairs(tabsColumn:GetChildren()) do
 		end)
 	end
 end
-selectTab("Weapons")
+for _, tab in ipairs(subTabs:GetChildren()) do
+	if tab:IsA("GuiButton") and type(tab:GetAttribute("SubTab")) == "string" then
+		feel(tab)
+		tab.Activated:Connect(function()
+			selectSubTab(tab:GetAttribute("SubTab"))
+		end)
+	end
+end
+selectTab(tabsColumn:GetAttribute("Selected") or "Player")
+selectSubTab(subTabs:GetAttribute("Selected") or "Actions")
 
 ----------------------------------------------------------------------------------------------------
 -- target
@@ -357,6 +413,7 @@ selectTab("Weapons")
 local card = targetBar:WaitForChild("TargetCard")
 local nameLabel = card:WaitForChild("PlayerName")
 local infoLabel = card:WaitForChild("Info")
+local countLabel = card:FindFirstChild("Count")
 local avatar = find(card, "AvatarBack.Avatar")
 local thumbnails = {} -- [UserId] = content string
 
@@ -397,6 +454,14 @@ local function renderInfo()
 		table.insert(parts, if summary.Plot then "Plot " .. summary.Plot else "No plot")
 	end
 	setText(infoLabel, table.concat(parts, "   "))
+	-- PLAYER > DATA: the saved profile at a glance
+	local dataPage = find(subPages, "SubPage_Data")
+	local own = summary ~= nil and summary.UserId == target.UserId
+	for _, key in ipairs({ "Money", "SpeedPower", "Eggs", "Heroes" }) do
+		local value = own and summary[key] or nil
+		local shown = if value == nil then "--" elseif key == "Eggs" or key == "Heroes" then tostring(value) else compact(value)
+		setText(dataPage and find(dataPage, "Data_" .. key .. ".Value"), shown)
+	end
 end
 
 local function setAvatar(target)
@@ -440,8 +505,14 @@ local function inspect()
 	end)
 end
 
+local sortedPlayers -- defined below
+
 refreshTarget = function(withInspect)
 	local target = targetPlayer()
+	if countLabel and sortedPlayers then
+		local list = sortedPlayers()
+		setText(countLabel, string.format("%d / %d", table.find(list, target) or 1, #list))
+	end
 	local name = target.DisplayName
 	if name ~= target.Name then
 		name ..= "  @" .. target.Name
@@ -460,7 +531,7 @@ refreshTarget = function(withInspect)
 	end
 end
 
-local function sortedPlayers()
+sortedPlayers = function()
 	local list = Players:GetPlayers()
 	table.sort(list, function(a, b)
 		if a == player then
@@ -475,6 +546,9 @@ end
 
 local function setTarget(target)
 	targetUserId = if target == nil or target == player then nil else target.UserId
+	if cancelConfirms then
+		cancelConfirms() -- a confirm armed for one player never fires on another
+	end
 	refreshTarget(true)
 	toast("Target: " .. targetPlayer().Name, "idle")
 end
@@ -502,9 +576,17 @@ end
 Players.PlayerRemoving:Connect(function(leaving)
 	if targetUserId ~= nil and leaving.UserId == targetUserId then
 		targetUserId = nil
+		if cancelConfirms then
+			cancelConfirms()
+		end
 		task.defer(refreshTarget, true)
 		toast(leaving.Name .. " left: target is you again", "warn")
+	else
+		task.defer(refreshTarget, false)
 	end
+end)
+Players.PlayerAdded:Connect(function()
+	task.defer(refreshTarget, false)
 end)
 
 ----------------------------------------------------------------------------------------------------
@@ -534,7 +616,7 @@ local function showCaption(button, value)
 	end
 end
 
--- The amount box a Give / Take button reads (its InputFrom attribute names the TextBox).
+-- The TextBox a button reads (its InputFrom attribute names it).
 local function inputOf(button)
 	local name = button:GetAttribute("InputFrom")
 	if type(name) ~= "string" then
@@ -548,8 +630,20 @@ local function inputOf(button)
 	return nil
 end
 
--- The command's arguments: its Arg* attributes, plus Amount = the typed text for an input button (sent as typed: the
--- server parses "10M" / "2.5B" / "1e12" itself).
+-- The scope an event button obeys: "Server" | "All" (its ScopeFrom attribute names the toggle's frame), or nil.
+local function scopeOf(button)
+	local name = button:GetAttribute("ScopeFrom")
+	if type(name) ~= "string" then
+		return nil
+	end
+	local frame = window:FindFirstChild(name, true)
+	local selected = frame and frame:GetAttribute("Selected")
+	return if selected == "All" then "All" else "Server"
+end
+
+-- The command's arguments: its Arg* attributes; the typed text of its TextBox as the box's ArgName (Amount: sent as
+-- typed, the server parses "10M" / "2.5B" / "1e12"; Text: the announcement); Scope from the scope toggle;
+-- ConfirmUserId = the target shown while it was confirmed (SendTargetId).
 local function argsOf(button)
 	local args = {}
 	for key, value in pairs(button:GetAttributes()) do
@@ -559,7 +653,19 @@ local function argsOf(button)
 	end
 	local box = inputOf(button)
 	if box then
-		args.Amount = string.sub(box.Text, 1, 32)
+		local argName = box:GetAttribute("ArgName")
+		if argName == "Text" then
+			args.Text = string.sub(box.Text, 1, MAX_TEXT_BYTES)
+		else
+			args.Amount = string.sub(box.Text, 1, 32)
+		end
+	end
+	local scope = scopeOf(button)
+	if scope then
+		args.Scope = scope
+	end
+	if button:GetAttribute("SendTargetId") == true then
+		args.ConfirmUserId = targetPlayer().UserId
 	end
 	return args
 end
@@ -571,21 +677,44 @@ local function endConfirm(button)
 	paint(button, if hovered[button] then "hover" else "rest")
 end
 
+cancelConfirms = function()
+	for button in pairs(confirmUntil) do
+		endConfirm(button)
+	end
+end
+
+-- "TAP AGAIN", or the button's ConfirmText ("%s" = the target's name), or "TAP AGAIN: ALL" for an all-server event.
+local function confirmCaption(button, allServers)
+	local custom = button:GetAttribute("ConfirmText")
+	if type(custom) == "string" and custom ~= "" then
+		local ok, value = pcall(string.format, custom, string.upper(targetPlayer().Name))
+		return if ok then value else custom
+	end
+	return if allServers then "TAP AGAIN: ALL" else "TAP AGAIN"
+end
+
 local function run(button)
 	local command = button:GetAttribute("Command")
 	if type(command) ~= "string" or busy[button] then
 		return
 	end
-	if button:GetAttribute("Confirm") == true then
+	local allServers = scopeOf(button) == "All"
+	if button:GetAttribute("Confirm") == true or allServers then
 		local now = os.clock()
 		if (confirmUntil[button] or 0) < now then
-			local deadline = now + CONFIRM_SECONDS
+			local seconds = tonumber(button:GetAttribute("ConfirmSeconds")) or CONFIRM_SECONDS
+			local deadline = now + seconds
 			confirmUntil[button] = deadline
 			button:SetAttribute("Confirming", true)
-			showCaption(button, "TAP AGAIN")
+			showCaption(button, confirmCaption(button, allServers))
 			paint(button, "confirm")
-			toast("Tap again to confirm: " .. tostring(originalCaptions[button] or command), "warn")
-			task.delay(CONFIRM_SECONDS, function()
+			local what = tostring(originalCaptions[button] or command)
+			if button:GetAttribute("SendTargetId") == true then
+				what ..= " for " .. targetPlayer().Name
+			end
+			toast(string.format("Tap again within %d s to confirm: %s%s", math.floor(seconds), what,
+				if allServers then " (ALL SERVERS)" else ""), "warn")
+			task.delay(seconds, function()
 				if confirmUntil[button] == deadline then
 					endConfirm(button)
 				end
@@ -596,7 +725,7 @@ local function run(button)
 	end
 	local box = inputOf(button)
 	if box and string.match(box.Text, "^%s*$") then
-		toast("Type an amount first (e.g. 10M, 2.5B, 1e12)", "warn")
+		toast(if box:GetAttribute("ArgName") == "Text" then "Type a message first" else "Type an amount first (e.g. 10M, 2.5B, 1e12)", "warn")
 		pcall(box.CaptureFocus, box)
 		return
 	end
@@ -608,15 +737,18 @@ local function run(button)
 	busy[button] = true
 	showCaption(button, "...")
 	toast("Working...", "busy")
-	local wanted = targetUserId
-	local ok, success, message, summary = pcall(remote.InvokeServer, remote, command, wanted, argsOf(button))
+	local wanted = if button:GetAttribute("TargetSelf") == true then nil else targetUserId
+	local ok, success, message, summary, kind = pcall(remote.InvokeServer, remote, command, wanted, argsOf(button))
 	busy[button] = nil
 	showCaption(button, nil)
 	if not ok then
 		toast("No answer from the server: " .. tostring(success), "error")
 		return
 	end
-	toast(message, if success then "ok" else "error")
+	toast(message, if not success then "error" elseif kind == "warn" then "warn" else "ok")
+	if success and box and box:GetAttribute("ArgName") == "Text" then
+		box.Text = "" -- sent: the box is ready for the next one
+	end
 	if type(summary) == "table" and summary.UserId == targetPlayer().UserId then
 		lastSummary = summary
 		renderInfo()
@@ -632,7 +764,7 @@ for _, node in ipairs(window:GetDescendants()) do
 	end
 end
 
--- Enter in an amount box presses its GIVE button.
+-- Enter in an amount box presses its GIVE button (never in the announcement box: sending stays a deliberate tap).
 for _, node in ipairs(pages:GetDescendants()) do
 	if node:IsA("TextBox") and node:GetAttribute("AmountInput") == true then
 		node.FocusLost:Connect(function(enterPressed)
@@ -648,6 +780,74 @@ for _, node in ipairs(pages:GetDescendants()) do
 				end
 			end
 		end)
+	end
+end
+
+-- The announcement box: at most MaxChars characters, and the live "n / 150" counter in its header.
+for _, node in ipairs(pages:GetDescendants()) do
+	if node:IsA("TextBox") and node:GetAttribute("ArgName") == "Text" then
+		local maxChars = tonumber(node:GetAttribute("MaxChars")) or 150
+		local page = node:FindFirstAncestorWhichIsA("ScrollingFrame")
+		local counter = page and page:FindFirstChild("AnnounceCount")
+		local function update()
+			local length = utf8.len(node.Text)
+			if length == nil then
+				node.Text = "" -- not valid text
+				return
+			end
+			if length > maxChars then
+				node.Text = string.sub(node.Text, 1, utf8.offset(node.Text, maxChars + 1) - 1)
+				return -- the change fires again
+			end
+			if counter and counter:IsA("TextLabel") then
+				counter.Text = string.format("%d / %d", length, maxChars)
+				counter.TextColor3 = if length >= maxChars then COLORS.warn else COLORS.muted
+			end
+		end
+		node:GetPropertyChangedSignal("Text"):Connect(update)
+		update()
+	end
+end
+
+-- The scope toggle (WORLD > EVENTS): the event buttons say where they will run.
+local function applyScope(frame)
+	local selected = frame:GetAttribute("Selected")
+	for _, node in ipairs(frame:GetChildren()) do
+		if node:IsA("GuiButton") then
+			paint(node, if hovered[node] then "hover" else "rest")
+		end
+	end
+	for _, node in ipairs(window:GetDescendants()) do
+		if node:IsA("GuiButton") and node:GetAttribute("ScopeFrom") == frame.Name then
+			local sub = node:FindFirstChild("Sub")
+			if sub and sub:IsA("TextLabel") then
+				sub.Text = if selected == "All" then "ALL SERVERS" else "THIS SERVER"
+			end
+			if confirmUntil[node] then
+				endConfirm(node)
+			end
+		end
+	end
+end
+
+for _, node in ipairs(window:GetDescendants()) do
+	if node:IsA("GuiButton") and node:GetAttribute("Control") == "Scope" and type(node:GetAttribute("ScopeValue")) == "string" then
+		feel(node)
+		node.Activated:Connect(function()
+			local frame = node.Parent
+			local value = node:GetAttribute("ScopeValue")
+			if frame:GetAttribute("Selected") == value then
+				return
+			end
+			frame:SetAttribute("Selected", value)
+			applyScope(frame)
+			if value == "All" then
+				toast("Events now run on EVERY server of the game (each one asks for a second tap)", "warn")
+			else
+				toast("Events run on this server only", "idle")
+			end
+		end)
+		task.defer(applyScope, node.Parent)
 	end
 end
 
@@ -677,10 +877,9 @@ task.spawn(function()
 		local ok, result = pcall(require, portraitModule)
 		portraits = if ok and type(result) == "table" then result else nil
 	end
-	local page = pages:FindFirstChild("Page_Weapons")
-	for _, cardNode in ipairs(page and page:GetChildren() or {}) do
+	for _, cardNode in ipairs(window:GetDescendants()) do
 		local tool = cardNode:GetAttribute("ArgTool")
-		if type(tool) == "string" then
+		if type(tool) == "string" and cardNode:GetAttribute("Command") == "GiveWeapon" then
 			if heroWeapons then
 				local ok, weapon = pcall(function()
 					return heroWeapons.WEAPONS[heroWeapons.BY_TOOL[tool]]
@@ -746,9 +945,13 @@ updateStats = function()
 		end
 	end
 	local session = serverPage and find(serverPage, "SessionInfo.Text")
-	setText(session, string.format("%s   |   Place version %d   |   Server %s   |   %s",
+	local network = ReplicatedStorage:FindFirstChild("Network")
+	local announce = network and network:FindFirstChild(ANNOUNCE_REMOTE)
+	local link = announce and announce:GetAttribute("CrossServer")
+	setText(session, string.format("%s   |   Place version %d   |   Server %s   |   Cross-server: %s",
 		if RunService:IsStudio() then "Studio test server" else "Live server", game.PlaceVersion,
-		if game.JobId ~= "" then string.sub(game.JobId, 1, 8) else "local", "Your role: Hero admin"))
+		if game.JobId ~= "" then string.sub(game.JobId, 1, 8) else "local",
+		if link == "ready" then "ready" else "offline (this server only)"))
 	local dummies = Workspace:FindFirstChild("HeroWeaponDummies")
 	local count = 0
 	for _, child in ipairs(dummies and dummies:GetChildren() or {}) do
@@ -756,7 +959,7 @@ updateStats = function()
 			count += 1
 		end
 	end
-	setText(find(pages, "Page_Weapons.DummyCount"), string.format("%d / 4", count))
+	setText(find(pages, "Page_Dummies.DummyCount"), string.format("%d / 4", count))
 	local tacoUntil = Workspace:GetAttribute("TacoRainUntil")
 	local tacoStatus = find(pages, "Page_World.TacoStatus.Text")
 	if type(tacoUntil) == "number" and tacoUntil > Workspace:GetServerTimeNow() then
@@ -956,4 +1159,4 @@ end
 applyAccess()
 player:GetAttributeChangedSignal(ADMIN_ATTRIBUTE):Connect(applyAccess)
 refreshTarget(false)
-toast("Ready. Every button acts on the target player.", "idle")
+toast("Ready. Pick a target in PLAYER; its buttons act on them.", "idle")

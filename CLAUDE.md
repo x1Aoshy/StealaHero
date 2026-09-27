@@ -139,8 +139,25 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     `src/ServerStorage/HeroAdminPanel/HeroAdminClient.client.luau`.
   - The TopbarPlus `HeroAdminIcon` (a part-built 3D crown in a ViewportFrame) sits next to Backpack / Settings; F4
     also toggles it.
-  - Tabs: weapons (give all / one / remove, unlock the Index weapons), training dummies, economy, eggs, world
-    (teleports, base themes, night / day, Taco Rain), player, server stats.
+  - Tabs (round 12): PLAYER, DUMMIES, EGGS, WORLD, SERVER.
+    - The target selector shows on PLAYER and EGGS only.
+    - PLAYER has sub-tabs: ACTIONS (release, respawn, heal, go to, bring, unlock base themes), ECONOMY, WEAPONS and
+      DATA (the target's saved profile plus a DANGER ZONE with WIPE ALL DATA).
+    - DUMMIES has spawn / clear and ARM YOURSELF. WORLD has Taco Rain with a THIS SERVER / ALL SERVERS scope, the
+      teleports and day / night. SERVER has announcements and live stats.
+  - Wipe (`WipeData`): `Library.Database.WipeProfile` resets a loaded profile to a new player's defaults and saves it.
+    Every later save of that session writes the frozen fresh payload, so nothing stale is saved back. The player is
+    kicked 2 s later; 8 s after that their leaderboard / Flappy rows are removed. Guards: two taps ("CONFIRM WIPE
+    <name>" for 4 s), the confirmed UserId must match the target, one wipe per 15 s per admin, a `[HeroAdmin] WIPE`
+    log. The old save stays in the DataStore version history for 30 days.
+  - Cross-server (`BranchServices.HeroBroadcastService`, MessagingService topic "HeroAdmin_Global"): ALL SERVERS
+    Taco Rain and global announcements. Only admin-checked calls publish; receivers validate every message (known
+    event, types, age, clamps) and ignore their own echo. If MessagingService fails, the action stays on this server
+    and the panel says so.
+  - Announcements: filtered with TextService before anything is shown or sent (a filter failure sends nothing), at
+    most 150 characters, one per 3 s per admin. `Network["Announcement: Show"]` (server -> client) is drawn by
+    `BranchControllers.AnnouncementController`: the stud banner built by `ui_86_announcements`, top centre, about
+    8 s, queued up to 5.
   - Round 10: Economy takes typed amounts. The client sends the raw text; `HeroAdminService.ParseAmount` accepts K / M /
     B / T / Qa / Qi (any case), decimals, `1e12` and commas, and refuses <= 0, NaN / inf and > 1e15. The commands are
     `GiveMoney` / `TakeMoney` / `GiveSpeed` / `TakeSpeed`; money floors at 0 and speed is clamped to [10, 5e11].
@@ -274,6 +291,12 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the taco sky with no broken texture;
   - the camera shake when a taco lands near you;
   - the HUD on the treadmill (see the treadmill HUD notes).
+- (2026-09-27, 12th pass) Test in Studio Play / a live server:
+  - the new admin tabs and sub-tabs, and the confirm captions;
+  - a wipe on a test account (kicked, rejoins from zero, leaderboard rows gone);
+  - an ALL SERVERS Taco Rain and a global announcement reaching a second live server ("Cross-server: ready");
+  - the announcement banner on phone / console (the text filter only works live, not in Studio);
+  - the dummy getting up cleanly after every weapon, with no head spin.
 - (2026-09-27, 8th pass) The owner imported the 15 FBX models themselves and sent them as a raw `.rbxm`
   (`assets/user_models/HeroWeaponImports_owner_0927.rbxm`, extracted to `assets/hero_weapons/imports/`): every weapon
   now uses the owner's model (the kit's Prepare runs offline: grip from the import pivot = FBX origin, palette

@@ -54,6 +54,10 @@ local loadingProfiles = {}
 local savingProfiles = {}
 local loadedCallbacks = {}
 local fieldCallbacks = {}
+-- Admin wipe (Database.WipeProfile, called by ServerScriptService.BranchServices.HeroAdminService WipeData): the fresh
+-- new-player payload every later save of that player's session writes instead of the live profile, so nothing a system
+-- still does with its old cached state before the kick (autosave, the leave save, BindToClose) can save it back.
+local wipedPayloads = {}
 
 local defaults = {
 	Money = 2, -- ECON 2026-09-24: starting cash /125 with the whole money economy (was 250)
@@ -531,10 +535,14 @@ local function saveProfile(player, reason)
 		end
 	end
 	savingProfiles[player] = true
-	-- Stamped on every save (not only in a separate PlayerRemoving handler, which races this
-	-- save) so OfflineAssetsService can value the absence on the next login.
-	profile.LastSeenAt = os.time()
-	local payload = serializable(cloneValue(profile))
+	local payload = wipedPayloads[player]
+	if payload == nil then
+		-- Stamped on every save (not only in a separate PlayerRemoving handler, which races this
+		-- save) so OfflineAssetsService can value the absence on the next login.
+		profile.LastSeenAt = os.time()
+		payload = serializable(cloneValue(profile))
+	end
+	-- (a wiped session writes its frozen new-player payload, LastSeenAt 0: no offline earnings on the next login)
 	local key = "Player_" .. tostring(player.UserId)
 	local success, err = false, nil
 	for attempt = 1, 3 do
@@ -638,6 +646,37 @@ function Database.ResetProfile(player)
 	return profiles[player]
 end
 
+-- Admin wipe (owner 2026-09-27: "a button to wipe all data of the selected player so they can start from 0"). Resets a
+-- LOADED profile to exactly what a player who never played gets (the load path of a missing key: the defaults merged,
+-- EnsureStatDefaults with DefaultStats' extra fields, the money scale stamped) and writes it to the store at once
+-- (UpdateAsync on the same key, after any save in flight). From then on every save of this session (autosave, the
+-- leave save, BindToClose) writes that frozen payload, never the live profile: the caller kicks the player so every
+-- system's cached state (plot, placed heroes, tools, leaderstats) starts clean on rejoin, and whatever those systems
+-- still write before the kick is never saved. The client gets the fresh stats ("New Stats") right away.
+-- Returns saved (boolean), reason. The previous value stays in the DataStore's version history (30 days).
+function Database.WipeProfile(player)
+	if profiles[player] == nil or not loadedProfiles[player] then
+		return false, "profile not loaded"
+	end
+	local fresh = Database.EnsureStatDefaults(mergeDefaults(nil, defaults))
+	migrateMoneyScale(fresh) -- a never-saved profile: stamped only
+	local payload = serializable(cloneValue(fresh))
+	payload.LastSeenAt = 0
+	wipedPayloads[player] = payload
+	profiles[player] = fresh
+	if statsRemote then
+		statsRemote:FireClient(player, fresh)
+	end
+	local saved = saveProfile(player, "AdminWipe")
+	warn("[Database] Profile of " .. player.Name .. " (" .. tostring(player.UserId) .. ") wiped by an admin"
+		.. (if saved then "" else " (the write failed: retried by the next save)"))
+	return saved, if saved then nil else "the DataStore write failed (the next save retries it)"
+end
+
+function Database.IsWiped(player)
+	return wipedPayloads[player] ~= nil
+end
+
 Players.PlayerAdded:Connect(function(player)
 	task.spawn(loadProfile, player)
 end)
@@ -648,6 +687,7 @@ Players.PlayerRemoving:Connect(function(player)
 	loadedProfiles[player] = nil
 	loadingProfiles[player] = nil
 	savingProfiles[player] = nil
+	wipedPayloads[player] = nil
 end)
 
 task.spawn(function()

@@ -4,8 +4,12 @@
 -- are created earlier by scripts/steps/post_branch_framework.luau, so nothing here touches scripts/inject/branch.luau.
 --   ServerScriptService/HeroAdminAccess                    the admin rule (UserId 767108248, the game's owner, Studio)
 --   ServerScriptService/BranchServices/HeroAdminService    Network["Admin: Command"], the commands, hands out the panel
+--   ServerScriptService/BranchServices/HeroBroadcastService   round 12: the cross-server topic (MessagingService
+--                                                          "HeroAdmin_Global") and the filtered announcements
 --   ServerScriptService/BranchServices/TacoRainService     the Taco Rain event (tacos falling on eggs: x3 "Taco")
 --   StarterPlayerScripts/BranchControllers/TacoRainController   its sky, music, falling tacos and explosions
+--   StarterPlayerScripts/BranchControllers/AnnouncementController   round 12: the announcement banner (its GUI is
+--                                                          StarterGui.HeroAnnouncements, scripts/steps/ui_86_announcements)
 --   ReplicatedStorage/Library/Modules/Mutations            the base module (its src mirror equalled the base Source)
 --                                                          plus the "Taco" mutation (x3, never rolled)
 -- The panel itself (ServerStorage.HeroAdminPanel + its LocalScript HeroAdminClient) is built by
@@ -25,6 +29,12 @@ return {
 		create = true,
 	},
 	{
+		target = "ServerScriptService/BranchServices/HeroBroadcastService",
+		class = "ModuleScript",
+		source = "src/ServerScriptService/BranchServices/HeroBroadcastService.luau",
+		create = true,
+	},
+	{
 		target = "ServerScriptService/BranchServices/TacoRainService",
 		class = "ModuleScript",
 		source = "src/ServerScriptService/BranchServices/TacoRainService.luau",
@@ -34,6 +44,12 @@ return {
 		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/TacoRainController",
 		class = "ModuleScript",
 		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/TacoRainController.luau",
+		create = true,
+	},
+	{
+		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/AnnouncementController",
+		class = "ModuleScript",
+		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/AnnouncementController.luau",
 		create = true,
 	},
 	{

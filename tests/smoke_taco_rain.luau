@@ -137,7 +137,8 @@ for _, d in ipairs(world and world:GetChildren() or {}) do
 		table.insert(buttons, d.Name)
 	end
 end
-T.check(#buttons == 3 and world:FindFirstChild("TacoStatus") ~= nil, "the World tab must offer START 60 S / 90 S, STOP and the status line")
+T.check(#buttons == 3 and world:FindFirstChild("TacoStatus") ~= nil and world:FindFirstChild("EventScope") ~= nil,
+	"the World tab must offer START 60 S / 90 S, STOP, the status line and the THIS SERVER / ALL SERVERS toggle")
 
 -- 5. behaviour ---------------------------------------------------------------------------------------------------
 local function inst(props)
@@ -308,8 +309,13 @@ do
 	T.check(#callers == 1 and callers[1] == "HeroAdminService", "only HeroAdminService may start a Taco Rain (callers: %s)",
 		table.concat(callers, ", "))
 	local adminSrc2 = src(H.path(sss, "BranchServices/HeroAdminService"))
-	T.check(H.has(adminSrc2, "return service.StartRain(duration or service.DEFAULT_DURATION)")
-		and H.has(adminSrc2, 'return service.StopRain("admin")'), "the admin commands must call StartRain / StopRain")
+	-- round 12 (owner 2026-09-27: "events like Taco Rain can be activated in every server"): the scope decides whether the
+	-- same local StartRain / StopRain is also published to every server (BranchServices.HeroBroadcastService); a rain
+	-- another server's admin sent runs through HeroAdminService's registered handler, so HeroAdminService stays the only
+	-- caller of StartRain
+	T.check(H.has(adminSrc2, "local ok, message = service.StartRain(duration)") and H.has(adminSrc2, "duration = duration or service.DEFAULT_DURATION")
+		and H.has(adminSrc2, 'return service.StopRain("admin")') and H.has(adminSrc2, 'service.OnGlobal("TacoRain", runGlobalTacoRain)'),
+		"the admin commands must call StartRain / StopRain (and take the all-server ones)")
 	local traps = {}
 	for _, folder in ipairs({ H.path(sss, "BranchServices"), H.path(sps, "BranchControllers") }) do
 		for _, m in ipairs(folder and folder:GetChildren() or {}) do

@@ -3,6 +3,9 @@
 -- give all stuff. Make it blocky like the style of everything, pretty, and it must not look AI-made, no emojis. Only
 -- user 767108248 and the owners or people with Studio access can have it in game. The admin icon goes in the topbar next
 -- to Backpack and Settings, and make the icon 3D art.")
+-- Round 12 (owner 2026-09-27): "improve the UX: the economy and weapons parts can go in a tab inside the players
+-- section", "a button to wipe all data of the selected player", "events like Taco Rain in every server", "global
+-- announcements inside Server, stud style, sober and simple".
 --
 -- Builds the Hero admin panel at BUILD time into ServerStorage.HeroAdminPanel (a ScreenGui, ResetOnSpawn off,
 -- ScreenInsets None = IgnoreGuiInset on, disabled until opened). ServerStorage never replicates, so a non-admin never
@@ -13,19 +16,36 @@
 --
 -- The look is the game's window kit (scripts/lib/ui_kit.luau, the Free Gift / Sell Heroes "studded glossy" style):
 -- dark studded body with the ink rim, a glossy gold header band with the white ink-outlined title, the round red close,
--- chunky glossy buttons, dark cards and panels, square corners (Kit.SQUARE_UI), the stud texture only (the window art
--- under the studs is hidden, like ui_98_square_studs does for StarterGui). Typography is capped per role
--- (UITextSizeConstraint) so a short label never balloons next to a long one; colours carry meaning (green = give, gold =
--- unlock, blue = move, cyan = speed, purple = night, red = destructive, confirmed by a second tap).
+-- chunky glossy buttons, dark cards and panels, square corners (Kit.SQUARE_UI), the stud texture only. Typography is
+-- capped per role (UITextSizeConstraint) so a short label never balloons next to a long one; colours carry meaning
+-- (green = give, gold = unlock / selected, blue = move, cyan = speed, purple = night, red = destructive, confirmed by a
+-- second tap).
 --
 -- Layout: the window is designed at 820 x 500 px (offsets) and fitted to the screen at runtime with its UIScale
--- "SpPanelScale" (the client keeps every touch target >= 44 px on a phone: the smallest button is 64 px tall and the
--- fit never goes under 0.69 on a 375 px tall landscape phone).
---   header band   3D crown (ViewportFrame "Crown3D" with the part-built crown), "ADMIN PANEL", mode badge, close X
---   Tabs          6 chunky tabs: WEAPONS, ECONOMY, EGGS, WORLD, PLAYER, SERVER (attribute Tab)
---   Content       TargetBar (< target card >, ME), Pages.Page_<Tab> (ScrollingFrames), Toast (status line)
--- Every command button carries its command in the Command attribute and its arguments in Arg<Name> attributes
--- (Confirm = true: needs a second tap). The service answers exactly these names (tests/smoke_admin_panel.luau checks it).
+-- "SpPanelScale" (every button is >= 64 design px tall: >= 44 px at the smallest phone fit, 0.705 on a 375 px tall
+-- landscape phone). One grid everywhere: 8 px gaps, 4 px page inset, 596 px of content per page, section headers of
+-- 20 px text + a 2 px rule (content 30 px under the header's top), 12 px between sections.
+--   header band   3D crown (ViewportFrame "Crown3D"), "ADMIN PANEL", mode badge, close X
+--   Tabs          5 chunky tabs (attribute Tab): PLAYER, DUMMIES, EGGS, WORLD, SERVER. UsesTarget = true on the tabs
+--                 whose buttons act on the target player (PLAYER, EGGS): the client shows the TargetBar only there.
+--   Content       TargetBar (< TARGET PLAYER card >, ME; Control = "Target"), Pages.Page_<Tab>, Toast (status line)
+--     Page_Player   (under the target bar) SubTabs (attribute SubTab: ACTIONS, ECONOMY, WEAPONS, DATA) over
+--                   SubPages.SubPage_<SubTab> (ScrollingFrames)
+--                     ACTIONS   release / respawn / heal / go to / bring, unlock the base themes
+--                     ECONOMY   money and speed amounts typed in a box (GIVE / TAKE / SET TO 0 / MAX / RESET)
+--                     WEAPONS   give all / unlock the Index weapons / remove the dev copies, one card per hero weapon
+--                     DATA      the saved profile at a glance and the DANGER ZONE: WIPE ALL DATA (two taps)
+--     Page_Eggs     (under the target bar) an egg of any stage into the target's hand, grow their placed eggs
+--     Page_Dummies  training dummies (spawn / clear), give yourself every weapon
+--     Page_World    EVENTS: the scope toggle THIS SERVER / ALL SERVERS (Control = "Scope", the event buttons read it
+--                   through ScopeFrom), Taco Rain 60 s / 90 s / stop and its status; teleports; day and night
+--     Page_Server   ANNOUNCEMENT (a filtered banner on every screen of this server / of every server), live stats,
+--                   the session line
+-- Every command button carries its command in the Command attribute and its arguments in Arg<Name> attributes;
+-- Confirm = true needs a second tap (ConfirmText / ConfirmSeconds customise it; SendTargetId adds ConfirmUserId = the
+-- target's UserId; TargetSelf acts on the caller; InputFrom names the TextBox whose text goes in its ArgName). Every
+-- other GuiButton is a Tab, a SubTab or a Control; tests/smoke_admin_panel.luau checks there is no orphan button, that
+-- every command has a handler in HeroAdminService.COMMANDS and a button, and that nothing overlaps or leaves its parent.
 -- Also creates ReplicatedStorage.Network["Admin: Command"] (RemoteFunction; the service re-creates it if missing).
 
 local roblox = require("@lune/roblox")
@@ -74,18 +94,26 @@ Step.COLORS = {
 	tabOff = hex("#394273"),
 	tabOn = hex("#ffb627"),
 	header = hex("#ffd35a"),
+	dangerHeader = hex("#ff6b6b"),
 	muted = hex("#b7b1e4"),
 	rule = hex("#3a3570"),
+	dangerRule = hex("#7a2430"),
 }
 
--- tab id -> icon (every id is an image already in the place)
+-- tab id -> icon (every id is an image already in the place); target = the tab's buttons act on the target player
 Step.TABS = {
-	{ id = "Weapons", caption = "WEAPONS", icon = 131099804712161 }, -- bat (gear)
-	{ id = "Economy", caption = "ECONOMY", icon = 107418433037502 }, -- banknotes
-	{ id = "Eggs", caption = "EGGS", icon = 96783034607256 }, -- egg sticker
+	{ id = "Player", caption = "PLAYER", icon = 71111471194517, target = true }, -- running shoe
+	{ id = "Dummies", caption = "DUMMIES", icon = 131099804712161 }, -- bat (gear)
+	{ id = "Eggs", caption = "EGGS", icon = 96783034607256, target = true }, -- egg sticker
 	{ id = "World", caption = "WORLD", icon = 71850546752124 }, -- clock (day / night, travel)
-	{ id = "Player", caption = "PLAYER", icon = 71111471194517 }, -- running shoe
 	{ id = "Server", caption = "SERVER", icon = 77188882273275 }, -- cog
+}
+-- the PLAYER section's sub-tabs (text only: the second level of the hierarchy)
+Step.SUB_TABS = {
+	{ id = "Actions", caption = "ACTIONS" },
+	{ id = "Economy", caption = "ECONOMY" },
+	{ id = "Weapons", caption = "WEAPONS" },
+	{ id = "Data", caption = "DATA" },
 }
 
 -- the hero weapon Tools (GearTools.ShopItems), labels read from Library.Modules.HeroWeapons when it parses
@@ -104,20 +132,32 @@ Step.STAGE_FALLBACK = {
 	{ key = "Desert", name = "Spider-Verse" }, { key = "Jungle", name = "My Hero Academia" },
 	{ key = "Snow", name = "Dragon Ball" }, { key = "Volcano", name = "One Piece" },
 }
+Step.ANNOUNCE_MAX_CHARS = 150 -- = HeroBroadcastService.MAX_ANNOUNCE_CHARS
+Step.WIPE_CONFIRM_SECONDS = 4
 
 -- text size caps per role (px at the 820 x 500 design size)
-Step.TEXT = { button = 22, sub = 15, header = 18, tab = 21, card = 17, small = 14, value = 30, name = 22, title = 40 }
+Step.TEXT = { button = 22, sub = 15, header = 17, tab = 18, subTab = 19, card = 17, small = 14, value = 26, name = 22, title = 40 }
 
--- geometry (design px)
+-- geometry (design px). Window space: the tab column and the content box. Content space (inside Content): the rest.
 Step.TABS_BOX = { x = 16, y = 78, w = 154, h = 410 }
-Step.CONTENT_X, Step.CONTENT_W = 184, 620
-Step.TARGET_Y, Step.ROW_H = 78, 64
-Step.PAGE_Y, Step.PAGE_H = 152, 288
-Step.TOAST_Y, Step.TOAST_H = 448, 40
-Step.PAGE_INSET = 4 -- keeps the outer ink rims inside the scrolling clip
-Step.PAGE_INNER_W = 596
+Step.TAB_GAP = 6
+Step.CONTENT_X, Step.CONTENT_Y, Step.CONTENT_W, Step.CONTENT_H = 184, 78, 620, 410
+Step.ROW_H = 64
 Step.GAP = 8
-Step.SECTION_GAP = 14
+Step.SECTION_GAP = 12
+Step.HEADER_H, Step.HEADER_STEP = 20, 30 -- header text height; content starts HEADER_STEP under the header's top
+Step.TARGET_H = 64 -- the TargetBar (content y 0)
+Step.PAGE_Y = Step.TARGET_H + Step.GAP -- pages under the target bar
+Step.PAGE_H = 290 -- 72..362
+Step.FULL_PAGE_H = Step.PAGE_Y + Step.PAGE_H -- pages without the target bar: 0..362
+Step.TOAST_Y, Step.TOAST_H = Step.FULL_PAGE_H + Step.GAP, 40 -- 370..410
+Step.SUBTAB_H = 64
+Step.SUBPAGE_Y = Step.SUBTAB_H + Step.GAP -- inside Page_Player
+Step.SUBPAGE_H = Step.PAGE_H - Step.SUBPAGE_Y -- 218
+Step.PAGE_INSET = 4 -- keeps the outer ink rims inside the scrolling clip
+Step.PAGE_INNER_W = 596 -- (the 6 px scroll bar sits in the 20 px right of it)
+-- target bar: < 64 | card 352 | > 64 | ME 116, 8 px apart
+Step.TARGET = { prev = 0, card = 72, cardW = 352, next = 432, me = 504, meW = 116 }
 -- header row (design px, all inside the 64 px band; tests/smoke_admin_panel.luau checks none of them overlap):
 --   crown 12..98 (pops out of the band on purpose) | title 104..544 (the drag handle 100..580 lies over it) |
 --   mode badge 598..740 | close 761..807 (ink rim included it stays 9 px from the window's right edge)
@@ -126,7 +166,7 @@ Step.DRAG_X, Step.DRAG_W = 100, 480
 Step.BADGE = { x = 598, y = 17, w = 142, h = 30 }
 Step.CLOSE = { x = 784, y = 32, size = 46 } -- centre and side
 Step.CLOSE_Z = 20
--- the amount boxes of the Economy page and the button columns next to them
+-- the amount boxes of the Economy sub-page and the button columns next to them
 Step.INPUT_W = 180
 Step.INPUT_BUTTON_W = 96
 Step.STUD_TRANSPARENCY = 0.62 -- the stud texture reads on every surface (ui_98_square_studs' rule)
@@ -194,14 +234,24 @@ local function button(parent, name, caption, x, y, w, h, color, command, args, o
 			node:SetAttribute("Arg" .. key, value)
 		end
 	end
+	if opts.control then
+		node:SetAttribute("Control", opts.control)
+	end
 	if opts.confirm then
 		node:SetAttribute("Confirm", true)
+	end
+	for _, key in ipairs({ "ConfirmText", "ConfirmSeconds", "SendTargetId", "TargetSelf", "ScopeFrom", "ScopeValue" }) do
+		if opts[key] ~= nil then
+			node:SetAttribute(key, opts[key])
+		end
 	end
 	return node, label
 end
 
--- A dark amount box (UiKit.input look): the TextBox `name` the Give / Take buttons read (their InputFrom attribute).
-local function amountInput(parent, name, x, y, w, h, placeholder)
+-- A dark text box (UiKit.input look): the TextBox `name` that buttons read (their InputFrom attribute); its text goes in
+-- the command argument ArgName ("Amount" for the economy boxes, "Text" for the announcement).
+local function textInput(parent, name, x, y, w, h, placeholder, opts)
+	opts = opts or {}
 	local holder = UiKit.layer(parent, "Frame", name .. "Holder", 5)
 	place(holder, x, y, w, h)
 	local box = UiKit.layer(holder, "TextBox", name, 6)
@@ -213,13 +263,17 @@ local function amountInput(parent, name, x, y, w, h, placeholder)
 	box.ClearTextOnFocus = false
 	box.MultiLine = false
 	box.BackgroundTransparency = 1
-	box.TextXAlignment = Enum.TextXAlignment.Center
+	box.TextXAlignment = opts.alignX or Enum.TextXAlignment.Center
 	box.TextYAlignment = Enum.TextYAlignment.Center
-	place(box, 10, 8, w - 20, h - 16)
+	place(box, 12, 8, w - 24, h - 16)
 	UiKit.input(holder, box, Step.THEME)
 	Kit.styleText(box, "body", { color = UiKit.WHITE, scaled = true })
-	cap(box, 26)
-	box:SetAttribute("AmountInput", true)
+	cap(box, opts.max or 26)
+	box:SetAttribute("ArgName", opts.argName or "Amount")
+	box:SetAttribute("MaxChars", opts.maxChars or 32)
+	if opts.amount ~= false then
+		box:SetAttribute("AmountInput", true)
+	end
 	return box
 end
 
@@ -233,20 +287,31 @@ local function columns(n, width, gap, x0)
 	return list
 end
 
-local function sectionHeader(page, name, caption, y)
+-- Section header: the caption (20 px) and a 2 px rule under it; content starts HEADER_STEP under y. opts.meta =
+-- { name, text } adds a right-aligned value in the header row (the caption gives it room); opts.danger = red.
+local function sectionHeader(page, name, caption, y, opts)
+	opts = opts or {}
 	local x = Step.PAGE_INSET
-	text(page, name, caption, "subtitle", x, y, Step.PAGE_INNER_W, 22, {
-		color = Step.COLORS.header, alignX = Enum.TextXAlignment.Left, max = Step.TEXT.header,
+	local metaW = if opts.meta then 140 else 0
+	local captionW = Step.PAGE_INNER_W - (if opts.meta then metaW + 10 else 0)
+	text(page, name, caption, "subtitle", x, y, captionW, Step.HEADER_H, {
+		color = if opts.danger then Step.COLORS.dangerHeader else Step.COLORS.header, alignX = Enum.TextXAlignment.Left,
+		max = Step.TEXT.header,
 	})
+	if opts.meta then
+		text(page, opts.meta[1], opts.meta[2], "number", x + Step.PAGE_INNER_W - metaW, y, metaW, Step.HEADER_H, {
+			color = Step.COLORS.muted, alignX = Enum.TextXAlignment.Right, max = Step.TEXT.header,
+		})
+	end
 	local rule = UiKit.layer(page, "Frame", name .. "Rule", 5)
-	rule.BackgroundColor3 = Step.COLORS.rule
+	rule.BackgroundColor3 = if opts.danger then Step.COLORS.dangerRule else Step.COLORS.rule
 	rule.BackgroundTransparency = 0
-	place(rule, x, y + 25, Step.PAGE_INNER_W, 2)
-	return y + 34
+	place(rule, x, y + Step.HEADER_H + 2, Step.PAGE_INNER_W, 2)
+	return y + Step.HEADER_STEP
 end
 
-local function scrollPage(parent, id)
-	local page = UiKit.layer(parent, "ScrollingFrame", "Page_" .. id, 5)
+local function scrollFrame(parent, name, y, h, visible)
+	local page = UiKit.layer(parent, "ScrollingFrame", name, 5)
 	page.BackgroundTransparency = 1
 	page.ScrollBarThickness = 6
 	page.ScrollBarImageColor3 = Step.COLORS.gold
@@ -256,14 +321,28 @@ local function scrollPage(parent, id)
 	page.VerticalScrollBarInset = Enum.ScrollBarInset.None
 	page.ClipsDescendants = true
 	page.Active = true
-	page.Visible = id == Step.TABS[1].id
+	page.Visible = visible
+	place(page, 0, y, Step.CONTENT_W, h)
+	return page
+end
+
+-- A top-level page (Page_<id>): under the target bar for a tab that uses it, else the full content height.
+local function tabPage(pages, id)
+	local spec = nil
+	for _, tab in ipairs(Step.TABS) do
+		if tab.id == id then
+			spec = tab
+		end
+	end
+	local y = if spec.target then Step.PAGE_Y else 0
+	local h = if spec.target then Step.PAGE_H else Step.FULL_PAGE_H
+	local page = scrollFrame(pages, "Page_" .. id, y, h, id == Step.TABS[1].id)
 	page:SetAttribute("Tab", id)
-	place(page, 0, 0, Step.CONTENT_W, Step.PAGE_H)
 	return page
 end
 
 local function finishPage(page, y)
-	page.CanvasSize = UDim2.fromOffset(0, math.max(y + 6, Step.PAGE_H))
+	page.CanvasSize = UDim2.fromOffset(0, math.max(y, page.Size.Y.Offset))
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -427,19 +506,107 @@ end
 local C = Step.COLORS
 local T = Step.TEXT
 
-local function weaponsPage(pages, labels)
-	local page = scrollPage(pages, "Weapons")
+-- a dark read-only tile (caption + value) the client fills
+local function statTile(parent, name, caption, x, y, w, h, color)
+	local card = UiKit.layer(parent, "Frame", name, 5)
+	place(card, x, y, w, h)
+	UiKit.card(card, { color = color or Step.THEME.panel, strokeColor = Step.THEME.cardStroke, stroke = 0.025 })
+	text(card, "Caption", caption, "subtitle", 10, 6, w - 20, 14, { color = C.header, max = 13, zIndex = 3, alignX = Enum.TextXAlignment.Left })
+	text(card, "Value", "--", "number", 10, 22, w - 20, h - 28, { max = T.value, zIndex = 3, alignX = Enum.TextXAlignment.Left })
+	return card
+end
+
+-- a dark panel with a muted note in it
+local function notePanel(parent, name, value, x, y, w, h, opts)
+	opts = opts or {}
+	local panel = UiKit.layer(parent, "Frame", name, 5)
+	place(panel, x, y, w, h)
+	UiKit.panel(panel, { color = Step.THEME.panel, strokeColor = opts.strokeColor or Step.THEME.cardStroke, stroke = opts.stroke or 0.04 })
+	text(panel, "Text", value, "body", 12, 6, w - 24, h - 12, {
+		color = opts.color or C.muted, alignX = Enum.TextXAlignment.Left, max = opts.max or 15, zIndex = 3,
+	})
+	return panel
+end
+
+-- PLAYER > ACTIONS: the target's character, and their progress unlocks
+local function actionsPage(subPages)
+	local page = scrollFrame(subPages, "SubPage_Actions", 0, Step.SUBPAGE_H, true)
+	page:SetAttribute("SubTab", "Actions")
+	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
+	local y = sectionHeader(page, "HeaderCharacter", "CHARACTER", Step.PAGE_INSET)
+	local cols = columns(5, W, gap, x0)
+	local spec = {
+		{ "Release", "RELEASE", C.give, "UNSTICK" },
+		{ "Respawn", "RESPAWN", C.travel, "NEW BODY" },
+		{ "Heal", "HEAL", C.give, "FULL HP" },
+		{ "GoTo", "GO TO", C.travel, "YOU MOVE" },
+		{ "Bring", "BRING", C.travel, "THEY MOVE" },
+	}
+	for i, entry in ipairs(spec) do
+		button(page, entry[1], entry[2], cols[i][1], y, cols[i][2], Step.ROW_H, entry[3], entry[1], nil, { sub = entry[4], max = 20 })
+	end
+	y += Step.ROW_H + Step.SECTION_GAP
+	y = sectionHeader(page, "HeaderProgress", "PROGRESS", y)
+	cols = columns(2, W, gap, x0)
+	button(page, "UnlockBaseThemes", "UNLOCK BASE THEMES", cols[1][1], y, cols[1][2], Step.ROW_H, C.gold, "UnlockBaseThemes", nil,
+		{ sub = "FOR THE TARGET" })
+	text(page, "BasesNote", "They equip them from the Index, like a completed stage. The Index weapons are in WEAPONS.", "body",
+		cols[2][1] + 6, y + 8, cols[2][2] - 6, Step.ROW_H - 16, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
+	y += Step.ROW_H
+	finishPage(page, y + 6)
+	return page
+end
+
+-- PLAYER > ECONOMY: typed amounts (the server parses "10M", "2.5B", "1e12")
+local function economyPage(subPages)
+	local page = scrollFrame(subPages, "SubPage_Economy", 0, Step.SUBPAGE_H, false)
+	page:SetAttribute("SubTab", "Economy")
+	local x0, gap = Step.PAGE_INSET, Step.GAP
+	local inputW, buttonW = Step.INPUT_W, Step.INPUT_BUTTON_W
+	local col = function(i) -- the button columns right of the box
+		return x0 + inputW + gap + (i - 1) * (buttonW + gap)
+	end
+	local y = sectionHeader(page, "HeaderMoney", "MONEY", Step.PAGE_INSET)
+	textInput(page, "MoneyAmount", x0, y, inputW, Step.ROW_H, "e.g. 10M")
+	local give = button(page, "GiveMoney", "GIVE", col(1), y, buttonW, Step.ROW_H, C.give, "GiveMoney", nil, { max = 24 })
+	give:SetAttribute("InputFrom", "MoneyAmount")
+	local take = button(page, "TakeMoney", "TAKE", col(2), y, buttonW, Step.ROW_H, C.danger, "TakeMoney", nil, { max = 24 })
+	take:SetAttribute("InputFrom", "MoneyAmount")
+	button(page, "ResetMoney", "SET TO 0", col(3), y, 2 * buttonW + gap, Step.ROW_H, C.danger, "ResetMoney", nil, { confirm = true })
+	y += Step.ROW_H + Step.GAP
+	y = sectionHeader(page, "HeaderSpeed", "SPEED POWER", y)
+	textInput(page, "SpeedAmount", x0, y, inputW, Step.ROW_H, "e.g. 2.5B")
+	give = button(page, "GiveSpeed", "GIVE", col(1), y, buttonW, Step.ROW_H, C.speed, "GiveSpeed", nil, { max = 24 })
+	give:SetAttribute("InputFrom", "SpeedAmount")
+	take = button(page, "TakeSpeed", "TAKE", col(2), y, buttonW, Step.ROW_H, C.danger, "TakeSpeed", nil, { max = 24 })
+	take:SetAttribute("InputFrom", "SpeedAmount")
+	button(page, "MaxSpeed", "MAX", col(3), y, buttonW, Step.ROW_H, C.gold, "SetSpeed", { Value = 5e11 }, { sub = "TOP SPEED" })
+	button(page, "ResetSpeed", "RESET", col(4), y, buttonW, Step.ROW_H, C.danger, "SetSpeed", { Value = 10 }, { sub = "BACK TO 10", confirm = true })
+	y += Step.ROW_H + 4
+	text(page, "Hint", "Type 500, 25K, 10M, 2.5B or 1e12. Enter gives it. Money stops at 0, speed at 10.", "body",
+		x0, y, Step.PAGE_INNER_W, 14, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = 13 })
+	y += 14
+	finishPage(page, y)
+	return page
+end
+
+-- PLAYER > WEAPONS
+local function weaponsPage(subPages, labels)
+	local page = scrollFrame(subPages, "SubPage_Weapons", 0, Step.SUBPAGE_H, false)
+	page:SetAttribute("SubTab", "Weapons")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
 	local y = sectionHeader(page, "HeaderActions", "QUICK ACTIONS", Step.PAGE_INSET)
 	local cols = columns(3, W, gap, x0)
-	button(page, "GiveAllWeapons", "GIVE ALL WEAPONS", cols[1][1], y, cols[1][2], Step.ROW_H, C.give, "GiveAllWeapons")
-	button(page, "UnlockIndexWeapons", "UNLOCK INDEX WEAPONS", cols[2][1], y, cols[2][2], Step.ROW_H, C.gold, "UnlockIndexWeapons")
-	button(page, "RemoveDevWeapons", "REMOVE DEV WEAPONS", cols[3][1], y, cols[3][2], Step.ROW_H, C.danger, "RemoveDevWeapons", nil, { confirm = true })
+	button(page, "GiveAllWeapons", "GIVE ALL", cols[1][1], y, cols[1][2], Step.ROW_H, C.give, "GiveAllWeapons", nil, { sub = "THE 7 HERO WEAPONS" })
+	button(page, "UnlockIndexWeapons", "UNLOCK INDEX", cols[2][1], y, cols[2][2], Step.ROW_H, C.gold, "UnlockIndexWeapons", nil,
+		{ sub = "EVERY EQUIP BUTTON" })
+	button(page, "RemoveDevWeapons", "REMOVE DEV", cols[3][1], y, cols[3][2], Step.ROW_H, C.danger, "RemoveDevWeapons", nil,
+		{ sub = "THE ADMIN COPIES", confirm = true })
 	y += Step.ROW_H + Step.SECTION_GAP
 
 	y = sectionHeader(page, "HeaderWeapons", "HERO WEAPONS  -  TAP ONE TO GIVE IT", y)
 	cols = columns(4, W, gap, x0)
-	local cardH = 128
+	local cardH = 120
 	for i, tool in ipairs(Step.WEAPON_TOOLS) do
 		local col = cols[(i - 1) % 4 + 1]
 		local rowY = y + math.floor((i - 1) / 4) * (cardH + gap)
@@ -455,13 +622,13 @@ local function weaponsPage(pages, labels)
 		card:SetAttribute("Caption", "GIVE")
 		UiKit.studs(card, 1, { transparency = Step.STUD_TRANSPARENCY })
 		local portrait = UiKit.layer(card, "ImageLabel", "Portrait", 3)
-		Kit.setImage(portrait, Step.TABS[1].icon)
+		Kit.setImage(portrait, UiKit.Icons.bat)
 		portrait.BackgroundTransparency = 1
 		portrait.ScaleType = Enum.ScaleType.Fit
-		place(portrait, (col[2] - 60) / 2, 6, 60, 60)
+		place(portrait, (col[2] - 48) / 2, 6, 48, 48)
 		local pair = labels[tool] or { tool, "" }
-		text(card, "WeaponName", string.upper(pair[1]), "button", 6, 68, col[2] - 12, 20, { max = T.card, zIndex = 3 })
-		text(card, "Hero", pair[2], "body", 6, 87, col[2] - 12, 15, { max = 14, zIndex = 3, color = C.muted })
+		text(card, "WeaponName", string.upper(pair[1]), "button", 6, 57, col[2] - 12, 18, { max = T.card, zIndex = 3 })
+		text(card, "Hero", pair[2], "body", 6, 76, col[2] - 12, 14, { max = 13, zIndex = 3, color = C.muted })
 		local strip = UiKit.layer(card, "Frame", "Label", 3) -- "Label": the client's busy / confirm text goes here
 		place(strip, 8, cardH - 28, col[2] - 16, 22)
 		UiKit.glossButton(strip, { color = C.give, stroke = 0.08 })
@@ -469,60 +636,69 @@ local function weaponsPage(pages, labels)
 		give.Position = UDim2.fromScale(0, 0)
 		give.Size = UDim2.fromScale(1, 1)
 	end
-	y += 2 * cardH + gap + Step.SECTION_GAP
-
-	y = sectionHeader(page, "HeaderDummies", "TRAINING DUMMIES", y)
-	local count = text(page, "DummyCount", "0 / 4", "number", x0 + W - 120, y - 34, 120, 22, {
-		color = C.muted, alignX = Enum.TextXAlignment.Right, max = T.header,
-	})
-	count.ZIndex = 6
-	cols = columns(2, W, gap, x0)
-	button(page, "SpawnDummy", "SPAWN DUMMY", cols[1][1], y, cols[1][2], Step.ROW_H, C.travel, "SpawnDummy", nil, { sub = "IN FRONT OF YOU" })
-	button(page, "ClearDummies", "CLEAR DUMMIES", cols[2][1], y, cols[2][2], Step.ROW_H, C.danger, "ClearDummies", nil, { confirm = true })
-	y += Step.ROW_H
-	finishPage(page, y)
+	local rows = math.ceil(#Step.WEAPON_TOOLS / 4)
+	y += rows * cardH + (rows - 1) * gap
+	finishPage(page, y + 6)
 	return page
 end
 
-local function economyPage(pages)
-	local page = scrollPage(pages, "Economy")
+-- PLAYER > DATA: what the target's save holds, and the wipe
+local function dataPage(subPages)
+	local page = scrollFrame(subPages, "SubPage_Data", 0, Step.SUBPAGE_H, false)
+	page:SetAttribute("SubTab", "Data")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
-	local inputW, buttonW = Step.INPUT_W, Step.INPUT_BUTTON_W
-	local col = function(i) -- the button columns right of the box
-		return x0 + inputW + gap + (i - 1) * (buttonW + gap)
+	local y = sectionHeader(page, "HeaderSaved", "SAVED PROFILE", Step.PAGE_INSET)
+	local cols = columns(4, W, gap, x0)
+	for i, tile in ipairs({ { "Money", "MONEY" }, { "SpeedPower", "SPEED POWER" }, { "Eggs", "EGGS" }, { "Heroes", "HEROES" } }) do
+		statTile(page, "Data_" .. tile[1], tile[2], cols[i][1], y, cols[i][2], Step.ROW_H)
 	end
-	local y = sectionHeader(page, "HeaderMoney", "MONEY", Step.PAGE_INSET)
-	amountInput(page, "MoneyAmount", x0, y, inputW, Step.ROW_H, "e.g. 10M")
-	local give = button(page, "GiveMoney", "GIVE", col(1), y, buttonW, Step.ROW_H, C.give, "GiveMoney", nil, { max = 24 })
-	give:SetAttribute("InputFrom", "MoneyAmount")
-	local take = button(page, "TakeMoney", "TAKE", col(2), y, buttonW, Step.ROW_H, C.danger, "TakeMoney", nil, { max = 24 })
-	take:SetAttribute("InputFrom", "MoneyAmount")
-	button(page, "ResetMoney", "SET TO 0", col(3), y, 2 * buttonW + gap, Step.ROW_H, C.danger, "ResetMoney", nil, { confirm = true })
 	y += Step.ROW_H + Step.SECTION_GAP
+	y = sectionHeader(page, "HeaderDanger", "DANGER ZONE", y, { danger = true })
+	cols = columns(2, W, gap, x0)
+	button(page, "WipeData", "WIPE ALL DATA", cols[1][1], y, cols[1][2], Step.ROW_H, C.danger, "WipeData", nil, {
+		sub = "START FROM ZERO", confirm = true, ConfirmText = "CONFIRM WIPE %s", ConfirmSeconds = Step.WIPE_CONFIRM_SECONDS,
+		SendTargetId = true,
+	})
+	text(page, "WipeNote", "Resets their save to a brand new player's (money, speed, heroes, eggs, Index, upgrades) and kicks them. Press, then confirm.",
+		"body", cols[2][1] + 6, y + 6, cols[2][2] - 6, Step.ROW_H - 12, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
+	y += Step.ROW_H
+	finishPage(page, y + 6)
+	return page
+end
 
-	y = sectionHeader(page, "HeaderSpeed", "SPEED POWER", y)
-	amountInput(page, "SpeedAmount", x0, y, inputW, Step.ROW_H, "e.g. 2.5B")
-	give = button(page, "GiveSpeed", "GIVE", col(1), y, buttonW, Step.ROW_H, C.speed, "GiveSpeed", nil, { max = 24 })
-	give:SetAttribute("InputFrom", "SpeedAmount")
-	take = button(page, "TakeSpeed", "TAKE", col(2), y, buttonW, Step.ROW_H, C.danger, "TakeSpeed", nil, { max = 24 })
-	take:SetAttribute("InputFrom", "SpeedAmount")
-	button(page, "MaxSpeed", "MAX", col(3), y, buttonW, Step.ROW_H, C.gold, "SetSpeed", { Value = 5e11 }, { sub = "TOP SPEED" })
-	button(page, "ResetSpeed", "RESET", col(4), y, buttonW, Step.ROW_H, C.danger, "SetSpeed", { Value = 10 }, { sub = "BACK TO 10", confirm = true })
-	y += Step.ROW_H + 12
-	text(page, "Hint", "Type an amount: 500, 25K, 10M, 2.5B or 1e12 (K M B T Qa Qi, up to 1Qa). Enter gives it.", "body", x0, y,
-		W, 18, { color = C.header, alignX = Enum.TextXAlignment.Left, max = T.small })
-	y += 22
-	text(page, "Note", "Taking more than they have leaves 0 (speed power stays at least 10). Saved to their profile.",
-		"body", x0, y, W, 18, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
-	y += 18
-	finishPage(page, y)
+-- PLAYER: the sub-tab strip over the four sub-pages
+local function playerPage(pages, labels)
+	local page = UiKit.layer(pages, "Frame", "Page_Player", 5)
+	page.BackgroundTransparency = 1
+	page.Visible = Step.TABS[1].id == "Player"
+	page:SetAttribute("Tab", "Player")
+	place(page, 0, Step.PAGE_Y, Step.CONTENT_W, Step.PAGE_H)
+	local strip = blank(page, "Frame", "SubTabs", 5)
+	place(strip, 0, 0, Step.CONTENT_W, Step.SUBTAB_H)
+	strip:SetAttribute("Selected", Step.SUB_TABS[1].id)
+	local cols = columns(#Step.SUB_TABS, Step.CONTENT_W, Step.GAP, 0)
+	for i, sub in ipairs(Step.SUB_TABS) do
+		local node, label = UiKit.labelButton(strip, "SubTab_" .. sub.id, sub.caption, {
+			color = if i == 1 then C.tabOn else C.tabOff, anchor = Vector2.new(0, 0), position = UDim2.fromOffset(cols[i][1], 0),
+			size = UDim2.fromOffset(cols[i][2], Step.SUBTAB_H), zIndex = 5, kind = "tab", labelSize = UDim2.fromScale(0.86, 0.46),
+		})
+		cap(label, T.subTab)
+		UiKit.studs(node, 2, { tile = Step.BUTTON_STUD_TILE, transparency = Step.STUD_TRANSPARENCY })
+		node:SetAttribute("SubTab", sub.id)
+	end
+	local subPages = blank(page, "Frame", "SubPages", 5)
+	place(subPages, 0, Step.SUBPAGE_Y, Step.CONTENT_W, Step.SUBPAGE_H)
+	actionsPage(subPages)
+	economyPage(subPages)
+	weaponsPage(subPages, labels)
+	dataPage(subPages)
 	return page
 end
 
 local function eggsPage(pages, stages)
-	local page = scrollPage(pages, "Eggs")
+	local page = tabPage(pages, "Eggs")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
-	local y = sectionHeader(page, "HeaderStages", "EGG FROM A STAGE  -  STRAIGHT TO THE TARGET'S HAND", Step.PAGE_INSET)
+	local y = sectionHeader(page, "HeaderStages", "AN EGG FROM A STAGE  -  STRAIGHT TO THE TARGET'S HAND", Step.PAGE_INSET)
 	local cols = columns(3, W, gap, x0)
 	local cardH = 128
 	for i, stage in ipairs(stages) do
@@ -547,27 +723,54 @@ local function eggsPage(pages, stages)
 	text(page, "GrowNote", "Every egg the target placed on their base becomes ready to hatch.", "body", cols[2][1] + 6, y + 8,
 		cols[2][2] - 6, Step.ROW_H - 16, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
 	y += Step.ROW_H
-	finishPage(page, y)
+	finishPage(page, y + 6)
+	return page
+end
+
+local function dummiesPage(pages)
+	local page = tabPage(pages, "Dummies")
+	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
+	local y = sectionHeader(page, "HeaderDummies", "TRAINING DUMMIES", Step.PAGE_INSET, { meta = { "DummyCount", "0 / 4" } })
+	local cols = columns(3, W, gap, x0)
+	button(page, "SpawnDummy", "SPAWN DUMMY", cols[1][1], y, cols[1][2], Step.ROW_H, C.travel, "SpawnDummy", nil, { sub = "IN FRONT OF YOU" })
+	button(page, "ClearDummies", "CLEAR DUMMIES", cols[2][1], y, cols[2][2], Step.ROW_H, C.danger, "ClearDummies", nil, { sub = "ALL OF THEM", confirm = true })
+	button(page, "GiveMeWeapons", "ARM YOURSELF", cols[3][1], y, cols[3][2], Step.ROW_H, C.give, "GiveAllWeapons", nil,
+		{ sub = "ALL 7 WEAPONS TO YOU", TargetSelf = true })
+	y += Step.ROW_H + Step.SECTION_GAP
+	y = sectionHeader(page, "HeaderHow", "HOW THEY WORK", y)
+	notePanel(page, "DummyNote", "A dummy stands where you face and takes every weapon hit like a player: it goes limp, gets the "
+		.. "weapon's state (web, lightning, stars, smoke...) and stands back up on its spot. At most 4; they leave with you.",
+		x0, y, W, 72)
+	y += 72
+	finishPage(page, y + 6)
 	return page
 end
 
 local function worldPage(pages, stages)
-	local page = scrollPage(pages, "World")
+	local page = tabPage(pages, "World")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
-	local y = sectionHeader(page, "HeaderTaco", "TACO RAIN EVENT", Step.PAGE_INSET)
+	local y = sectionHeader(page, "HeaderTaco", "EVENTS  -  TACO RAIN", Step.PAGE_INSET)
+	local halves = columns(2, W, gap, x0)
+	-- the scope toggle the event buttons obey (Control = "Scope"; the frame's Selected attribute holds the scope)
+	local scope = blank(page, "Frame", "EventScope", 5)
+	place(scope, halves[1][1], y, halves[1][2], Step.ROW_H)
+	scope:SetAttribute("Selected", "Server")
+	local seg = columns(2, halves[1][2], gap, 0)
+	button(scope, "ScopeServer", "THIS SERVER", seg[1][1], 0, seg[1][2], Step.ROW_H, C.tabOn, nil, nil,
+		{ sub = "EVENTS RUN ON", max = 19, control = "Scope", ScopeValue = "Server" })
+	button(scope, "ScopeAll", "ALL SERVERS", seg[2][1], 0, seg[2][2], Step.ROW_H, C.tabOff, nil, nil,
+		{ sub = "EVENTS RUN ON", max = 19, control = "Scope", ScopeValue = "All" })
+	notePanel(page, "TacoStatus", "Off. A taco that lands on an egg (bases and stages) makes it x3.", halves[2][1], y,
+		halves[2][2], Step.ROW_H, { max = 15 })
+	y += Step.ROW_H + gap
 	local cols = columns(3, W, gap, x0)
 	button(page, "TacoRain60", "START 60 S", cols[1][1], y, cols[1][2], Step.ROW_H, C.gold, "TacoRainStart", { Duration = 60 },
-		{ sub = "TACO RAIN" })
+		{ sub = "THIS SERVER", ScopeFrom = "EventScope" })
 	button(page, "TacoRain90", "START 90 S", cols[2][1], y, cols[2][2], Step.ROW_H, C.gold, "TacoRainStart", { Duration = 90 },
-		{ sub = "TACO RAIN" })
-	button(page, "TacoRainStop", "STOP", cols[3][1], y, cols[3][2], Step.ROW_H, C.danger, "TacoRainStop", nil, { sub = "END IT NOW" })
-	y += Step.ROW_H + gap
-	local status = UiKit.layer(page, "Frame", "TacoStatus", 5)
-	place(status, x0, y, W, 34)
-	UiKit.panel(status, { color = Step.THEME.panel, strokeColor = Step.THEME.cardStroke, stroke = 0.04 })
-	text(status, "Text", "Off. Tacos fall around everyone; one that lands on an egg (bases and stages) makes it x3.", "body", 12, 5,
-		W - 24, 24, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = 15, zIndex = 3 })
-	y += 34 + Step.SECTION_GAP
+		{ sub = "THIS SERVER", ScopeFrom = "EventScope" })
+	button(page, "TacoRainStop", "STOP", cols[3][1], y, cols[3][2], Step.ROW_H, C.danger, "TacoRainStop", nil,
+		{ sub = "THIS SERVER", ScopeFrom = "EventScope" })
+	y += Step.ROW_H + Step.SECTION_GAP
 
 	y = sectionHeader(page, "HeaderTeleport", "TELEPORT YOURSELF", y)
 	cols = columns(4, W, gap, x0)
@@ -592,45 +795,33 @@ local function worldPage(pages, stages)
 	button(page, "NightNow", "NIGHT NOW", cols[1][1], y, cols[1][2], Step.ROW_H, C.night, "NightNow", nil, { sub = "START THE NIGHT" })
 	button(page, "DayNow", "DAY NOW", cols[2][1], y, cols[2][2], Step.ROW_H, C.day, "DayNow", nil, { sub = "END / RESTART DAY" })
 	button(page, "NormalCycle", "NORMAL CYCLE", cols[3][1], y, cols[3][2], Step.ROW_H, C.neutral, "NormalCycle", nil, { sub = "SERVER CLOCK" })
-	y += Step.ROW_H + Step.SECTION_GAP
-
-	y = sectionHeader(page, "HeaderBases", "BASE THEMES", y)
-	cols = columns(2, W, gap, x0)
-	button(page, "UnlockBaseThemes", "UNLOCK ALL BASE THEMES", cols[1][1], y, cols[1][2], Step.ROW_H, C.gold, "UnlockBaseThemes", nil, { sub = "FOR THE TARGET" })
-	text(page, "BasesNote", "The target equips them from the Index, like a completed stage.", "body", cols[2][1] + 6, y + 8,
-		cols[2][2] - 6, Step.ROW_H - 16, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
 	y += Step.ROW_H
-	finishPage(page, y)
-	return page
-end
-
-local function playerPage(pages)
-	local page = scrollPage(pages, "Player")
-	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
-	local y = sectionHeader(page, "HeaderState", "TARGET PLAYER", Step.PAGE_INSET)
-	local cols = columns(3, W, gap, x0)
-	button(page, "Release", "RELEASE", cols[1][1], y, cols[1][2], Step.ROW_H, C.give, "Release", nil, { sub = "RAGDOLL / TRAP / STUN" })
-	button(page, "Respawn", "RESPAWN", cols[2][1], y, cols[2][2], Step.ROW_H, C.travel, "Respawn", nil, { sub = "NEW CHARACTER" })
-	button(page, "Heal", "HEAL", cols[3][1], y, cols[3][2], Step.ROW_H, C.give, "Heal", nil, { sub = "FULL HEALTH" })
-	y += Step.ROW_H + Step.SECTION_GAP
-
-	y = sectionHeader(page, "HeaderMove", "MOVE", y)
-	cols = columns(2, W, gap, x0)
-	button(page, "GoTo", "GO TO PLAYER", cols[1][1], y, cols[1][2], Step.ROW_H, C.travel, "GoTo", nil, { sub = "YOU MOVE" })
-	button(page, "Bring", "BRING PLAYER", cols[2][1], y, cols[2][2], Step.ROW_H, C.travel, "Bring", nil, { sub = "THEY MOVE" })
-	y += Step.ROW_H + 12
-	text(page, "Note", "Pick the target with the arrows above. The WORLD teleports always move you.", "body", x0, y, W, 18, {
-		color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small,
-	})
-	y += 18
-	finishPage(page, y)
+	finishPage(page, y + 6)
 	return page
 end
 
 local function serverPage(pages)
-	local page = scrollPage(pages, "Server")
+	local page = tabPage(pages, "Server")
 	local x0, W, gap = Step.PAGE_INSET, Step.PAGE_INNER_W, Step.GAP
-	local y = sectionHeader(page, "HeaderStats", "LIVE SERVER STATS", Step.PAGE_INSET)
+	local y = sectionHeader(page, "HeaderAnnounce", "ANNOUNCEMENT", Step.PAGE_INSET,
+		{ meta = { "AnnounceCount", string.format("0 / %d", Step.ANNOUNCE_MAX_CHARS) } })
+	textInput(page, "AnnouncementText", x0, y, W, Step.ROW_H, "Type a short message for every player...", {
+		argName = "Text", maxChars = Step.ANNOUNCE_MAX_CHARS, amount = false, alignX = Enum.TextXAlignment.Left, max = 22,
+	})
+	y += Step.ROW_H + gap
+	local sendW = 150
+	local hintW = W - 2 * (sendW + gap)
+	text(page, "AnnounceHint", "Filtered by Roblox before anyone sees it. It shows for about 8 s at the top of every screen.", "body",
+		x0, y + 8, hintW - 6, Step.ROW_H - 16, { color = C.muted, alignX = Enum.TextXAlignment.Left, max = T.small })
+	local send = button(page, "AnnounceServer", "THIS SERVER", x0 + hintW + gap, y, sendW, Step.ROW_H, C.give, "Announce",
+		{ Scope = "Server" }, { sub = "SEND TO", max = 19 })
+	send:SetAttribute("InputFrom", "AnnouncementText")
+	local all = button(page, "AnnounceAll", "ALL SERVERS", x0 + hintW + gap + sendW + gap, y, sendW, Step.ROW_H, C.gold, "Announce",
+		{ Scope = "All" }, { sub = "SEND TO", max = 19, confirm = true, ConfirmText = "TAP AGAIN: ALL" })
+	all:SetAttribute("InputFrom", "AnnouncementText")
+	y += Step.ROW_H + Step.SECTION_GAP
+
+	y = sectionHeader(page, "HeaderStats", "LIVE SERVER STATS", y)
 	local cols = columns(3, W, gap, x0)
 	local tiles = {
 		{ "ServerHz", "SERVER HZ" }, { "FrameMs", "SLOWEST FRAME MS" }, { "MemoryMB", "MEMORY MB" },
@@ -640,23 +831,15 @@ local function serverPage(pages)
 	for i, tile in ipairs(tiles) do
 		local col = cols[(i - 1) % 3 + 1]
 		local rowY = y + math.floor((i - 1) / 3) * (tileH + gap)
-		local card = UiKit.layer(page, "Frame", "Stat_" .. tile[1], 5)
-		place(card, col[1], rowY, col[2], tileH)
-		UiKit.card(card, { color = Step.THEME.panel, strokeColor = Step.THEME.cardStroke, stroke = 0.025 })
-		text(card, "Caption", tile[2], "subtitle", 10, 6, col[2] - 20, 16, { color = C.header, max = 13, zIndex = 3, alignX = Enum.TextXAlignment.Left })
-		text(card, "Value", "--", "number", 10, 24, col[2] - 20, 40, { max = T.value, zIndex = 3, alignX = Enum.TextXAlignment.Left })
+		statTile(page, "Stat_" .. tile[1], tile[2], col[1], rowY, col[2], tileH)
 	end
 	y += 2 * tileH + gap + Step.SECTION_GAP
 
 	y = sectionHeader(page, "HeaderSession", "SESSION", y)
-	local session = UiKit.layer(page, "Frame", "SessionInfo", 5)
-	place(session, x0, y, W, 56)
-	UiKit.panel(session, { color = Step.THEME.panel, strokeColor = Step.THEME.cardStroke, stroke = 0.03 })
-	text(session, "Text", "Mode, place version and server id show here once the panel opens.", "body", 12, 8, W - 24, 40, {
-		color = C.muted, alignX = Enum.TextXAlignment.Left, max = 16, zIndex = 3,
-	})
+	notePanel(page, "SessionInfo", "Mode, place version, server id and the cross-server link show here once the panel opens.",
+		x0, y, W, 56, { max = 16, stroke = 0.03 })
 	y += 56
-	finishPage(page, y)
+	finishPage(page, y + 6)
 	return page
 end
 
@@ -665,12 +848,14 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local function targetBar(content)
+	local t = Step.TARGET
 	local bar = blank(content, "Frame", "TargetBar", 5)
-	place(bar, 0, 0, Step.CONTENT_W, Step.ROW_H)
-	button(bar, "Prev", "<", 0, 0, 64, Step.ROW_H, C.neutral, nil, nil, { max = 30 })
+	bar.Visible = Step.TABS[1].target == true
+	place(bar, 0, 0, Step.CONTENT_W, Step.TARGET_H)
+	button(bar, "Prev", "<", t.prev, 0, 64, Step.ROW_H, C.neutral, nil, nil, { max = 30, control = "Target" })
 	local card = UiKit.layer(bar, "Frame", "TargetCard", 5)
-	place(card, 70, 0, 356, Step.ROW_H)
-	UiKit.panel(card, { color = Step.THEME.panel, strokeColor = Step.THEME.cardStroke, stroke = 0.03 })
+	place(card, t.card, 0, t.cardW, Step.ROW_H)
+	UiKit.panel(card, { color = Step.THEME.panel, strokeColor = C.gold, stroke = 0.035 })
 	local avatarBack = UiKit.layer(card, "Frame", "AvatarBack", 3)
 	avatarBack.BackgroundColor3 = Step.THEME.card
 	avatarBack.BackgroundTransparency = 0
@@ -681,24 +866,25 @@ local function targetBar(content)
 	avatar.ScaleType = Enum.ScaleType.Fit
 	avatar.ImageTransparency = 0
 	place(avatar, 0, 0, 48, 48)
-	text(card, "Caption", "TARGET", "subtitle", 66, 5, 280, 15, { color = C.header, max = 13, zIndex = 4, alignX = Enum.TextXAlignment.Left })
-	text(card, "PlayerName", "YOU", "button", 66, 19, 280, 25, { max = T.name, zIndex = 4, alignX = Enum.TextXAlignment.Left })
-	text(card, "Info", "", "body", 66, 44, 280, 15, { color = C.muted, max = 13, zIndex = 4, alignX = Enum.TextXAlignment.Left })
-	button(bar, "Next", ">", 432, 0, 64, Step.ROW_H, C.neutral, nil, nil, { max = 30 })
-	button(bar, "Me", "ME", 502, 0, 118, Step.ROW_H, C.gold, nil, nil, { sub = "TARGET" })
+	text(card, "Caption", "TARGET PLAYER", "subtitle", 66, 4, 186, 15, { color = C.header, max = 13, zIndex = 4, alignX = Enum.TextXAlignment.Left })
+	text(card, "Count", "1 / 1", "number", t.cardW - 12 - 84, 4, 84, 15, { color = C.muted, max = 13, zIndex = 4, alignX = Enum.TextXAlignment.Right })
+	text(card, "PlayerName", "YOU", "button", 66, 19, t.cardW - 78, 25, { max = T.name, zIndex = 4, alignX = Enum.TextXAlignment.Left })
+	text(card, "Info", "", "body", 66, 44, t.cardW - 78, 15, { color = C.muted, max = 13, zIndex = 4, alignX = Enum.TextXAlignment.Left })
+	button(bar, "Next", ">", t.next, 0, 64, Step.ROW_H, C.neutral, nil, nil, { max = 30, control = "Target" })
+	button(bar, "Me", "ME", t.me, 0, t.meW, Step.ROW_H, C.gold, nil, nil, { sub = "TARGET", control = "Target" })
 	return bar
 end
 
 local function toast(content)
 	local frame = UiKit.layer(content, "Frame", "Toast", 5)
-	place(frame, 0, Step.TOAST_Y - Step.TARGET_Y, Step.CONTENT_W, Step.TOAST_H)
+	place(frame, 0, Step.TOAST_Y, Step.CONTENT_W, Step.TOAST_H)
 	UiKit.panel(frame, { color = Step.THEME.list, strokeColor = Step.THEME.cardStroke, stroke = 0.04 })
 	local dot = UiKit.layer(frame, "Frame", "Dot", 3)
 	dot.BackgroundColor3 = C.neutral
 	dot.BackgroundTransparency = 0
 	place(dot, 14, 13, 14, 14)
 	Kit.addStroke(dot, { name = "SpStroke", color = UiKit.INK, thickness = 0.12 })
-	text(frame, "Text", "Ready. Every button acts on the target player.", "body", 38, 7, Step.CONTENT_W - 50, 26, {
+	text(frame, "Text", "Ready. Pick a target in PLAYER; its buttons act on them.", "body", 38, 7, Step.CONTENT_W - 50, 26, {
 		alignX = Enum.TextXAlignment.Left, max = 17, zIndex = 3,
 	})
 	return frame
@@ -708,20 +894,24 @@ local function tabs(window)
 	local column = blank(window, "Frame", "Tabs", 5)
 	local b = Step.TABS_BOX
 	place(column, b.x, b.y, b.w, b.h)
+	column:SetAttribute("Selected", Step.TABS[1].id)
 	local count = #Step.TABS
-	local gap = 5
+	local gap = Step.TAB_GAP
 	local h = (b.h - gap * (count - 1)) / count
 	for i, tab in ipairs(Step.TABS) do
 		local node, label = UiKit.labelButton(column, "Tab_" .. tab.id, tab.caption, {
 			color = if i == 1 then C.tabOn else C.tabOff, anchor = Vector2.new(0, 0),
 			position = UDim2.fromOffset(0, (i - 1) * (h + gap)), size = UDim2.fromOffset(b.w, h), zIndex = 5, kind = "tab",
-			labelPosition = UDim2.new(0, 56, 0.5, 0), labelSize = UDim2.new(1, -62, 0.46, 0),
+			labelPosition = UDim2.new(0, 56, 0.5, 0), labelSize = UDim2.new(1, -62, 0.42, 0),
 		})
 		label.AnchorPoint = Vector2.new(0, 0.5)
 		label.TextXAlignment = Enum.TextXAlignment.Left
 		cap(label, T.tab)
 		UiKit.studs(node, 2, { tile = Step.BUTTON_STUD_TILE, transparency = Step.STUD_TRANSPARENCY })
 		node:SetAttribute("Tab", tab.id)
+		if tab.target then
+			node:SetAttribute("UsesTarget", true)
+		end
 		local icon = UiKit.layer(node, "ImageLabel", "Icon", 3)
 		Kit.setImage(icon, tab.icon)
 		icon.BackgroundTransparency = 1
@@ -762,6 +952,7 @@ function Step.build(place_)
 	close.Text = ""
 	close.Active = true
 	close.AutoButtonColor = false
+	close:SetAttribute("Control", "Close")
 	-- the X glyph the kit skins (the ConsoleCmds name "TextButton", like every window's close): drawn above the kit's dark
 	-- emboss disc. Without it the kit made its own art layer UNDER the disc and the X looked dim (owner round 10)
 	local glyph = UiKit.layer(close, "ImageLabel", "TextButton", 3)
@@ -812,20 +1003,20 @@ function Step.build(place_)
 	drag.AutoButtonColor = false
 	drag.Active = true
 	drag.Selectable = false
+	drag:SetAttribute("Control", "Drag")
 	place(drag, Step.DRAG_X, 0, Step.DRAG_W, Step.BAND)
 
 	tabs(window)
 
 	local content = blank(window, "Frame", "Content", 5)
-	place(content, Step.CONTENT_X, Step.TARGET_Y, Step.CONTENT_W, Step.H - Step.TARGET_Y - 12)
+	place(content, Step.CONTENT_X, Step.CONTENT_Y, Step.CONTENT_W, Step.CONTENT_H)
 	targetBar(content)
 	local pages = blank(content, "Frame", "Pages", 5)
-	place(pages, 0, Step.PAGE_Y - Step.TARGET_Y, Step.CONTENT_W, Step.PAGE_H)
-	weaponsPage(pages, labels)
-	economyPage(pages)
+	place(pages, 0, 0, Step.CONTENT_W, Step.FULL_PAGE_H)
+	playerPage(pages, labels)
+	dummiesPage(pages)
 	eggsPage(pages, stages)
 	worldPage(pages, stages)
-	playerPage(pages)
 	serverPage(pages)
 	toast(content)
 
@@ -880,8 +1071,8 @@ function Step.Apply(place_, _spPlace, _ctx)
 			parts += 1
 		end
 	end
-	log("ServerStorage.%s built: %d command buttons, %d tabs, 3D crown of %d parts, remote Network[%q]", Step.NAME, buttons,
-		#Step.TABS, parts, Step.REMOTE)
+	log("ServerStorage.%s built: %d command buttons, %d tabs (+%d PLAYER sub-tabs), 3D crown of %d parts, remote Network[%q]",
+		Step.NAME, buttons, #Step.TABS, #Step.SUB_TABS, parts, Step.REMOTE)
 end
 
 return Step
