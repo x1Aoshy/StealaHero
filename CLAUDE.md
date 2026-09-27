@@ -167,8 +167,14 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the hotbar / Index weapon portraits;
   - the red target glow;
   - traps catching another player on a stage.
-- (2026-09-27, 7th pass) The owner sent the real weapon / effect FBX models: waiting for their Studio import (see
-  Pipelines > Hero weapons; `HeroWeaponsImport.lua`). Ragdoll fix: the get-up loop called `bodyParts(character)`
+- (2026-09-27, 8th pass) The owner imported the 15 FBX models themselves and sent them as a raw `.rbxm`
+  (`assets/user_models/HeroWeaponImports_owner_0927.rbxm`, extracted to `assets/hero_weapons/imports/`): every weapon
+  now uses the owner's model (the kit's Prepare runs offline: grip from the import pivot = FBX origin, palette
+  materials, energy palettes Neon with their colour) and the 7 effect models are in `ReplicatedStorage.HeroWeaponVfx`.
+  **Owner rule: no VFX built from parts / meshes anywhere except their 7 effect models** - effects are particles
+  (templates already in the place), Beams and Trails (the smoke test enforces it on HeroWeaponController).
+- (2026-09-27, 7th pass) The owner sent the real weapon / effect FBX models (see Pipelines > Hero weapons;
+  `HeroWeaponsImport.lua`). Ragdoll fix: the get-up loop called `bodyParts(character)`
   without the Humanoid, errored every frame and left the body frozen with PlatformStand on (and able to attack):
   fixed; a ragdoll now unequips the weapon, and GearService / the controller refuse attacks from a body that is down.
   Weapon victims no longer trip (FallingDown / Ragdoll states off during the state, stood back up after).

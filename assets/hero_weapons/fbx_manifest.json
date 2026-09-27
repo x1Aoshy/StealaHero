@@ -7,6 +7,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "groove",
      "centre": [
       -0.0,
       0.03,
@@ -23,6 +24,7 @@
      "name": "Bakugo_Gauntlet__Body__bat_edge",
      "section": "Body",
      "palette": "bat_edge",
+     "material": "bat_edge",
      "centre": [
       -1.005,
       -0.34,
@@ -39,6 +41,7 @@
      "name": "Bakugo_Gauntlet__Body__groove",
      "section": "Body",
      "palette": "groove",
+     "material": "groove",
      "centre": [
       -0.0,
       0.45,
@@ -55,6 +58,7 @@
      "name": "Bakugo_Gauntlet__Body__olive",
      "section": "Body",
      "palette": "olive",
+     "material": "olive",
      "centre": [
       -0.0,
       0.52,
@@ -71,6 +75,7 @@
      "name": "Bakugo_Gauntlet__Body__olive_light",
      "section": "Body",
      "palette": "olive_light",
+     "material": "olive_light",
      "centre": [
       -0.0,
       0.52,
@@ -87,6 +92,7 @@
      "name": "Bakugo_Gauntlet__Body__orange",
      "section": "Body",
      "palette": "orange",
+     "material": "orange",
      "centre": [
       -0.0,
       0.82,
@@ -103,6 +109,7 @@
      "name": "Bakugo_Gauntlet__Body__silver",
      "section": "Body",
      "palette": "silver",
+     "material": "silver",
      "centre": [
       -0.225,
       0.5802,
@@ -119,6 +126,7 @@
      "name": "Bakugo_Gauntlet__Pin__orange",
      "section": "Pin",
      "palette": "orange",
+     "material": "orange",
      "centre": [
       -0.833,
       0.64,
@@ -140,6 +148,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "bat_grip",
      "centre": [
       -0.0,
       0.04,
@@ -156,6 +165,7 @@
      "name": "Batarang__Body__bat_edge",
      "section": "Body",
      "palette": "bat_edge",
+     "material": "bat_edge",
      "centre": [
       -0.0,
       0.1249,
@@ -172,6 +182,7 @@
      "name": "Batarang__Body__bat_grip",
      "section": "Body",
      "palette": "bat_grip",
+     "material": "bat_grip",
      "centre": [
       0.0011,
       0.0633,
@@ -188,6 +199,7 @@
      "name": "Batarang__Body__bat_matte",
      "section": "Body",
      "palette": "bat_matte",
+     "material": "bat_matte",
      "centre": [
       0.0,
       0.1479,
@@ -209,6 +221,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "leather",
      "centre": [
       -0.0,
       0.0,
@@ -225,6 +238,7 @@
      "name": "CapShield__Body__hero_blue",
      "section": "Body",
      "palette": "hero_blue",
+     "material": "hero_blue",
      "centre": [
       0.0,
       -0.0,
@@ -241,6 +255,7 @@
      "name": "CapShield__Body__hero_red",
      "section": "Body",
      "palette": "hero_red",
+     "material": "hero_red",
      "centre": [
       -0.0032,
       -0.0,
@@ -257,6 +272,7 @@
      "name": "CapShield__Body__leather",
      "section": "Body",
      "palette": "leather",
+     "material": "leather",
      "centre": [
       0.0,
       -0.0,
@@ -273,6 +289,7 @@
      "name": "CapShield__Body__mjolnir_metal",
      "section": "Body",
      "palette": "mjolnir_metal",
+     "material": "mjolnir_metal",
      "centre": [
       0.0,
       -0.0,
@@ -289,6 +306,7 @@
      "name": "CapShield__Body__silver",
      "section": "Body",
      "palette": "silver",
+     "material": "silver",
      "centre": [
       0.0,
       -0.0,
@@ -305,6 +323,7 @@
      "name": "CapShield__Body__steel_dark",
      "section": "Body",
      "palette": "steel_dark",
+     "material": "steel_dark",
      "centre": [
       -0.0003,
       -0.0,
@@ -326,6 +345,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "rubber_skin",
      "centre": [
       -0.0,
       0.1,
@@ -342,6 +362,7 @@
      "name": "GomuFist__Cuff__hero_red",
      "section": "Cuff",
      "palette": "hero_red",
+     "material": "hero_red",
      "centre": [
       -0.0,
       0.09,
@@ -358,6 +379,7 @@
      "name": "GomuFist__Fist__rubber_shadow",
      "section": "Fist",
      "palette": "rubber_shadow",
+     "material": "rubber_shadow",
      "centre": [
       -0.0122,
       2.2408,
@@ -374,6 +396,7 @@
      "name": "GomuFist__Fist__rubber_skin",
      "section": "Fist",
      "palette": "rubber_skin",
+     "material": "rubber_skin",
      "centre": [
       -0.0781,
       2.1987,
@@ -390,6 +413,7 @@
      "name": "GomuFist__Rubber__rubber_skin",
      "section": "Rubber",
      "palette": "rubber_skin",
+     "material": "rubber_skin",
      "centre": [
       -0.0,
       0.9,
@@ -411,6 +435,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "hammer_leather",
      "centre": [
       0.0,
       -0.085,
@@ -427,6 +452,7 @@
      "name": "Mjolnir__Body__hammer_edge",
      "section": "Body",
      "palette": "hammer_edge",
+     "material": "hammer_edge",
      "centre": [
       -0.0,
       0.3563,
@@ -443,6 +469,7 @@
      "name": "Mjolnir__Body__hammer_forged",
      "section": "Body",
      "palette": "hammer_forged",
+     "material": "hammer_forged",
      "centre": [
       -0.0,
       1.26,
@@ -459,6 +486,7 @@
      "name": "Mjolnir__Body__hammer_inlay",
      "section": "Body",
      "palette": "hammer_inlay",
+     "material": "hammer_inlay",
      "centre": [
       -0.0,
       0.375,
@@ -475,6 +503,7 @@
      "name": "Mjolnir__Body__hammer_leather",
      "section": "Body",
      "palette": "hammer_leather",
+     "material": "hammer_leather",
      "centre": [
       -0.025,
       -1.428,
@@ -496,6 +525,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "hero_red",
      "centre": [
       0.0,
       0.0,
@@ -512,6 +542,7 @@
      "name": "PowerPole__Body__hero_red",
      "section": "Body",
      "palette": "hero_red",
+     "material": "hero_red",
      "centre": [
       0.0,
       -0.0,
@@ -528,6 +559,7 @@
      "name": "PowerPole__VFX__gold_energy",
      "section": "VFX",
      "palette": "gold_energy",
+     "material": "gold_energy",
      "centre": [
       -0.8277,
       -0.1351,
@@ -549,6 +581,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "hero_red",
      "centre": [
       0.0,
       0.0,
@@ -565,6 +598,7 @@
      "name": "PowerPole_GoldToy__Body__gold",
      "section": "Body",
      "palette": "gold",
+     "material": "gold",
      "centre": [
       0.0,
       -0.0,
@@ -581,6 +615,7 @@
      "name": "PowerPole_GoldToy__Body__hero_red",
      "section": "Body",
      "palette": "hero_red",
+     "material": "hero_red",
      "centre": [
       0.0,
       -0.18,
@@ -597,6 +632,7 @@
      "name": "PowerPole_GoldToy__Body__silver",
      "section": "Body",
      "palette": "silver",
+     "material": "silver",
      "centre": [
       0.0,
       -0.0,
@@ -613,6 +649,7 @@
      "name": "PowerPole_GoldToy__Body__stud_red",
      "section": "Body",
      "palette": "stud_red",
+     "material": "stud_red",
      "centre": [
       0.0,
       -0.15,
@@ -629,6 +666,7 @@
      "name": "PowerPole_GoldToy__VFX__gold_energy",
      "section": "VFX",
      "palette": "gold_energy",
+     "material": "gold_energy",
      "centre": [
       -0.7988,
       -0.3189,
@@ -650,6 +688,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "web_red_cloth",
      "centre": [
       -0.0,
       0.33,
@@ -666,6 +705,7 @@
      "name": "WebShooter__Body__cartridge_brass",
      "section": "Body",
      "palette": "cartridge_brass",
+     "material": "cartridge_brass",
      "centre": [
       -0.0,
       0.2037,
@@ -682,6 +722,7 @@
      "name": "WebShooter__Body__ink",
      "section": "Body",
      "palette": "ink",
+     "material": "ink",
      "centre": [
       0.0,
       -0.035,
@@ -698,6 +739,7 @@
      "name": "WebShooter__Body__silver",
      "section": "Body",
      "palette": "silver",
+     "material": "silver",
      "centre": [
       -0.0,
       0.2075,
@@ -714,6 +756,7 @@
      "name": "WebShooter__Body__steel_dark",
      "section": "Body",
      "palette": "steel_dark",
+     "material": "steel_dark",
      "centre": [
       -0.0,
       0.3302,
@@ -730,6 +773,7 @@
      "name": "WebShooter__Body__web_blue_cloth",
      "section": "Body",
      "palette": "web_blue_cloth",
+     "material": "web_blue_cloth",
      "centre": [
       -0.0,
       0.64,
@@ -746,6 +790,7 @@
      "name": "WebShooter__Body__web_red_cloth",
      "section": "Body",
      "palette": "web_red_cloth",
+     "material": "web_red_cloth",
      "centre": [
       0.0,
       0.33,
@@ -768,6 +813,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "smoke_dark",
      "centre": [
       -0.0,
       0.5,
@@ -784,6 +830,7 @@
      "name": "Bat_Smoke_Cloud__Bats__bat_matte",
      "section": "Bats",
      "palette": "bat_matte",
+     "material": "bat_matte",
      "centre": [
       -0.2489,
       1.5513,
@@ -800,6 +847,7 @@
      "name": "Bat_Smoke_Cloud__Bats__smoke_mid",
      "section": "Bats",
      "palette": "smoke_mid",
+     "material": "smoke_mid",
      "centre": [
       -0.2965,
       1.2723,
@@ -816,6 +864,7 @@
      "name": "Bat_Smoke_Cloud__Body__smoke_dark",
      "section": "Body",
      "palette": "smoke_dark",
+     "material": "smoke_dark",
      "centre": [
       -0.019,
       0.7835,
@@ -832,6 +881,7 @@
      "name": "Bat_Smoke_Cloud__Body__smoke_mid",
      "section": "Body",
      "palette": "smoke_mid",
+     "material": "smoke_mid",
      "centre": [
       0.2471,
       0.806,
@@ -852,6 +902,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "fire_yellow",
      "centre": [
       0.0,
       0.0,
@@ -868,6 +919,7 @@
      "name": "Comic_Explosion__Flames__fire_orange",
      "section": "Flames",
      "palette": "fire_orange",
+     "material": "fire_orange",
      "centre": [
       0.0751,
       0.0691,
@@ -884,6 +936,7 @@
      "name": "Comic_Explosion__Flames__fire_yellow",
      "section": "Flames",
      "palette": "fire_yellow",
+     "material": "fire_yellow",
      "centre": [
       0.0626,
       0.0573,
@@ -900,6 +953,7 @@
      "name": "Comic_Explosion__Smoke__smoke_dark",
      "section": "Smoke",
      "palette": "smoke_dark",
+     "material": "smoke_dark",
      "centre": [
       0.1766,
       -0.1057,
@@ -916,6 +970,7 @@
      "name": "Comic_Explosion__Smoke__smoke_white",
      "section": "Smoke",
      "palette": "smoke_white",
+     "material": "smoke_white",
      "centre": [
       0.105,
       0.2767,
@@ -936,6 +991,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "gold_energy",
      "centre": [
       0.0,
       -0.0,
@@ -952,6 +1008,7 @@
      "name": "Dazed_Stars__Star1__gold",
      "section": "Star1",
      "palette": "gold",
+     "material": "gold",
      "centre": [
       -0.7993,
       0.0899,
@@ -968,6 +1025,7 @@
      "name": "Dazed_Stars__Star2__gold",
      "section": "Star2",
      "palette": "gold",
+     "material": "gold",
      "centre": [
       0.1088,
       0.1799,
@@ -984,6 +1042,7 @@
      "name": "Dazed_Stars__Star3__gold",
      "section": "Star3",
      "palette": "gold",
+     "material": "gold",
      "centre": [
       0.7993,
       0.0899,
@@ -1000,6 +1059,7 @@
      "name": "Dazed_Stars__Star4__gold",
      "section": "Star4",
      "palette": "gold",
+     "material": "gold",
      "centre": [
       -0.1088,
       0.1799,
@@ -1020,6 +1080,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "lightning",
      "centre": [
       0.9545,
       1.725,
@@ -1036,6 +1097,7 @@
      "name": "Mjolnir_Lightning__Body__lightning",
      "section": "Body",
      "palette": "lightning",
+     "material": "lightning",
      "centre": [
       -0.9548,
       1.7255,
@@ -1056,6 +1118,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "web_neon",
      "centre": [
       0.0,
       0.0,
@@ -1072,6 +1135,7 @@
      "name": "Web_Blob__Body__web_neon",
      "section": "Body",
      "palette": "web_neon",
+     "material": "web_neon",
      "centre": [
       -0.0231,
       0.0235,
@@ -1092,6 +1156,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "web_shadow",
      "centre": [
       -0.0,
       0.055,
@@ -1108,6 +1173,7 @@
      "name": "Web_Cocoon__Diagonal-1__web_white",
      "section": "Diagonal-1",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0027,
       1.8098,
@@ -1124,6 +1190,7 @@
      "name": "Web_Cocoon__Diagonal1__web_white",
      "section": "Diagonal1",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0027,
       1.8098,
@@ -1140,6 +1207,7 @@
      "name": "Web_Cocoon__LooseSilk__web_white",
      "section": "LooseSilk",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0,
       4.197,
@@ -1156,6 +1224,7 @@
      "name": "Web_Cocoon__Studs0__web_white",
      "section": "Studs0",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       0.0,
       0.83,
@@ -1172,6 +1241,7 @@
      "name": "Web_Cocoon__Studs1__web_white",
      "section": "Studs1",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0,
       2.23,
@@ -1188,6 +1258,7 @@
      "name": "Web_Cocoon__Studs2__web_white",
      "section": "Studs2",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0,
       3.18,
@@ -1204,6 +1275,7 @@
      "name": "Web_Cocoon__Wraps0__web_white",
      "section": "Wraps0",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0,
       0.6551,
@@ -1220,6 +1292,7 @@
      "name": "Web_Cocoon__Wraps1__web_white",
      "section": "Wraps1",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0,
       1.9572,
@@ -1236,6 +1309,7 @@
      "name": "Web_Cocoon__Wraps2__web_white",
      "section": "Wraps2",
      "palette": "web_white",
+     "material": "web_white",
      "centre": [
       -0.0,
       3.085,
@@ -1256,6 +1330,7 @@
      "name": "Handle",
      "section": "Handle",
      "palette": null,
+     "material": "web_neon",
      "centre": [
       -0.5251,
       -0.0016,
@@ -1272,6 +1347,7 @@
      "name": "Web_Net__Body__web_neon",
      "section": "Body",
      "palette": "web_neon",
+     "material": "web_neon",
      "centre": [
       -0.0005,
       0.0,

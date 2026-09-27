@@ -64,6 +64,8 @@ Step.GRIP_ROTATIONS = {
 Step.METAL_PALETTES = { mjolnir_metal = true, steel_dark = true, silver = true, gold = true, cartridge_brass = true,
 	hammer_forged = true, hammer_edge = true, hammer_inlay = true }
 Step.NEON_PALETTES = { lightning = true, web_neon = true, gold_energy = true }
+-- a Neon part glows its Color (not its texture): the energy palettes get their colour
+Step.NEON_COLORS = { lightning = { 150, 220, 255 }, web_neon = { 236, 248, 255 }, gold_energy = { 255, 170, 60 } }
 -- R15 RightGripAttachment (RightHand space): GripFromHand = this * (Handle in grip space), like Kit.Prepare's value.
 Step.GRIP_ATTACHMENT = CFrame.new(0, -0.15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
 -- the legacy bat pieces a hero weapon drops
@@ -182,6 +184,45 @@ function Step.BuildWeapon(tool, weapon, palettes, config)
 	return #parts
 end
 
+-- FBX material name per mesh: { [FBX model name or WeaponId] = { [mesh name] = material } } (fbx_manifest.json)
+local materialCache = nil
+function Step.FbxMaterials()
+	if materialCache == nil then
+		materialCache = {}
+		if fs.isFile(Step.FBX_MANIFEST) then
+			local manifest = serde.decode("json", fs.readFile(Step.FBX_MANIFEST))
+			for _, kind in ipairs({ "Weapons", "Vfx" }) do
+				for name, entry in pairs(manifest[kind]) do
+					local byMesh = {}
+					for _, mesh in ipairs(entry.Meshes) do
+						byMesh[mesh.name] = mesh.material
+					end
+					materialCache[name] = byMesh
+					if entry.WeaponId then
+						materialCache[entry.WeaponId] = byMesh
+					end
+				end
+			end
+		end
+	end
+	return materialCache
+end
+
+-- The owner's kit's material rule (HeroWeaponTools.materialByPalette): metals Metal, energy Neon (+ its colour: a Neon
+-- part glows its Color, not its texture), the rest SmoothPlastic.
+function Step.ApplyPalette(part, palette)
+	palette = palette or ""
+	if Step.NEON_PALETTES[palette] then
+		part.Material = Enum.Material.Neon
+		local c = Step.NEON_COLORS[palette]
+		part.Color = Color3.fromRGB(c[1], c[2], c[3])
+	elseif Step.METAL_PALETTES[palette] then
+		part.Material = Enum.Material.Metal
+	else
+		part.Material = Enum.Material.SmoothPlastic
+	end
+end
+
 local function flattenedParts(root)
 	local parts = {}
 	for _, d in ipairs(root:GetDescendants()) do
@@ -200,7 +241,16 @@ function Step.BuildWeaponFromImport(tool, imported, config, weaponId)
 		end
 	end
 	local gripFromHand = imported:GetAttribute("GripFromHand")
-	assert(typeof(gripFromHand) == "CFrame", weaponId .. " import has no GripFromHand (run HeroWeaponsImport.lua in Studio)")
+	local raw = typeof(gripFromHand) ~= "CFrame"
+	if raw then
+		-- a raw Import 3D model (saved straight to a .rbxm): HeroWeaponTools.Prepare's grip, offline. The model's pivot
+		-- is the FBX origin (checked against fbx_manifest.json by the smoke test).
+		local handleSource = imported:FindFirstChild("Handle", true)
+		assert(handleSource ~= nil and handleSource:IsA("BasePart"), weaponId .. " import has no Handle part")
+		local pivot = if imported:IsA("Model") and imported.WorldPivotData then imported.WorldPivotData else CFrame.new()
+		assert(Step.GRIP_ROTATIONS[weaponId] ~= nil, "no grip rotation for " .. weaponId)
+		gripFromHand = Step.GRIP_ROTATIONS[weaponId] * pivot:ToObjectSpace(handleSource.CFrame)
+	end
 	local handle, parts = nil, {}
 	for _, source in ipairs(flattenedParts(imported)) do
 		local part = source:Clone()
@@ -224,6 +274,11 @@ function Step.BuildWeaponFromImport(tool, imported, config, weaponId)
 		local palette = string.match(part.Name, "__[^_]+__(.+)$")
 		if palette then
 			part:SetAttribute("HeroPalette", palette)
+		end
+		if raw then
+			-- Prepare's material by palette (the Handle has no palette in its name: its FBX material stands in)
+			local materials = Step.FbxMaterials()[weaponId] or {}
+			Step.ApplyPalette(part, palette or materials[source.Name])
 		end
 		if section == "VFX" then
 			part.Transparency = 1 -- shown by HeroWeaponController while the attack plays
@@ -355,7 +410,9 @@ function Step.PublishVfx(place, vfx)
 	for name, source in pairs(vfx) do
 		local model = Instance.new("Model")
 		model.Name = name
-		local primary = nil
+		-- normalised around the FBX origin (the import's pivot), so a clone's PivotTo places the effect exactly
+		local pivot = if source:IsA("Model") and source.WorldPivotData then source.WorldPivotData else CFrame.new()
+		local materials = Step.FbxMaterials()[name] or {}
 		for _, part in ipairs(flattenedParts(source)) do
 			local copy = part:Clone()
 			for _, child in ipairs(copy:GetChildren()) do
@@ -364,7 +421,11 @@ function Step.PublishVfx(place, vfx)
 					child:Destroy()
 				end
 			end
-			copy.CFrame = part.CFrame
+			copy.CFrame = pivot:ToObjectSpace(part.CFrame)
+			local palette = string.match(part.Name, "__[^_]+__(.+)$") or materials[part.Name]
+			if palette and Step.NEON_PALETTES[palette] then
+				Step.ApplyPalette(copy, palette) -- the bolts and the web glow
+			end
 			copy.Anchored = true
 			copy.CanCollide = false
 			copy.CanTouch = false
@@ -372,14 +433,9 @@ function Step.PublishVfx(place, vfx)
 			copy.CastShadow = false
 			copy.Massless = true
 			copy.Parent = model
-			if part.Name == "Handle" then
-				primary = copy
-			end
 		end
-		if primary then
-			model.PrimaryPart = primary
-		end
-		-- the pivot is the FBX file origin (the effect meshes are authored around it)
+		-- the pivot is the FBX file origin (the effect meshes are authored around it). No PrimaryPart on purpose: with one,
+		-- Model:GetPivot / PivotTo would use the Handle instead of this WorldPivot.
 		model.WorldPivotData = CFrame.new()
 		model.Parent = folder
 		table.insert(published, name)

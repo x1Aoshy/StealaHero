@@ -38,10 +38,14 @@ def mesh_entries(path):
             lo, hi = pts.min(0), pts.max(0)
             name = sc.name_of(oid)
             parts = name.split("__")
+            mats = sc.materials_of(oid)
+            material = mats[0].props[1].split("\x00")[0] if mats else ""
+            material = material.replace("Expansion_", "").split(".")[0]
             entries.append({
                 "name": name,
                 "section": parts[1] if len(parts) >= 3 else "Handle",
                 "palette": parts[2] if len(parts) >= 3 else None,
+                "material": material,
                 "centre": [round(float(v), 4) for v in (lo + hi) / 2],
                 "size": [round(float(v), 4) for v in hi - lo],
                 "triangles": int(len(tris)),

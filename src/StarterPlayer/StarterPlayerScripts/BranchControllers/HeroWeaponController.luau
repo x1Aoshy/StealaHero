@@ -101,46 +101,12 @@ local function fxFolder()
 	return effectsFolder
 end
 
-local function fxPart(props)
-	local part = Instance.new(props.Shape and "Part" or "Part")
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Massless = true
-	part.Material = props.Material or Enum.Material.Neon
-	part.Color = props.Color or Color3.new(1, 1, 1)
-	part.Transparency = props.Transparency or 0
-	part.Size = props.Size or Vector3.new(0.2, 0.2, 0.2)
-	if props.Shape then
-		part.Shape = props.Shape
-	end
-	part.Name = props.Name or "HeroWeaponFx"
-	if props.CFrame then
-		part.CFrame = props.CFrame
-	end
-	part.Parent = props.Parent or fxFolder()
-	return part
-end
-
 local function later(seconds, instance)
 	task.delay(seconds, function()
 		if instance and instance.Parent then
 			instance:Destroy()
 		end
 	end)
-end
-
--- A segment part from a to b (thickness w).
-local function placeSegment(part, a, b, w)
-	local length = (b - a).Magnitude
-	if length < 1e-3 then
-		part.Transparency = 1
-		return
-	end
-	part.Size = Vector3.new(w, w, length)
-	part.CFrame = CFrame.lookAt(a, b) * CFrame.new(0, 0, -length / 2)
 end
 
 local function characterParts(character)
@@ -253,6 +219,18 @@ local function attachEmitters(attachment, templates, options)
 		if options.Rate then
 			emitter.Rate = options.Rate
 		end
+		if options.Orientation then
+			emitter.Orientation = options.Orientation
+		end
+		if options.Direction then
+			emitter.EmissionDirection = options.Direction
+		end
+		if options.Speed then
+			emitter.Speed = options.Speed
+		end
+		if options.Lifetime then
+			emitter.Lifetime = options.Lifetime
+		end
 		emitter.Parent = attachment
 		if options.Enabled ~= true then
 			local count = options.Emit or tonumber(template:GetAttribute("EmitCount")) or 6
@@ -307,6 +285,21 @@ local T = {
 	end,
 	ground = function()
 		return emittersAt("Assets/Particles/HitGroundAttach")
+	end,
+	flash = function() -- a white-hot glow + star spark (LightningStrike), tinted per weapon
+		return emittersAt("Assets/VFX/LightningStrike/fx/Attachment", { "big", "Spark" })
+	end,
+	ring = function() -- an expanding ring, laid flat for ground shockwaves
+		return emittersAt("Assets/VFX/LightningStrike/fx/Attachment", { "Ring" })
+	end,
+	wind = function() -- swirling wind crescents
+		return emittersAt("Assets/VFX/LightningStrike/fx/Attachment", { "wind1", "wind2" })
+	end,
+	strike = function() -- the lightning strike's bolts and shards
+		return emittersAt("Assets/VFX/LightningStrike/fx", { "lightning1", "shard", "ring" })
+	end,
+	sparks = function()
+		return emittersAt("Assets/Particles/Damage", { "Hitspark" })
 	end,
 }
 
@@ -382,7 +375,10 @@ end
 
 -- Pop-up comic text over a point ("BOOM!").
 local function comicText(position, text, color, size, seconds)
-	local anchor = fxPart({ Size = Vector3.new(0.1, 0.1, 0.1), Transparency = 1, CFrame = CFrame.new(position) })
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "HeroWeaponText"
+	anchor.Position = position -- Terrain space = world space
+	anchor.Parent = Workspace.Terrain
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromScale(size, size * 0.5)
 	gui.LightInfluence = 0
@@ -413,53 +409,45 @@ local function comicText(position, text, color, size, seconds)
 	later(seconds or 0.8, anchor)
 end
 
--- A Neon ball that swells and fades (explosions, flashes).
-local function flashBall(position, color, fromSize, toSize, seconds, transparency)
-	local ball = fxPart({ Shape = Enum.PartType.Ball, Color = color, Size = Vector3.one * fromSize,
-		CFrame = CFrame.new(position), Transparency = transparency or 0.05 })
-	TweenService:Create(ball, TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Size = Vector3.one * toSize, Transparency = 1 }):Play()
-	later(seconds + 0.05, ball)
-	return ball
+-- Owner 2026-09-27: "make sure the VFX look good and pretty - no VFX made of meshes anywhere, apart from the ones I
+-- sent" (their 7 effect models). Every effect below is particles (templates already in the place), Beams and Trails.
+
+-- A tinted flash of light about `size` studs across.
+local function flashAt(position, color, size, count)
+	burstAt(position, T.flash(), { Scale = size / 65, Color = ColorSequence.new(color), Emit = count or 1, Max = 3 }, 0.6)
 end
 
--- A flat ring (a thin Neon disc) that spreads and fades on the ground.
-local function shockwave(position, color, radius, seconds)
-	local disc = fxPart({ Shape = Enum.PartType.Cylinder, Color = color, Size = Vector3.new(0.15, 1, 1),
-		CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)), Transparency = 0.2 })
-	TweenService:Create(disc, TweenInfo.new(seconds, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-		{ Size = Vector3.new(0.15, radius * 2, radius * 2), Transparency = 1 }):Play()
-	later(seconds + 0.05, disc)
+-- A ring spreading flat on the ground to `radius` studs.
+local function ringAt(position, color, radius)
+	burstAt(position, T.ring(), {
+		Scale = radius * 2 / 52,
+		Color = ColorSequence.new(color),
+		Emit = 1,
+		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		Direction = Enum.NormalId.Top,
+		Speed = NumberRange.new(0.01),
+	}, 0.8)
 end
 
--- A jagged bolt of Neon segments between a and b that flickers for `seconds`.
-local function lightningBolt(a, b, color, width, seconds)
-	local segments = 7
-	local parts = {}
-	for i = 1, segments do
-		parts[i] = fxPart({ Color = color, Transparency = 0.05 })
-	end
-	local started = os.clock()
-	local function redraw()
-		local previous = a
-		local axis = b - a
-		for i = 1, segments do
-			local point = if i == segments then b else a + axis * (i / segments)
-				+ Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * (axis.Magnitude * 0.12)
-			placeSegment(parts[i], previous, point, width)
-			previous = point
-		end
-	end
-	redraw()
-	task.spawn(function()
-		while os.clock() - started < seconds do
-			task.wait(0.05)
-			redraw()
-		end
-		for _, part in ipairs(parts) do
-			part:Destroy()
-		end
-	end)
+-- A white streak following a flying weapon (a Trail between two attachments on its centre).
+local function trailOn(part, color, width)
+	local a0 = Instance.new("Attachment")
+	a0.Position = Vector3.new(0, width / 2, 0)
+	a0.Parent = part
+	local a1 = Instance.new("Attachment")
+	a1.Position = Vector3.new(0, -width / 2, 0)
+	a1.Parent = part
+	local trail = Instance.new("Trail")
+	trail.Attachment0 = a0
+	trail.Attachment1 = a1
+	trail.Color = ColorSequence.new(color)
+	trail.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	trail.Lifetime = 0.18
+	trail.MinLength = 0.05
+	trail.LightEmission = 0.8
+	trail.FaceCamera = true
+	trail.Parent = part
+	return trail
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -648,6 +636,15 @@ local function sectionPart(tool, section)
 	return nil
 end
 
+-- The far end of a long weapon (the Power Pole): the end of its Handle farthest from the wielder.
+local function farEnd(handle, root)
+	local half = math.max(handle.Size.X, handle.Size.Y, handle.Size.Z) / 2
+	local axis = if handle.Size.Y >= handle.Size.X and handle.Size.Y >= handle.Size.Z then handle.CFrame.UpVector
+		elseif handle.Size.X >= handle.Size.Z then handle.CFrame.RightVector else handle.CFrame.LookVector
+	local a, b = handle.Position + axis * half, handle.Position - axis * half
+	return if (a - root.Position).Magnitude >= (b - root.Position).Magnitude then a else b
+end
+
 onImpact = function(character, play)
 	local _, root = characterParts(character)
 	if not root then
@@ -659,49 +656,47 @@ onImpact = function(character, play)
 	local tool = play.tool
 	local handle = tool and tool:FindFirstChild("Handle")
 	if weapon.Id == "BakugoGauntlet" then
-		-- BOOM: the blast leaves the nozzle and rolls forward
+		-- BOOM: the owner's comic explosion bursts out of the gauntlet, fire and sparks roll forward
 		local nozzle = if handle then handle.Position + forward * 1 else root.Position + forward * 2.5
-		for i = 0, 3 do
-			task.delay(i * 0.04, function()
-				flashBall(nozzle + forward * (i * 3.2), if i % 2 == 0 then weapon.Color else weapon.Accent,
-					1.2 + i * 0.8, 5 + i * 1.6, 0.32 + i * 0.03)
+		flashAt(nozzle + forward * 1.5, weapon.Color, 6, 2)
+		for i = 1, 3 do
+			task.delay(i * 0.05, function()
+				burstAt(nozzle + forward * (i * 2.6), T.explosion(), { Scale = 0.45 + i * 0.12, Max = 12 }, 2)
 			end)
 		end
-		burstAt(nozzle + forward * 2, T.explosion(), { Scale = 0.6, Max = 18 }, 2)
+		burstAt(nozzle + forward * 2, T.sparks(), { Max = 4, Color = ColorSequence.new(weapon.Accent) }, 1)
 		popModel("Comic_Explosion", CFrame.lookAt(nozzle + forward * 3.5, nozzle + forward * 5), 0.4, 1.7, 0.22, 0.12)
-		comicText(nozzle + forward * 3 + Vector3.new(0, 2, 0), "BOOM!", Color3.fromRGB(255, 150, 30), 5, 0.75)
+		comicText(nozzle + forward * 3 + Vector3.new(0, 2.2, 0), "BOOM!", Color3.fromRGB(255, 150, 30), 5, 0.75)
 		playPop(nozzle, { 0.55, 0.65 }, 1.4)
 	elseif weapon.Id == "Mjolnir" then
-		-- the slam: a lightning bolt strikes the hammer, a shockwave rolls out, rocks jump
+		-- the slam: the owner's bolts crash down onto the hammer, lightning and a shockwave roll out, rocks jump
 		local point = root.Position + forward * (tonumber(weapon.Reach) or 3.5) - Vector3.new(0, root.Size.Y * 1.5, 0)
-		if vfxTemplate("Mjolnir_Lightning") then
-			-- the owner's bolt meshes stacked from the sky onto the hammer
-			for k = 0, 5 do
-				popModel("Mjolnir_Lightning", CFrame.new(point + Vector3.new(0, k * 2.6 - 1.7, 0))
-					* CFrame.Angles(0, math.random() * math.pi * 2, 0), 1.9, 2.2, 0.08, 0.14)
-			end
-		else
-			lightningBolt(point + Vector3.new(math.random(-3, 3), 28, math.random(-3, 3)), point, weapon.Color, 0.35, 0.3)
+		for k = 0, 5 do
+			popModel("Mjolnir_Lightning", CFrame.new(point + Vector3.new(0, k * 2.6 - 1.7, 0))
+				* CFrame.Angles(0, math.random() * math.pi * 2, 0), 1.9, 2.2, 0.08, 0.14)
 		end
-		shockwave(point + Vector3.new(0, 0.15, 0), weapon.Color, tonumber(weapon.Radius) or 11, 0.5)
-		shockwave(point + Vector3.new(0, 0.2, 0), weapon.Accent, (tonumber(weapon.Radius) or 11) * 0.6, 0.35)
-		flashBall(point + Vector3.new(0, 0.8, 0), weapon.Accent, 1, 6, 0.25)
+		burstAt(point + Vector3.new(0, 1, 0), T.strike(), { Scale = 0.35, Max = 12, Color = ColorSequence.new(weapon.Color) }, 1)
+		burstAt(point + Vector3.new(0, 1, 0), T.lightning(), { Scale = 0.35, Max = 10 }, 1.5)
+		ringAt(point + Vector3.new(0, 0.3, 0), weapon.Color, tonumber(weapon.Radius) or 11)
+		ringAt(point + Vector3.new(0, 0.4, 0), weapon.Accent, (tonumber(weapon.Radius) or 11) * 0.55)
+		flashAt(point + Vector3.new(0, 1, 0), weapon.Accent, 7, 2)
 		burstAt(point + Vector3.new(0, 0.5, 0), T.ground(), { Max = 40 }, 2)
-		burstAt(point + Vector3.new(0, 1, 0), T.lightning(), { Scale = 0.5, Max = 12 }, 1.5)
 		playPop(point, { 0.5, 0.6 }, 1.5)
 	elseif weapon.Id == "PowerPole" then
 		local tip = sectionPart(tool, "Tip")
-		local at = if tip then tip.Position else root.Position + forward * 12
-		flashBall(at, weapon.Accent, 0.6, 3.2, 0.22)
+		local at = if tip then tip.Position elseif handle then farEnd(handle, root) else root.Position + forward * 6
+		flashAt(at, weapon.Accent, 3.5, 1)
 		burstAt(at, T.lines(), { Scale = 0.5, Max = 7 }, 1)
+		burstAt(at, T.sparks(), { Max = 3, Color = ColorSequence.new(weapon.Accent) }, 1)
 	elseif weapon.Id == "GomuFist" then
 		local fist = sectionPart(tool, "Fist")
 		local at = if fist then fist.Position else root.Position + forward * 5
-		flashBall(at, Color3.new(1, 1, 1), 1, 4.5, 0.2, 0.35)
+		flashAt(at, Color3.new(1, 1, 1), 4.5, 1)
 		burstAt(at, T.slap(), { Max = 12 }, 1.2)
 	elseif weapon.Id == "CapShield" then
 		local at = if handle then handle.Position + forward * 0.8 else root.Position + forward * 3
-		flashBall(at, Color3.fromRGB(235, 240, 255), 1, 3.6, 0.18, 0.45)
+		flashAt(at, Color3.fromRGB(225, 235, 255), 3.6, 1)
+		burstAt(at, T.sparks(), { Max = 3, Color = ColorSequence.new(Color3.fromRGB(255, 240, 200)) }, 1)
 	end
 end
 
@@ -760,6 +755,7 @@ local function targetPoint(victim, fallback)
 	return if root then root.Position else fallback
 end
 
+-- The web: a white Beam from the web shooter to the victim whose tip (the owner's web blob) flies out, then fades.
 local function launchWeb(attackerCharacter, payload, weapon)
 	local hand = rightHandOf(attackerCharacter)
 	local _, root = characterParts(attackerCharacter)
@@ -769,13 +765,26 @@ local function launchWeb(attackerCharacter, payload, weapon)
 	local direction = if typeof(payload.Direction) == "Vector3" then payload.Direction else root.CFrame.LookVector
 	local fallback = hand.Position + direction * (tonumber(payload.Distance) or 30)
 	local travel = math.clamp(tonumber(payload.Travel) or 0.2, 0.05, 0.6)
-	local line = fxPart({ Color = weapon.Color, Material = Enum.Material.SmoothPlastic, Transparency = 0.05 })
-	local ball = fxPart({ Shape = Enum.PartType.Ball, Color = weapon.Color, Material = Enum.Material.SmoothPlastic,
-		Size = Vector3.one * 0.7 })
-	local blob = vfxModel("Web_Blob") -- the owner's web blob rides the tip when imported
-	if blob then
-		ball.Transparency = 1
-	end
+	local origin = Instance.new("Attachment")
+	origin.Name = "HeroWebOrigin"
+	origin.Parent = hand
+	local tipAttachment = Instance.new("Attachment")
+	tipAttachment.Name = "HeroWebTip"
+	tipAttachment.Position = hand.Position
+	tipAttachment.Parent = Workspace.Terrain
+	local beam = Instance.new("Beam")
+	beam.Attachment0 = origin
+	beam.Attachment1 = tipAttachment
+	beam.Color = ColorSequence.new(weapon.Color)
+	beam.Transparency = NumberSequence.new(0.05)
+	beam.Width0 = 0.16
+	beam.Width1 = 0.1
+	beam.FaceCamera = true
+	beam.LightEmission = 0.35
+	beam.LightInfluence = 0.4
+	beam.Segments = 2
+	beam.Parent = origin
+	local blob = vfxModel("Web_Blob") -- the owner's web blob rides the tip
 	burstAt(hand.Position, T.puff(), { Max = 6 }, 1)
 	local started = os.clock()
 	local lastFrom = hand.Position
@@ -786,18 +795,20 @@ local function launchWeb(attackerCharacter, payload, weapon)
 		end
 		local to = targetPoint(payload.Victim, fallback) + Vector3.new(0, 0.6, 0)
 		local tip = lastFrom:Lerp(to, math.min(alpha, 1))
-		placeSegment(line, lastFrom, tip, 0.12)
-		ball.CFrame = CFrame.new(tip)
+		tipAttachment.Position = tip
 		if blob then
 			blob:PivotTo(CFrame.lookAt(tip, tip + (to - lastFrom).Unit))
 		end
 		if alpha >= 1 then
-			ball:Destroy()
 			if blob then
 				blob:Destroy()
 			end
-			TweenService:Create(line, TweenInfo.new(0.3), { Transparency = 1 }):Play()
-			later(0.32, line)
+			burstAt(tip, T.puff(), { Max = 8 }, 1)
+			TweenService:Create(beam, TweenInfo.new(0.3), { Width0 = 0, Width1 = 0 }):Play()
+			task.delay(0.32, function()
+				origin:Destroy()
+				tipAttachment:Destroy()
+			end)
 			return false
 		end
 		return true
@@ -821,6 +832,10 @@ local function launchThrown(attackerCharacter, payload, weapon, sections, return
 	local travel = math.clamp(tonumber(payload.Travel) or 0.3, 0.05, 0.6)
 	local fallback = from + direction * (tonumber(payload.Distance) or 25)
 	setSectionHidden(tool, sections, true)
+	local anchorPart = next(layout)
+	if anchorPart then
+		trailOn(anchorPart, if weapon.Id == "CapShield" then Color3.fromRGB(235, 240, 255) else Color3.fromRGB(120, 120, 140), 1.2)
+	end
 	local started = os.clock()
 	local total = if returns then travel * 2 else travel
 	local reached = fallback
@@ -886,26 +901,22 @@ local function onHit(payload)
 	if effect == "Dazed" then
 		burstAt(position + Vector3.new(0, 2.5, 0), T.stars(), { Max = 20, Scale = 0.5 }, 1)
 		burstAt(position, T.slap(), { Max = 10 }, 1.2)
+		flashAt(position, Color3.fromRGB(255, 235, 160), 3.5, 1)
 		playPop(position, { 0.85, 1 }, 1.2)
 	elseif effect == "Webbed" then
-		for _ = 1, 6 do
-			local dir = Vector3.new(math.random() - 0.5, math.random() * 0.6, math.random() - 0.5).Unit
-			local blob = fxPart({ Shape = Enum.PartType.Ball, Material = Enum.Material.SmoothPlastic,
-				Color = weapon.Color, Size = Vector3.one * 0.5, CFrame = CFrame.new(position) })
-			TweenService:Create(blob, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-				{ CFrame = CFrame.new(position + dir * 2.4), Transparency = 1 }):Play()
-			later(0.4, blob)
-		end
+		burstAt(position, T.puff(), { Max = 10, Color = ColorSequence.new(weapon.Color) }, 1.2)
+		flashAt(position, weapon.Color, 3, 1)
 		local attackerCharacter = characterOfPlayer(payload.Attacker)
 		local _, attackerRoot = characterParts(attackerCharacter)
 		local facing = if attackerRoot then attackerRoot.Position else position + Vector3.new(0, 0, -5)
 		popModel("Web_Net", CFrame.lookAt(position, Vector3.new(facing.X, position.Y, facing.Z)), 0.3, 1.5, 0.14, 0.35)
 		playPop(position, { 1.1, 1.25 }, 1.1)
 	elseif effect == "Electrocuted" then
-		flashBall(position, weapon.Accent, 2, 6, 0.2, 0.3)
+		flashAt(position, weapon.Color, 6, 2)
+		burstAt(position, T.strike(), { Scale = 0.25, Max = 10, Color = ColorSequence.new(weapon.Color) }, 1)
 		playPop(position, { 0.6, 0.7 }, 1.3)
 	elseif effect == "CleanKnockback" then
-		flashBall(position, Color3.new(1, 1, 1), 1.5, 5, 0.2, 0.4)
+		flashAt(position, Color3.new(1, 1, 1), 5, 1)
 		burstAt(position, T.slap(), { Max = 14 }, 1.2)
 		comicText(position + Vector3.new(0, 3, 0), "POW!", weapon.Accent, 4, 0.6)
 		playPop(position, { 0.7, 0.8 }, 1.4)
@@ -913,15 +924,16 @@ local function onHit(payload)
 		burstAt(position, T.slap(), { Max = 8 }, 1.2)
 		playPop(position, { 0.9, 1 }, 1.1)
 	elseif effect == "ExplosionBlast" then
-		flashBall(position, weapon.Color, 2, 8, 0.35)
-		flashBall(position, weapon.Accent, 1, 5, 0.25)
+		flashAt(position, weapon.Color, 8, 2)
 		burstAt(position, T.explosion(), { Scale = 0.7, Max = 18 }, 2)
+		burstAt(position, T.sparks(), { Max = 4, Color = ColorSequence.new(weapon.Accent) }, 1)
 		local cam = Workspace.CurrentCamera
 		local toward = if cam then cam.CFrame.Position else position + Vector3.new(0, 0, 10)
 		popModel("Comic_Explosion", CFrame.lookAt(position, toward), 0.5, 1.9, 0.25, 0.2)
 		playPop(position, { 0.55, 0.65 }, 1.4)
 	elseif effect == "SpinTornado" then
 		burstAt(position - Vector3.new(0, 2.5, 0), T.twirl(), { Max = 8 }, 1.2)
+		ringAt(position - Vector3.new(0, 2.6, 0), weapon.Accent, 4)
 		playPop(position, { 0.95, 1.1 }, 1.2)
 	end
 	if payload.Dropped and character then
@@ -941,45 +953,6 @@ local function weldTo(part, root, cframe)
 	weld.C0 = root.CFrame:ToObjectSpace(cframe)
 	weld.Parent = part
 	part.Anchored = false -- welded first, so it never drops for a frame
-end
-
--- A white web net wrapped around the victim (octagon rings, strands to a knot over the head, cross strands).
-local function buildWebNet(state, root, color)
-	local model = Instance.new("Model")
-	model.Name = "HeroWebNet"
-	model.Parent = fxFolder()
-	table.insert(state.instances, model)
-	local base = root.CFrame
-	local rings = { { -2.6, 1.9 }, { -1.1, 1.75 }, { 0.5, 1.65 }, { 1.7, 1.25 } }
-	local top = base.Position + base.UpVector * 2.9
-	local ringPoints = {}
-	for r, ring in ipairs(rings) do
-		ringPoints[r] = {}
-		for i = 1, 8 do
-			local a = (i / 8) * math.pi * 2 + r * 0.2
-			ringPoints[r][i] = (base * CFrame.new(math.cos(a) * ring[2], ring[1], math.sin(a) * ring[2])).Position
-		end
-	end
-	local function strand(a, b, w)
-		local part = fxPart({ Material = Enum.Material.SmoothPlastic, Color = color, Transparency = 0.08,
-			Parent = model, Name = "Strand" })
-		placeSegment(part, a, b, w or 0.09)
-		weldTo(part, root, part.CFrame)
-	end
-	for r = 1, #rings do
-		for i = 1, 8 do
-			strand(ringPoints[r][i], ringPoints[r][i % 8 + 1], 0.1)
-			if r < #rings then
-				strand(ringPoints[r][i], ringPoints[r + 1][i % 8 + 1], 0.07)
-			end
-		end
-	end
-	for i = 1, 8, 2 do
-		strand(ringPoints[#rings][i], top, 0.09)
-	end
-	local knot = fxPart({ Shape = Enum.PartType.Ball, Material = Enum.Material.SmoothPlastic, Color = color,
-		Size = Vector3.one * 0.55, Parent = model, CFrame = CFrame.new(top) })
-	weldTo(knot, root, knot.CFrame)
 end
 
 local function starBillboards(state, head, count, glyph, color)
@@ -1173,21 +1146,20 @@ local function onDebuff(payload)
 
 	local feet = root.CFrame * CFrame.new(0, -(humanoid.HipHeight + root.Size.Y / 2), 0)
 	if effect == "Webbed" then
-		local cocoon = vfxModel("Web_Cocoon") -- the owner's cocoon wraps the victim when imported
+		local cocoon = vfxModel("Web_Cocoon") -- the owner's cocoon wraps the victim
 		if cocoon then
 			table.insert(state.instances, cocoon)
 			state.follow = { model = cocoon, base = cocoon:GetScale(), offset = root.CFrame:ToObjectSpace(feet), pop = 0.16 }
 			cocoon:PivotTo(feet)
-		else
-			buildWebNet(state, root, weapon.Color)
+		end
+		-- loose silk puffs while they struggle
+		local silk = rootAttachment(state, root, "HeroWeaponSilk")
+		for _, emitter in ipairs(attachEmitters(silk, T.puff(), { Enabled = true, Rate = 5, Color = ColorSequence.new(weapon.Color) })) do
+			table.insert(state.emitters, emitter)
 		end
 	elseif effect == "Electrocuted" then
 		state.flash = highlightOn(state, character, weapon.Accent, 0.6, 0.2)
-		state.arcs = {}
-		for i = 1, 12 do
-			state.arcs[i] = fxPart({ Color = weapon.Color, Transparency = 0.05, Name = "Arc" })
-			table.insert(state.instances, state.arcs[i])
-		end
+		state.zap = true
 		local attachment = rootAttachment(state, root, "HeroWeaponZap")
 		for _, emitter in ipairs(attachEmitters(attachment, T.lightning(), { Enabled = true, Scale = 0.35, Rate = 14 })) do
 			table.insert(state.emitters, emitter)
@@ -1257,11 +1229,20 @@ local function onDebuff(payload)
 		for _, emitter in ipairs(attachEmitters(feet, T.twirl(), { Enabled = true })) do
 			table.insert(state.emitters, emitter)
 		end
-		state.streaks = {}
-		for i = 1, 6 do
-			state.streaks[i] = fxPart({ Color = Color3.fromRGB(235, 245, 255), Transparency = 0.35, Name = "Wind",
-				Size = Vector3.new(0.14, 2.4, 0.14) })
-			table.insert(state.instances, state.streaks[i])
+		-- wind crescents whirl flat around the body at three heights
+		for _, height in ipairs({ -1.6, 0, 1.6 }) do
+			local ring = rootAttachment(state, root, "HeroWeaponWind", Vector3.new(0, height, 0))
+			for _, emitter in ipairs(attachEmitters(ring, T.wind(), {
+				Enabled = true,
+				Rate = 7,
+				Scale = 0.045,
+				Color = ColorSequence.new(Color3.fromRGB(235, 245, 255)),
+				Direction = Enum.NormalId.Top,
+				Speed = NumberRange.new(0.01),
+				Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+			})) do
+				table.insert(state.emitters, emitter)
+			end
 		end
 	end
 
@@ -1319,28 +1300,21 @@ local function stepStates(now, dt)
 		if effect == "Electrocuted" then
 			wobbleWaist = CFrame.Angles(math.rad(math.random(-9, 9)), math.rad(math.random(-14, 14)), math.rad(math.random(-9, 9)))
 			wobbleNeck = CFrame.Angles(math.rad(math.random(-14, 14)), math.rad(math.random(-18, 18)), 0)
-			if state.arcs and (state.nextArc or 0) <= now then
+			if state.zap and (state.nextArc or 0) <= now then
 				state.nextArc = now + 0.06
 				local centre = root.Position
-				for i = 1, #state.arcs, 3 do
-					local previous = centre + Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 4, math.random() - 0.5) * 2.4
-					for k = 0, 2 do
-						local point = previous + Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 1.8
-						local arc = state.arcs[i + k]
-						if arc then
-							arc.Transparency = 0.05
-							placeSegment(arc, previous, point, 0.1)
-						end
-						previous = point
-					end
-				end
 				if state.flash then
 					state.flash.FillTransparency = if state.flash.FillTransparency > 0.5 then 0.25 else 0.8
 				end
+				-- the owner's bolts jump around the body; a crackle of lightning sparks now and then
 				for _, bolt in ipairs(state.bolts or {}) do
 					local offset = Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 1.6, math.random() - 0.5) * 2.2
 					bolt:PivotTo(CFrame.new(centre + offset - Vector3.new(0, 1.7, 0))
 						* CFrame.Angles(math.random() * 0.6 - 0.3, math.random() * math.pi * 2, math.random() * 0.6 - 0.3))
+				end
+				if math.random() < 0.35 then
+					burstAt(centre + Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 3, math.random() - 0.5),
+						T.sparks(), { Max = 1, Scale = 0.35, Color = ColorSequence.new(state.weapon.Color) }, 0.8)
 				end
 			end
 		elseif effect == "Webbed" then
@@ -1356,14 +1330,6 @@ local function stepStates(now, dt)
 					local radius = if count > 1 then 1.3 else 0.2
 					mark.Position = Vector3.new(math.cos(a) * radius, 1.4 + math.sin(t * 6 + i) * 0.15, math.sin(a) * radius)
 				end
-			end
-		elseif effect == "SpinTornado" and state.streaks then
-			for i, streak in ipairs(state.streaks) do
-				local a = t * 14 + (i / #state.streaks) * math.pi * 2
-				local height = ((i % 3) - 1) * 1.3
-				local radius = 1.7 + (i % 2) * 0.5
-				streak.CFrame = CFrame.new(root.Position + Vector3.new(math.cos(a) * radius, height, math.sin(a) * radius))
-					* CFrame.Angles(0, -a, math.rad(25))
 			end
 		end
 		if wobbleWaist and waist then

@@ -244,6 +244,8 @@ T.check(H.has(stepSrc, "function Step.BuildWeaponFromImport(") and H.has(stepSrc
 local vfxFolder = rs:FindFirstChild("HeroWeaponVfx")
 T.check(vfxFolder ~= nil, "ReplicatedStorage.HeroWeaponVfx missing (empty until the effects are imported)")
 for _, model in ipairs(vfxFolder and vfxFolder:GetChildren() or {}) do
+	T.check(model.PrimaryPart == nil and model.WorldPivotData ~= nil and model.WorldPivotData.Position.Magnitude < 1e-3,
+		"HeroWeaponVfx.%s must pivot on its FBX origin (no PrimaryPart)", model.Name)
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
 			T.check(part.Anchored and not part.CanCollide and not part.CanQuery and not part.CanTouch,
@@ -253,6 +255,35 @@ for _, model in ipairs(vfxFolder and vfxFolder:GetChildren() or {}) do
 end
 for _, name in ipairs({ "Web_Cocoon", "Dazed_Stars", "Mjolnir_Lightning", "Comic_Explosion", "Bat_Smoke_Cloud", "Web_Blob", "Web_Net" }) do
 	T.check(H.has(controllerSrc, "\"" .. name .. "\""), "HeroWeaponController must use the owner's %s when imported", name)
+end
+
+-- 5d. owner 2026-09-27: "no VFX made of meshes anywhere, apart from the ones I sent" - the controller builds no parts
+-- (particles, Beams, Trails and the owner's 7 effect models only)
+for _, needle in ipairs({ "Instance.new(\"Part\")", "Instance.new(\"WedgePart\")", "Instance.new(\"MeshPart\")",
+	"Enum.PartType.Ball", "Enum.PartType.Cylinder", "Instance.new(\"SpecialMesh\")" }) do
+	T.check(not H.has(controllerSrc, needle), "HeroWeaponController must not build part / mesh VFX (%s)", needle)
+end
+-- the owner's imported models are in the build (assets/hero_weapons/imports, from their Studio rbxm)
+if H.fs.isDir("assets/hero_weapons/imports/weapons") then
+	for toolName, weaponId in pairs(OWNER_MAPPING) do
+		local tool = shopItems and shopItems:FindFirstChild(toolName)
+		if tool and H.fs.isFile("assets/hero_weapons/imports/weapons/" .. weaponId .. ".rbxm") then
+			T.check(tool:GetAttribute("HeroWeaponModel") == "Import", "%s must use the owner's imported %s model", toolName, weaponId)
+			local meshes = 0
+			for _, part in ipairs(tool:GetChildren()) do
+				if part:IsA("MeshPart") then
+					meshes += 1
+				end
+			end
+			T.check(meshes >= 2, "%s: the owner's MeshParts must be in the tool (%d)", toolName, meshes)
+		end
+	end
+	for _, name in ipairs({ "Web_Blob", "Web_Net", "Web_Cocoon", "Mjolnir_Lightning", "Dazed_Stars", "Comic_Explosion", "Bat_Smoke_Cloud" }) do
+		if H.fs.isFile("assets/hero_weapons/imports/vfx/" .. name .. ".rbxm") then
+			local model = vfxFolder and vfxFolder:FindFirstChild(name)
+			T.check(model ~= nil and model:FindFirstChildWhichIsA("BasePart", true) ~= nil, "HeroWeaponVfx.%s (the owner's effect) missing", name)
+		end
+	end
 end
 
 -- 5c. "the ragdoll does not get back up, and the weapons can be used while down" (owner 2026-09-27)
