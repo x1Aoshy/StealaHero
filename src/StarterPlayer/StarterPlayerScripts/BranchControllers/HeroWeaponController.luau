@@ -515,10 +515,17 @@ local function jointEntry(character, name)
 	return entry or nil
 end
 
+-- Whether the joint still holds our own last output. Round 11 (owner 2026-09-27: "the dummy's head spins a lot on its
+-- own axis"): the exact == failed on a Transform read back with float noise, so on a rig no Animator rewrites (the
+-- training dummy) every frame's wobble was stacked onto the last one. A tolerant compare never mistakes it.
+local function holdsOurs(entry)
+	return entry.written ~= nil and entry.motor.Transform:FuzzyEq(entry.written, 1e-3)
+end
+
 -- The Animator's pose under this joint this frame (never our own last output).
 local function basePose(entry)
 	local current = entry.motor.Transform
-	local base = if entry.written ~= nil and current == entry.written then (entry.base or CFrame.identity) else current
+	local base = if holdsOurs(entry) then (entry.base or CFrame.identity) else current
 	entry.base = base
 	return base
 end
@@ -532,7 +539,7 @@ end
 
 -- Hands a joint back to the Animator exactly as it left it.
 local function releaseJoint(entry)
-	if entry and entry.motor.Parent and entry.written ~= nil and entry.motor.Transform == entry.written then
+	if entry and entry.motor.Parent and holdsOurs(entry) then
 		entry.motor.Transform = entry.base or CFrame.identity
 	end
 	if entry then
@@ -1565,6 +1572,14 @@ local function endState(token)
 	for name in pairs(state.written) do
 		releaseJoint(jointEntry(state.character, name))
 	end
+	if state.dummy then
+		-- nothing animates a dummy: every joint goes back to its rest pose (no twist left from a wobble)
+		for _, motor in ipairs(state.character:GetDescendants()) do
+			if motor:IsA("Motor6D") and motor:FindFirstAncestorOfClass("Tool") == nil then
+				motor.Transform = CFrame.identity
+			end
+		end
+	end
 	if state.humanoid then
 		standBackUp(state)
 	end
@@ -1617,6 +1632,8 @@ local function onDebuff(payload)
 		lingering = {},
 		written = {},
 		seed = math.random() * 10,
+		-- a training dummy: the server ragdolls it and no Animator ever rewrites its joints, so no wobble on it
+		dummy = not (typeof(payload.Victim) == "Instance" and payload.Victim:IsA("Player")),
 	}
 	states[token] = state
 	stateByCharacter[character] = state
@@ -1810,11 +1827,11 @@ local function stepStates(now, dt)
 				end
 			end
 		end
-		if wobbleWaist and waist then
+		if wobbleWaist and waist and not state.dummy then
 			writeJoint(waist, basePose(waist) * wobbleWaist)
 			state.written.Waist = true
 		end
-		if wobbleNeck and neck then
+		if wobbleNeck and neck and not state.dummy then
 			writeJoint(neck, basePose(neck) * wobbleNeck)
 			state.written.Neck = true
 		end

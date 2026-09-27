@@ -533,7 +533,7 @@ do
 		T.check(cfg.WEAPONS.PowerPole.Radius >= 13, "the Power Pole's sweep reaches its extended tip")
 	end
 	T.check(H.has(controllerSrc, "pcall(Kit.SetStretch, play.tool, keyed(play.stretch, elapsed))"), "the controller must play the clip's Stretch keys")
-	for _, needle in ipairs({ "local function watchDummy(model)", "local function settleDummy(model, root)",
+	for _, needle in ipairs({ "local function watchDummy(model)", "settleDummy = function(model, root)",
 		"CollectionService:GetInstanceAddedSignal(HeroWeapons.DUMMY_TAG)", "dummyCalmAt[character] = os.clock() + 0.5",
 		"* (tonumber(weapon.LineOffset) or 0)" }) do
 		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
@@ -561,4 +561,29 @@ do
 	local ragdollBody = string.match(gearSrc, "local function ragdollDummy%(.-\nend\n") or ""
 	T.check(H.has(ragdollBody, "humanoid.PlatformStand = true") and H.has(ragdollBody, "local wanted = part ~= root"),
 		"ragdollDummy must go limp (PlatformStand) and let the limbs, not the root box, collide")
+end
+
+-- 9. round 11b (owner 2026-09-27): "the dummy still does not recover well from the ragdolls when a tool is used on it,
+--    and its head spins a lot on its own axis". The client wobble compared the joint to its own last write with an
+--    exact ==, so on the dummy (no Animator rewriting its joints) the wobble stacked every frame and was never handed
+--    back; dummies get no wobble, their joints go back to rest when the state ends, and the server eases them up at
+--    once with the root anchored.
+do
+	for _, needle in ipairs({
+		"return entry.written ~= nil and entry.motor.Transform:FuzzyEq(entry.written, 1e-3)",
+		"local base = if holdsOurs(entry) then (entry.base or CFrame.identity) else current",
+		"if entry and entry.motor.Parent and holdsOurs(entry) then",
+		'dummy = not (typeof(payload.Victim) == "Instance" and payload.Victim:IsA("Player")),',
+		"if wobbleNeck and neck and not state.dummy then",
+		"motor.Transform = CFrame.identity",
+	}) do
+		T.check(H.has(controllerSrc, needle), "HeroWeaponController must contain %s", needle)
+	end
+	T.check(not H.has(controllerSrc, "current == entry.written") and not H.has(controllerSrc, "entry.motor.Transform == entry.written"),
+		"no exact CFrame compare may decide whether a joint holds our own write")
+	for _, needle in ipairs({ "local ok, err = pcall(settleDummy, character, root)", "root.Anchored = true", "root.Anchored = false" }) do
+		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
+	end
+	local ending = string.match(gearSrc, "local function endDummyRagdoll%(model%).-\nend\n") or ""
+	T.check(ending ~= "" and not H.has(ending, "HumanoidStateType.GettingUp"), "the dummy must not flail through the engine's GettingUp")
 end

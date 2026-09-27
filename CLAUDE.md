@@ -117,6 +117,11 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     back up at their spawn spot 0.5 s after each state ends. Round 11: a hit ragdolls a dummy on the server
     (`ragdollDummy`: limb sockets, Physics + PlatformStand, limbs collide, every part server-owned, flung along the hit;
     `endDummyRagdoll` at the state's end). The keeper never touches a limp, stunned or settling dummy.
+    Round 11b ("it still does not recover well; its head spins on its own axis"): the client wobble decided whether a
+    joint held its own last write with an exact CFrame `==`. On a rig no Animator rewrites (the dummy), float noise made
+    each frame's wobble stack and it was never handed back. Now it uses `holdsOurs` (FuzzyEq), dummies get no wobble,
+    and their joints go back to rest when the state ends. At the ragdoll's end the server eases the dummy upright at
+    once, with the root anchored (no engine GettingUp).
   **Round 10 (owner 2026-09-27)**:
   - Luffy's fist plays the authored `Gomu_Pistol_Long` clip: a straight-ahead punch with `Stretch` keys up to x7.5.
     `Kit.SetStretch` scales the rubber arm, and the fist rides its end by `StretchLength` (1.55, set by post_hero_weapons).

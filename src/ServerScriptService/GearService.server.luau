@@ -844,6 +844,7 @@ local DUMMY_FLING_MIN, DUMMY_FLING_MAX = 16, 46 -- studs/s along the hit (from t
 local DUMMY_FLING_UP = 18
 local DUMMY_TUMBLE = 5 -- rad/s tipping the head along the flight
 local dummyRagdolls = setmetatable({}, { __mode = "k" }) -- [dummy] = { motors, collisions }
+local settleDummy -- (model, root) defined with the dummy keeper below
 
 local function ragdollDummy(model, humanoid, root, direction, push)
 	if dummyRagdolls[model] ~= nil then
@@ -902,8 +903,8 @@ local function endDummyRagdoll(model)
 		pcall(root.SetNetworkOwner, root, nil)
 	end
 	if humanoid and humanoid.Parent and humanoid.Health > 0 then
+		-- no engine GettingUp (it made the dummy flail on the floor): settleDummy eases it upright right away
 		humanoid.PlatformStand = false
-		pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.GettingUp)
 		pcall(humanoid.SetStateEnabled, humanoid, Enum.HumanoidStateType.Physics, false)
 	end
 end
@@ -954,7 +955,16 @@ endDebuff = function(victim, character, token)
 	fireBatFx({ Action = "DebuffEnd", Victim = victim, Token = state.token })
 	if not victim:IsA("Player") then
 		endDummyRagdoll(character)
-		dummyCalmAt[character] = os.clock() + 0.5 -- a training dummy gets up on its spot a moment later
+		dummyCalmAt[character] = os.clock() + 0.5 -- the keeper's fallback if the ease below cannot run
+		local root = character:FindFirstChild("HumanoidRootPart")
+		if settleDummy and root and root:IsA("BasePart") then
+			task.spawn(function()
+				local ok, err = pcall(settleDummy, character, root)
+				if not ok then
+					log("training dummy get-up failed: " .. tostring(err))
+				end
+			end)
+		end
 	end
 end
 
@@ -1425,35 +1435,46 @@ local function watchDummy(model)
 	dummyHomes[model] = CFrame.new(root.Position) * CFrame.fromOrientation(0, yaw, 0)
 end
 
-local DUMMY_SETTLE_SECONDS = 0.35
+local DUMMY_SETTLE_SECONDS = 0.45
 local settling = setmetatable({}, { __mode = "k" }) -- [dummy] = true while it eases back up
 
 -- Eases the dummy from where it lies back up onto its spot (the root carries the whole rig: its joints are back on).
-local function settleDummy(model, root)
+-- Round 11 (owner 2026-09-27: "the dummy still does not recover well from the ragdoll"): the root is anchored for the
+-- ease, so neither the Humanoid's balance nor a leftover tumble fights it, and every part stops dead at the end.
+settleDummy = function(model, root)
 	local home = dummyHomes[model]
 	if not home or settling[model] then
 		return
 	end
 	settling[model] = true
-	local from = root.CFrame
-	local startedAt = os.clock()
 	local function still()
 		return root.Parent ~= nil and debuffs[model] == nil and dummyRagdolls[model] == nil
 	end
-	while still() do
-		local alpha = math.clamp((os.clock() - startedAt) / DUMMY_SETTLE_SECONDS, 0, 1)
-		local eased = 1 - (1 - alpha) * (1 - alpha)
-		model:PivotTo(from:Lerp(home, eased) * root.CFrame:ToObjectSpace(model:GetPivot()))
+	local function stopParts()
 		for _, part in ipairs(model:GetDescendants()) do
 			if part:IsA("BasePart") then
 				part.AssemblyLinearVelocity = Vector3.zero
 				part.AssemblyAngularVelocity = Vector3.zero
 			end
 		end
+	end
+	root.Anchored = true
+	stopParts()
+	local from = root.CFrame
+	local startedAt = os.clock()
+	while still() do
+		local alpha = math.clamp((os.clock() - startedAt) / DUMMY_SETTLE_SECONDS, 0, 1)
+		local eased = 1 - (1 - alpha) * (1 - alpha)
+		model:PivotTo(from:Lerp(home, eased) * root.CFrame:ToObjectSpace(model:GetPivot()))
 		if alpha >= 1 then
 			break
 		end
 		RunService.Heartbeat:Wait()
+	end
+	stopParts()
+	if root.Parent then
+		root.Anchored = false
+		pcall(root.SetNetworkOwner, root, nil)
 	end
 	settling[model] = nil
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
