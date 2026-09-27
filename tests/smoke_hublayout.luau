@@ -94,8 +94,10 @@ do
 	if T.check(sell ~= nil and sellAll ~= nil and sellHeld ~= nil, "Stands.Models.Sell Stands / Prompts.SellAll / Prompts.SellHeldAsset missing") then
 		local pivot = sell.WorldPivotData
 		local look, p = pivot.LookVector, pivot.Position
-		T.check(look.Z > 0.9999 and math.abs(pivot.UpVector.Y - 1) < 1e-4, "Sell stand must be axis-aligned and face the street (+Z), look %s", tostring(look))
-		T.check(p.X >= 50 and p.X <= 64 and p.Z <= -20 and p.Z >= -40, "Sell stand pivot (%.1f, %.1f) must stand south of the street at the stage-1 entrance", p.X, p.Z)
+		-- the owner moved the stand by hand in Studio (post_zzz_owner_layout marks it OwnerLayout): no placement rules
+		local ownerPlaced = sell:GetAttribute("OwnerLayout") == true
+		T.check(ownerPlaced or (look.Z > 0.9999 and math.abs(pivot.UpVector.Y - 1) < 1e-4), "Sell stand must be axis-aligned and face the street (+Z), look %s", tostring(look))
+		T.check(ownerPlaced or (p.X >= 50 and p.X <= 64 and p.Z <= -20 and p.Z >= -40), "Sell stand pivot (%.1f, %.1f) must stand south of the street at the stage-1 entrance", p.X, p.Z)
 
 		local pedestal, loose, solidPedestal, pedestalTop = 0, {}, true, -math.huge
 		local zonePad, zoneOk = nil, false
@@ -142,7 +144,7 @@ do
 			local a, b = H.groupAabb(root)
 			mn, mx = union(mn, mx, a, b)
 		end
-		T.check(mx.Z <= -16 and mx.X <= PLAN.SHOP_MAX_X, "Sell stand (X %.1f..%.1f Z %.1f..%.1f) must leave the street (|Z| <= 16) open and stay at X <= %d",
+		T.check(mx.Z <= -16 and (ownerPlaced or mx.X <= PLAN.SHOP_MAX_X), "Sell stand (X %.1f..%.1f Z %.1f..%.1f) must leave the street (|Z| <= 16) open and stay at X <= %d",
 			mn.X, mx.X, mn.Z, mx.Z, PLAN.SHOP_MAX_X)
 		local hit = touchesPlots(mn, mx, 1)
 		T.check(hit == nil, "Sell stand touches %s", tostring(hit))
@@ -161,10 +163,11 @@ do
 	local spawn = ws:FindFirstChild("SpawnLocation")
 	if T.check(board ~= nil and chest ~= nil and lid ~= nil and gift ~= nil and spawn ~= nil, "Free Gift board / chest / lid / GroupReward / SpawnLocation missing") then
 		local look = board.WorldPivotData.LookVector
-		T.check(look.Z > 0.9999, "Free Gift board must face the arriving players (+Z), look %s", tostring(look))
+		local ownerPlaced = board:GetAttribute("OwnerLayout") == true and chest:GetAttribute("OwnerLayout") == true
+		T.check(ownerPlaced or look.Z > 0.9999, "Free Gift board must face the arriving players (+Z), look %s", tostring(look))
 		local s = spawn.CFrame.Position
 		local c = chest.WorldPivotData.Position
-		T.check(flat(c, s) <= 35 and c.Z < s.Z, "Free Gift chest at (%.1f, %.1f) must stand in front of the spawn (<= 35 studs, spawn faces -Z)", c.X, c.Z)
+		T.check(ownerPlaced or (flat(c, s) <= 35 and c.Z < s.Z), "Free Gift chest at (%.1f, %.1f) must stand in front of the spawn (<= 35 studs, spawn faces -Z)", c.X, c.Z)
 		local g, l = gift.CFrame.Position, lid.CFrame.Position
 		T.check(flat(g, l) <= 1.5 and g.Y > l.Y and g.Y - l.Y <= 3, "__OBJECTS.GroupReward must stay on the chest lid (flat %.2f, up %.2f)", flat(g, l), g.Y - l.Y)
 		local mn, mx = H.groupAabb(freeGift)

@@ -636,10 +636,21 @@ do
 			end
 		end
 	end
+	-- anything the owner placed by hand in Studio (post_zzz_owner_layout marks it OwnerLayout) stands where they put it
+	local function ownerPlaced(inst)
+		local node = inst
+		while node ~= nil and node ~= ws do
+			if node:GetAttribute("OwnerLayout") == true then
+				return true
+			end
+			node = node.Parent
+		end
+		return false
+	end
 	local function clearParts(root)
 		local parts = root and (root:IsA("BasePart") and { root } or root:GetDescendants()) or {}
 		for _, d in ipairs(parts) do
-			if d:IsA("BasePart") then
+			if d:IsA("BasePart") and not ownerPlaced(d) then
 				local mn, mx = H.aabb(d)
 				if mx.Y > groundY - 1 then
 					clear(d.Name, mn, mx, 1)
@@ -1855,7 +1866,9 @@ do
 		table.insert(bad, "Workspace.Hub.HeroBoard (screen pages + podium) missing")
 	else
 		local mn, mx = H.groupAabb(heroBoard)
-		if mx.X > 71.25 or mn.X < -99.6 or mn.Z < -211.03 or mx.Z > 215.97 then
+		if heroBoard:GetAttribute("OwnerLayout") == true then
+			-- the owner hung the board where they wanted it in Studio (post_zzz_owner_layout): no region rules
+		elseif mx.X > 71.25 or mn.X < -99.6 or mn.Z < -211.03 or mx.Z > 215.97 then
 			table.insert(bad, string.format("outside the hub (X %.1f..%.1f Z %.1f..%.1f)", mn.X, mx.X, mn.Z, mx.Z))
 		end
 		if mx.Z > -89 and mn.Z < 87 then

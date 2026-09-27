@@ -52,9 +52,24 @@ local AURA_BY_RARITY = {
 	Secret = "Aura_Secret",
 }
 
--- Per-hero aura colour (same effect, recoloured to fit the character). Owner 2026-09-27: Shanks' lightning red.
+-- Per-hero aura colour (same effect, recoloured to fit the character). Owner 2026-09-27: Shanks' lightning red,
+-- Iron Man's galaxy swirl arc-reactor blue instead of purple.
 local AURA_TINT_BY_HERO = {
 	Shanks = Color3.fromRGB(255, 38, 46),
+	IronMan = Color3.fromRGB(70, 165, 255),
+}
+
+-- Per-hero aura overrides (owner 2026-09-27; effects from scripts/steps/post_hero_auras.luau):
+--   effect      replaces the rarity aura (false: no aura at all)
+--   color       sets every emitter's colour outright (not the luminance-keeping tint)
+--   brightness  emitter Brightness (a bright white-hot ki)
+-- "Falcon sin aura": the winged hero of the roster is Hawks.
+local AURA_BY_HERO = {
+	Goku = { effect = "Aura_Ki", color = Color3.fromRGB(255, 255, 255), brightness = 3 },
+	Gohan = { effect = "Aura_SSJ" },
+	Superman = { effect = "Aura_RedStars" },
+	Zoro = { effect = "Aura_Ki", color = Color3.fromRGB(80, 255, 120), brightness = 1.6 },
+	Hawks = { effect = false },
 }
 
 local HeroCatalog do
@@ -355,7 +370,11 @@ onHeroModel = function(model, isNew)
 		playBurst("Burst_Hatch", root.Position)
 	end
 
+	local override = AURA_BY_HERO[heroId]
 	local auraName = AURA_BY_RARITY[rarityOf(heroId) or ""]
+	if override and override.effect ~= nil then
+		auraName = override.effect or nil
+	end
 	if not auraName or not Sab:FindFirstChild(auraName) then
 		return
 	end
@@ -370,6 +389,24 @@ onHeroModel = function(model, isNew)
 	local tint = AURA_TINT_BY_HERO[heroId]
 	if tint then
 		tintCopied(copied, tint)
+	end
+	if override and (override.color or override.brightness) then
+		for _, instance in ipairs(copied) do
+			local list = instance:GetDescendants()
+			table.insert(list, instance)
+			for _, d in ipairs(list) do
+				if d:IsA("ParticleEmitter") then
+					if override.color then
+						d.Color = ColorSequence.new(override.color)
+					end
+					if override.brightness then
+						pcall(function()
+							d.Brightness = override.brightness
+						end)
+					end
+				end
+			end
+		end
 	end
 	setEnabled(copied, true)
 	local entry = { copied = copied, connections = {} }

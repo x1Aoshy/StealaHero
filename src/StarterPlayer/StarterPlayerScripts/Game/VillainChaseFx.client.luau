@@ -173,17 +173,6 @@ end
 
 local FLAT = CFrame.Angles(0, 0, math.pi / 2) -- a Cylinder's axis is X: lay it flat as a disc
 
--- Expanding, fading disc on the ground (footstep thump, shockwave, spawn ring).
-local function pulseDisc(position, color, fromDiameter, toDiameter, duration, transparency, material)
-	local disc = newFxPart("VillainFxDisc", Enum.PartType.Cylinder, Vector3.new(0.15, fromDiameter, fromDiameter), CFrame.new(position) * FLAT, color, transparency or 0.35, material)
-	TweenService:Create(disc, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = Vector3.new(0.15, toDiameter, toDiameter),
-		Transparency = 1,
-	}):Play()
-	Debris:AddItem(disc, duration + 0.1)
-	return disc
-end
-
 -- Teleport VFX (owner 2026-09-27: "no weird part effect, emit a TP VFX that fits the villain's theme and colour").
 -- Particles only, textures from the V40 SAB reference effects (egg glow / rays / pixel stars / space puffs /
 -- lightning arcs / pixel blobs / pixel smoke / fire specs): a soft flash, rays, sparkles and a smoke puff at the feet
@@ -199,6 +188,14 @@ local TP_TEX = {
 	blob = "rbxassetid://8733488500",
 	decay = "rbxassetid://11847035494",
 	fire = "rbxassetid://123944207040840",
+	wave = "rbxassetid://119676097455144", -- CrystalSpinWheel "Waves": a soft ring, drawn flat on the ground
+	ring = "rbxassetid://14444570452", -- Witch Fuse "shockwave1Ring" flipbook
+}
+-- V40 4x4 flipbook sheets (every V40 emitter using them sets Grid4x4, nearly all OneShot: one animation per particle
+-- life). Without the layout Roblox draws the whole sheet, a grid of 16 tiny frames (owner 2026-09-27: "the TP
+-- flipbooks are wrong, badly emitted").
+local TP_FLIPBOOK = {
+	star = true, pixelStar = true, puff = true, space = true, arc = true, blob = true, decay = true, fire = true, ring = true,
 }
 
 local function seq(points)
@@ -229,15 +226,29 @@ local TP_THEME = {
 	Kaido = { tex = "fire", count = 14, life = { 0.4, 0.8 }, size = { { 0, 1.2 }, { 1, 0 } }, speed = { 6, 12 }, spread = 70, accel = { 0, 10, 0 }, light = 0.6 },
 }
 
+-- extra spec keys: flat (lies on the ground: VelocityPerpendicular, emitted straight up at a crawl), brightness, zOffset
 local function tpEmitter(host, spec, color, scale, strength)
 	local e = Instance.new("ParticleEmitter")
 	e.Name = "Tp_" .. spec.tex
 	e.Texture = TP_TEX[spec.tex]
+	if TP_FLIPBOOK[spec.tex] then
+		e.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+		e.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+	end
+	if spec.flat then
+		e.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	end
+	if spec.brightness then
+		e.Brightness = spec.brightness
+	end
+	if spec.zOffset then
+		e.ZOffset = spec.zOffset
+	end
 	e.Enabled = false
 	e.LightEmission = spec.light or 0
 	e.LightInfluence = 0
 	e.Lifetime = NumberRange.new(spec.life[1], spec.life[2])
-	local speed = spec.speed or { 0, 0 }
+	local speed = spec.speed or (if spec.flat then { 0.01, 0.01 } else { 0, 0 })
 	e.Speed = NumberRange.new(speed[1] * scale, speed[2] * scale)
 	local spread = spec.spread or 0
 	e.SpreadAngle = Vector2.new(spread, spread)
@@ -263,7 +274,9 @@ local function tpEmitter(host, spec, color, scale, strength)
 	end
 	e.Color = ColorSequence.new(c)
 	e.Parent = host
-	e:Emit(math.max(1, math.floor(spec.count * strength + 0.5)))
+	if spec.count > 0 and strength > 0 then
+		e:Emit(math.max(1, math.floor(spec.count * strength + 0.5)))
+	end
 	return e
 end
 
@@ -286,6 +299,26 @@ local function teleportBurst(entry, position, strength)
 	Debris:AddItem(feet, 2.5)
 end
 
+-- Ground ring (footstep thump, landing, shockwave; owner 2026-09-27: "remove that ugly mesh when they step, put a
+-- nice VFX"): particles only, a soft wave ring lying flat on the floor growing from `fromDiameter` to `toDiameter`,
+-- plus a flipbook shockwave ring on the big ones. Same signature as the old Neon disc it replaces.
+local function pulseDisc(position, color, fromDiameter, toDiameter, duration, transparency)
+	local host = newFxPart("VillainFxGround", Enum.PartType.Block, Vector3.new(1, 0.1, 1), CFrame.new(position + Vector3.new(0, 0.05, 0)), WHITE, 1)
+	local alpha = math.clamp(transparency or 0.3, 0, 0.9)
+	tpEmitter(host, {
+		tex = "wave", flat = true, count = 1, life = { duration, duration }, light = 1, brightness = 2, zOffset = 0.05,
+		size = { { 0, fromDiameter * 0.6 }, { 1, toDiameter * 0.6 } }, transparency = { { 0, alpha }, { 0.6, 0.55 }, { 1, 1 } },
+	}, color, 1, 1)
+	if toDiameter >= 12 then
+		tpEmitter(host, {
+			tex = "ring", flat = true, count = 1, life = { duration * 0.7, duration * 0.7 }, light = 1, brightness = 2,
+			size = { { 0, 0 }, { 0.15, toDiameter * 0.35 }, { 1, toDiameter * 0.55 } }, transparency = { { 0, 0.1 }, { 0.5, 0.3 }, { 1, 1 } },
+		}, color, 1, 1)
+	end
+	Debris:AddItem(host, duration + 0.3)
+	return host
+end
+
 -- One shared invisible host moved to a point and emitting a burst (particles stay in world space).
 local burstHost, dustEmitter, sparkEmitter = nil, nil, nil
 local function ensureBurstHost()
@@ -295,7 +328,9 @@ local function ensureBurstHost()
 	burstHost = newFxPart("VillainFxEmitters", Enum.PartType.Block, Vector3.new(1, 0.2, 1), CFrame.new(0, -500, 0), WHITE, 1)
 	dustEmitter = Instance.new("ParticleEmitter")
 	dustEmitter.Name = "Dust"
-	dustEmitter.Texture = SMOKE_TEXTURE
+	dustEmitter.Texture = TP_TEX.puff
+	dustEmitter.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	dustEmitter.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
 	dustEmitter.Enabled = false
 	dustEmitter.Lifetime = NumberRange.new(0.6, 1.1)
 	dustEmitter.Speed = NumberRange.new(6, 12)
@@ -309,7 +344,9 @@ local function ensureBurstHost()
 	dustEmitter.Parent = burstHost
 	sparkEmitter = Instance.new("ParticleEmitter")
 	sparkEmitter.Name = "Spark"
-	sparkEmitter.Texture = SPARK_TEXTURE
+	sparkEmitter.Texture = TP_TEX.blob
+	sparkEmitter.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	sparkEmitter.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
 	sparkEmitter.Enabled = false
 	sparkEmitter.LightEmission = 1
 	sparkEmitter.Lifetime = NumberRange.new(0.4, 0.8)
@@ -449,6 +486,7 @@ local function destroyPersistent(entry)
 	entry.eyeLight = nil
 	entry.decayEmitter = nil
 	entry.hoverRing = nil
+	entry.hoverEmitters = nil
 	entry.persistentBuilt = false
 end
 
@@ -525,7 +563,9 @@ local function buildPersistent(entry)
 		attachment.Parent = entry.hrp
 		local emitter = Instance.new("ParticleEmitter")
 		emitter.Name = "Decay"
-		emitter.Texture = SMOKE_TEXTURE
+		emitter.Texture = TP_TEX.decay
+		emitter.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+		emitter.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
 		emitter.Enabled = false
 		emitter.Rate = 28
 		emitter.Lifetime = NumberRange.new(1.2, 2)
@@ -547,9 +587,23 @@ local function buildPersistent(entry)
 		table.insert(entry.persistent, attachment)
 	end
 	if cfg.HoverRing then
-		local diameter = 5 * scale
-		entry.hoverRing = newFxPart("VillainFxHoverRing", Enum.PartType.Cylinder, Vector3.new(0.12, diameter, diameter), CFrame.new(0, -500, 0) * FLAT, cfg.Color, 1)
-		table.insert(entry.persistent, entry.hoverRing)
+		-- Frieza's hover: soft energy waves rippling on the floor under him and a few rising pixel stars (particles on an
+		-- invisible host kept under the villain; no Neon ring part)
+		local host = newFxPart("VillainFxHover", Enum.PartType.Block, Vector3.new(2, 0.1, 2) * scale, CFrame.new(0, -500, 0), WHITE, 1)
+		local waves = tpEmitter(host, {
+			tex = "wave", flat = true, count = 0, life = { 0.9, 0.9 }, light = 1, brightness = 1.5, zOffset = 0.05,
+			size = { { 0, 1.2 * scale }, { 1, 3.4 * scale } }, transparency = { { 0, 0.35 }, { 0.6, 0.7 }, { 1, 1 } },
+		}, cfg.Color, 1, 0)
+		waves.Rate = 2.5
+		local stars = tpEmitter(host, {
+			tex = "pixelStar", count = 0, life = { 0.6, 1 }, size = { { 0, 0.35 }, { 1, 0 } }, speed = { 1, 2.5 }, spread = 25,
+			light = 1, mix = 0.35,
+		}, cfg.Color, scale, 0)
+		stars.Rate = 7
+		waves.Enabled, stars.Enabled = false, false
+		entry.hoverRing = host
+		entry.hoverEmitters = { waves, stars }
+		table.insert(entry.persistent, host)
 	end
 end
 
@@ -593,13 +647,12 @@ function setPersistentAwake(entry, awake, moving, now)
 		local hovering = awake and entry.guard:GetAttribute("Hovering") == true
 		if hovering then
 			local position = entry.hrp.Position
-			local pulse = 1 + 0.08 * math.sin(now * 6)
-			local diameter = 5 * entry.scale * pulse
-			entry.hoverRing.Size = Vector3.new(0.12, diameter, diameter)
-			entry.hoverRing.CFrame = CFrame.new(position.X, floorY(entry) + 0.08, position.Z) * FLAT
-			entry.hoverRing.Transparency = 0.55
-		else
-			entry.hoverRing.Transparency = 1
+			entry.hoverRing.CFrame = CFrame.new(position.X, floorY(entry) + 0.08, position.Z)
+		end
+		for _, emitter in ipairs(entry.hoverEmitters or {}) do
+			if emitter.Enabled ~= hovering then
+				emitter.Enabled = hovering
+			end
 		end
 	end
 end
@@ -638,13 +691,9 @@ end
 local function crumblePatch(entry)
 	local position = entry.hrp.Position
 	local spot = Vector3.new(position.X, floorY(entry) + 0.05, position.Z) - entry.hrp.CFrame.LookVector * (0.6 * entry.scale)
-	local diameter = 2.6 * entry.scale
-	local patch = newFxPart("VillainFxDecayPatch", Enum.PartType.Cylinder, Vector3.new(0.1, diameter, diameter), CFrame.new(spot) * FLAT, Color3.fromRGB(58, 48, 52), 0.2, Enum.Material.Slate)
-	TweenService:Create(patch, TweenInfo.new(2.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Transparency = 1,
-		Size = Vector3.new(0.1, diameter * 0.6, diameter * 0.6),
-	}):Play()
-	Debris:AddItem(patch, 2.3)
+	-- a grey decay ripple and crumbling pixel smoke on the floor (particles; no ground part)
+	pulseDisc(spot, Color3.fromRGB(120, 108, 112), 2.4 * entry.scale, 1.4 * entry.scale, 1.6, 0.35)
+	emitAt("Dust", spot, 3, Color3.fromRGB(70, 60, 64), entry.scale * 0.6)
 end
 
 local function targetRootFor(userId)

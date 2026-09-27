@@ -54,6 +54,20 @@ Step.TEXTURES = {
 	cyber = "rbxassetid://11858773923", -- MutationVFX/Cyber "PixelExplosion"
 }
 
+-- Textures that are 4x4 flipbook sheets in V40 (every V40 emitter using them sets FlipbookLayout Grid4x4, nearly all in
+-- OneShot mode: one animation over each particle's life). Without the layout Roblox draws the whole sheet: a grid of
+-- 16 tiny frames on every particle (owner 2026-09-27: "the egg VFX flipbooks are wrong / badly emitted").
+Step.FLIPBOOKS = {
+	sparkle = "OneShot",
+	arc = "OneShot",
+	ember = "OneShot",
+	star = "OneShot",
+	pixelStar = "OneShot",
+	smoke = "OneShot",
+	space = "OneShot",
+	cyber = "OneShot",
+}
+
 -- signature styles: emitter recipes for a 1-stud egg (host "center" = the EggVfx attachment, "volume" = the Hitbox)
 Step.STYLES = {
 	spark = { tex = "arc", host = "center", life = { 0.06, 0.18 }, size = { { 0, 0.9 }, { 1, 0.9 } }, light = 1, rotation = true },
@@ -152,6 +166,14 @@ local function emitter(parent, name, spec)
 	local e = Instance.new("ParticleEmitter")
 	e.Name = name
 	e.TextureContent = Content.fromUri(Step.TEXTURES[spec.tex])
+	local flipbook = Step.FLIPBOOKS[spec.tex]
+	if flipbook then
+		e.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+		e.FlipbookMode = Enum.ParticleFlipbookMode[flipbook]
+		e.FlipbookStartRandom = false
+	else
+		e.FlipbookLayout = Enum.ParticleFlipbookLayout.None
+	end
 	e.Rate = spec.rate
 	e.Lifetime = NumberRange.new(spec.life[1], spec.life[2])
 	e.Size = seq(spec.size)
@@ -217,7 +239,7 @@ function Step.Decorate(model, heroId, rarity)
 	})
 	count += 1
 	emitter(hitbox, "EggVfxSparkles", {
-		tex = "sparkle", rate = 5, life = { 0.8, 1.4 }, size = { { 0, 0 }, { 0.2, 0.06 }, { 1, 0 } }, speed = { 0.2, 0.7 }, spread = 180,
+		tex = "sparkle", rate = 5, life = { 0.8, 1.4 }, size = { { 0, 0 }, { 0.2, 0.11 }, { 1, 0 } }, speed = { 0.2, 0.7 }, spread = 180,
 		drag = 1, light = 1, color = sparkleColor:Lerp(rgb(255, 255, 255), 0.2),
 	})
 	count += 1

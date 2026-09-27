@@ -49,6 +49,10 @@ end
 T.check(board:GetAttribute("DefaultStat") == "Networth" and board:GetAttribute("PodiumStat") == "Networth" and board:GetAttribute("LeaderboardRows") == 10,
 	"HeroBoard attributes: DefaultStat / PodiumStat Networth, LeaderboardRows 10")
 
+-- the owner re-hung the board by hand in Studio (post_zzz_owner_layout marks it OwnerLayout, moved rigidly from the
+-- save): the wall / region rules below give way to where they put it; the board still faces its own podium side
+local ownerPlaced = board:GetAttribute("OwnerLayout") == true
+
 -- 2. flush on HubWall_EastSouth's inner face, facing the hub, inside its corner of the hub
 local wall = H.path(ws, "WorldWalls/Hub/HubWall_EastSouth")
 local podium = board:FindFirstChild("Podium")
@@ -63,7 +67,9 @@ for _, d in ipairs(board:GetDescendants()) do
 		end
 	end
 end
-if T.check(wall ~= nil and mn ~= nil, "Workspace.WorldWalls.Hub.HubWall_EastSouth / board parts missing") then
+if ownerPlaced then
+	T.check(mn ~= nil, "HeroBoard parts missing")
+elseif T.check(wall ~= nil and mn ~= nil, "Workspace.WorldWalls.Hub.HubWall_EastSouth / board parts missing") then
 	local wmn, wmx = H.aabb(wall)
 	T.check(math.abs(wmn.X - WALL_FACE_X) <= 0.05, "HubWall_EastSouth inner face moved to X %.2f (the board hangs on X %.1f)", wmn.X, WALL_FACE_X)
 	T.check(math.abs(mx.X - WALL_FACE_X) <= 0.05 and #clipping == 0,
@@ -84,7 +90,7 @@ if not T.check(screen ~= nil and screen:IsA("BasePart") and gui ~= nil and gui:I
 	"HeroBoard.Screen > BoardGui (SurfaceGui) > Board missing") then
 	return
 end
-T.check(screen.CFrame.LookVector:Dot(V3.new(-1, 0, 0)) > 0.999 and gui.Face == Enum.NormalId.Front, "the board screen must face -X (the hub)")
+T.check((ownerPlaced or screen.CFrame.LookVector:Dot(V3.new(-1, 0, 0)) > 0.999) and gui.Face == Enum.NormalId.Front, "the board screen must face -X (the hub)")
 T.check(screen.Size.X >= 28 and screen.Size.X <= 34 and screen.Size.Y >= 17 and screen.Size.Y <= 23, "screen %.1f x %.1f studs (expected ~28-34 x 18-22)",
 	screen.Size.X, screen.Size.Y)
 T.check(gui.Enabled and gui.LightInfluence == 0 and gui.MaxDistance >= 200 and gui.SizingMode == Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -236,7 +242,7 @@ if T.check(podium ~= nil and podium:GetAttribute("PodiumStat") == "Networth" and
 			table.insert(pod, "Spot" .. rank .. " tier must be anchored and solid")
 		end
 		if not (stand.Transparency >= 1 and not stand.CanCollide and not stand.CanQuery and math.abs((sp.Y - stand.Size.Y / 2) - tmx.Y) < 0.02
-			and stand.CFrame.LookVector:Dot(V3.new(-1, 0, 0)) > 0.95) then
+			and stand.CFrame.LookVector:Dot(screen.CFrame.LookVector) > 0.95) then
 			table.insert(pod, "Spot" .. rank .. " Stand must be an invisible anchor on the tier top facing the hub")
 		end
 		if name.Text ~= "???" or value.Text ~= "" or not (plate:IsA("SurfaceGui") and plate.Face == Enum.NormalId.Front and plate.LightInfluence == 0) then
@@ -258,7 +264,7 @@ if T.check(podium ~= nil and podium:GetAttribute("PodiumStat") == "Networth" and
 				screenBottom - spots[1].top))
 		end
 	end
-	if pmn and not (pmx.X <= WALL_FACE_X - 2 and pmn.X >= REGION.xMin and pmn.Z >= REGION.zMin and pmx.Z <= REGION.zMax and pmx.Z < LANE_MOUTH[1]) then
+	if pmn and not ownerPlaced and not (pmx.X <= WALL_FACE_X - 2 and pmn.X >= REGION.xMin and pmn.Z >= REGION.zMin and pmx.Z <= REGION.zMax and pmx.Z < LANE_MOUTH[1]) then
 		table.insert(pod, string.format("podium must stand a few studs off the wall inside the region (X %.1f..%.1f Z %.1f..%.1f)", pmn.X, pmx.X, pmn.Z, pmx.Z))
 	end
 	-- never a limb-named part on the podium (avatars only appear at runtime)

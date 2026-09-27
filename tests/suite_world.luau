@@ -1101,7 +1101,8 @@ for i = 1, 6 do
 		end
 	end
 end
-T.check(caps == 126 and braces == 120 and gems > 0, "D6 plot fences: expected 126 HubFenceCap, 120 HubFenceBrace and some HubFenceGem parts, found %d / %d / %d",
+-- (owner Studio save 2026-09-27: the fence gems are gone, post_zzz_owner_layout)
+T.check(caps == 126 and braces == 120 and gems == 0, "D6 plot fences: expected 126 HubFenceCap, 120 HubFenceBrace and no HubFenceGem (owner removed them), found %d / %d / %d",
 	caps, braces, gems)
 
 -- leaderboards (HEROBOARD 2026-09-26): the four free-standing boards are retired (scripts/steps/post_leaderboards.luau)
