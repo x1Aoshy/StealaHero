@@ -284,6 +284,13 @@ local PILL_BADGE_POSITION = UDim2.fromScale(0.95, 0.18)
 -- Stack order in the sidebar (UIListLayout SortOrder = LayoutOrder; without this, ties are resolved by insertion
 -- order, which put Index above Shop).
 local LEFT_ORDER = { Shop = 1, Index = 2, TreadmillSpeedShop = 3, DoubleYourSpeed = 4, Rebirth = 5, Trading = 6, FreeGifts = 7 }
+-- idle life of the left buttons (StarterPlayerScripts.BranchControllers.UiLifeController attributes)
+local LEFT_LIFE = {
+	Shop = { sweep = 5, delay = 1, breathe = 2.6 },
+	Index = { sweep = 6, delay = 3.5, breathe = 3 },
+	TreadmillSpeedShop = { sweep = 5.5, delay = 2, breathe = 2.8 },
+	DoubleYourSpeed = { sweep = 4.5, delay = 0.5, breathe = 2.4 },
+}
 
 -- Right-edge tabs (owner brief, 5th pass): glossy ROUNDED SQUARES as tall as the left pills (70 px at 720p), icon only -
 -- EGGS shows the Steal an Egg egg, HERO INDEX a big "H" - stacked on the right edge and vertically centred.
@@ -1001,6 +1008,16 @@ local function applyLeft(sg)
 				local glossy = GLOSSY[spec[1]]
 				if glossy then
 					skinGlossyTool(b, glossy, icon, label)
+					-- UiLifeController (owner 2026-09-27: "UI with life, like Speedsters"): the icon breathes, a light band
+					-- sweeps across the button now and then (Shop and Index out of step)
+					local life = LEFT_LIFE[spec[1]]
+					if life then
+						b:SetAttribute("SpSweep", life.sweep)
+						b:SetAttribute("SpSweepDelay", life.delay)
+						if icon then
+							icon:SetAttribute("SpBreathe", life.breathe)
+						end
+					end
 					table.insert(done, spec[1] .. "(glossy)")
 				else
 					table.insert(done, spec[1])
@@ -1212,6 +1229,11 @@ local function applyTabs(sg)
 			target = tab, icon = iconChild, placeIcon = false, iconZIndex = 3, label = label,
 		})
 		skinGlossyTool(tab, glossy, icon, label)
+		if icon then
+			-- UiLifeController: the tab icon floats a little (owner 2026-09-27: "UI with life, like Speedsters")
+			icon:SetAttribute("SpBob", 2)
+			icon:SetAttribute("SpBobPeriod", 2.2 + order * 0.4)
+		end
 		-- square geometry on top of the pill material
 		local g = GLOSSY_GEOMETRY
 		studLayer(tab, UDim2.fromScale(1 / 4, 1 / 4), g.studTransparency, TOOL_PILL_CORNER, g.z.studs)
@@ -2074,6 +2096,8 @@ local function pixelIcon(parent, name, rows, like)
 	frame.SizeConstraint = like.SizeConstraint
 	frame.ZIndex = like.ZIndex
 	frame.Visible = false
+	frame:SetAttribute("SpBob", 1.5) -- UiLifeController: the moon / sun floats gently
+	frame:SetAttribute("SpBobPeriod", 3.2)
 	aspect(frame, 1)
 	local n = #rows
 	for y, row in ipairs(rows) do
@@ -2092,6 +2116,9 @@ local function pixelIcon(parent, name, rows, like)
 				px.Position = UDim2.fromScale((x - 1) / n, (y - 1) / n)
 				px.Size = UDim2.fromScale((last - x + 1) / n + 0.002, 1 / n + 0.002) -- a hair of overlap hides seams
 				px.ZIndex = like.ZIndex
+				if ch == "*" or ch == "+" then
+					px:SetAttribute("SpTwinkle", true) -- UiLifeController: the little stars twinkle
+				end
 				px.Parent = frame
 			end
 			x = last + 1
