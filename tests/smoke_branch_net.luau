@@ -118,7 +118,8 @@ T.check(H.has(lifeSrc, "TweenService:Create") and H.has(lifeSrc, "SpBreathe") an
 local shop = H.path(place:GetService("StarterGui"), "Elements/Left/Tools/Shop/Button")
 T.check(shop ~= nil and shop:GetAttribute("SpSweep") ~= nil, "the Shop button must carry its idle sweep (SpSweep)")
 local perf = H.path(sps, "BranchControllers/PerfController")
-T.check(perf ~= nil and H.has(perf.Source, "MaxDistance = PerfController.BILLBOARD_RANGE"), "PerfController must cap plot billboards")
+T.check(perf ~= nil and H.has(perf.Source, "gui.MaxDistance = if mobile then PerfController.MOBILE_BILLBOARD_RANGE else PerfController.BILLBOARD_RANGE"),
+	"PerfController must cap plot billboards")
 
 -- 4. LagCompensationService (sandbox): ring history, interpolation, rewind capped by MAX_REWIND
 local Vector3 = H.roblox.Vector3

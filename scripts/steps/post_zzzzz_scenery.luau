@@ -312,6 +312,7 @@ function Step.Apply(place, _spPlace, _ctx)
 	trees += scatter(cells, 140, 9000, outsideSample, 9, function(x, z)
 		local tree = pick(TREES)(outside, x, z, range(0.9, 1.7), false)
 		if distanceToWorld(x, z) > 60 then
+			tree:SetAttribute("SceneryFar", true) -- PerfController drops these on phones
 			for _, d in ipairs(tree:GetDescendants()) do
 				if d:IsA("BasePart") then
 					d.CastShadow = false
@@ -320,7 +321,10 @@ function Step.Apply(place, _spPlace, _ctx)
 		end
 	end)
 	local rocks = scatter(cells, 110, 6000, outsideSample, 5, function(x, z)
-		rock(outside, x, z, range(1.2, 3.2))
+		local m = rock(outside, x, z, range(1.2, 3.2))
+		if distanceToWorld(x, z) > 60 then
+			m:SetAttribute("SceneryFar", true)
+		end
 	end)
 
 	-- INSIDE THE HUB: corners and edges, never on the street / spawn / mouths

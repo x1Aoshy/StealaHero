@@ -7,7 +7,8 @@
 --   BranchServices/LagCompensationService             position history + "where did this player see it" for hit checks
 --   StarterPlayerScripts/BranchClient                 Branch:Start(BranchControllers)
 --   BranchControllers/UiLifeController                idle UI animations (breathe / bob / sweep / twinkle)
---   BranchControllers/PerfController                  plot billboards capped to a render distance
+--   BranchControllers/PerfController                  plot billboards capped to a render distance; phone budget
+--   BranchControllers/UiScaleController               HUD groups scaled per device (phone / tablet / console)
 return {
 	{
 		target = "ServerScriptService/BranchServer",
@@ -43,6 +44,12 @@ return {
 		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/UiLifeController",
 		class = "ModuleScript",
 		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/UiLifeController.luau",
+		create = true,
+	},
+	{
+		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/UiScaleController",
+		class = "ModuleScript",
+		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/UiScaleController.luau",
 		create = true,
 	},
 	{

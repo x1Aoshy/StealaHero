@@ -117,6 +117,20 @@ local MELEE_GEAR = {
 local MELEE_RANGE = 12 -- studs from the swinger's root to the victim's root at the contact moment
 local MELEE_MAX_HEIGHT = 8 -- the victim's root is at most this far above / below the swinger's
 local MELEE_MIN_DOT = 0.25 -- the victim must be roughly in front of the swing (~75 degrees either side)
+-- Lag-compensated swings (owner 2026-09-27: "the hitbox between players must be super accurate, no lag"): the swinger's
+-- screen showed the other player one round trip + the interpolation buffer late, so the hit is judged against the victim
+-- REWOUND to what the swinger saw (BranchServices.LagCompensationService.SeenBy); the victim must also still be within
+-- reach + MELEE_SEEN_SLACK now (a stale position never lands a hit on someone who is far away by now).
+local MELEE_SEEN_SLACK = 6
+local LagComp = nil
+do
+	local services = ServerScriptService:FindFirstChild("BranchServices")
+	local module = services and services:FindFirstChild("LagCompensationService")
+	if module then
+		local ok, result = pcall(require, module)
+		LagComp = if ok and type(result) == "table" then result else nil
+	end
+end
 local MELEE_COOLDOWN = 0.7
 local MELEE_COOLDOWN_SLACK = 0.1 -- two clicks MELEE_COOLDOWN apart can arrive a little closer (network jitter)
 local MELEE_FORCE = 35
@@ -582,9 +596,12 @@ local function findSwingVictim(player, root, range)
 		if other ~= player then
 			local otherCharacter, _, otherRoot = characterOf(other)
 			if otherCharacter and isHittable(other, otherCharacter, otherRoot) then
-				local delta = otherRoot.Position - root.Position
+				local seen = if LagComp then LagComp.SeenBy(otherRoot, player) else otherRoot.Position
+				local delta = seen - root.Position
 				local distance = delta.Magnitude
-				if distance <= range and distance < bestDistance and math.abs(delta.Y) <= MELEE_MAX_HEIGHT then
+				local nowDistance = (otherRoot.Position - root.Position).Magnitude
+				if distance <= range and distance < bestDistance and math.abs(delta.Y) <= MELEE_MAX_HEIGHT
+					and nowDistance <= range + MELEE_SEEN_SLACK then
 					local away = flatUnit(delta, flatForward)
 					if away:Dot(flatForward) >= MELEE_MIN_DOT then
 						bestVictim, bestDistance, bestAway = other, distance, away

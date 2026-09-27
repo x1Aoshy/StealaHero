@@ -714,9 +714,16 @@ local function playLoop(g, key)
 	end
 end
 
+-- WalkSpeed replicates to every client on each write, and the rubber-band speed drifts every frame: small drifts are
+-- written at most every WALKSPEED_MIN_INTERVAL s, a jump of WALKSPEED_STEP or more right away (owner 2026-09-27:
+-- network / no lag; this was up to ~30 writes a second per chasing villain).
+local WALKSPEED_STEP, WALKSPEED_MIN_INTERVAL = 2, 0.2
 local function setWalkSpeed(g, speed)
-	if math.abs(g.humanoid.WalkSpeed - speed) > 0.5 then
+	local delta = math.abs(g.humanoid.WalkSpeed - speed)
+	local now = os.clock()
+	if delta >= WALKSPEED_STEP or (delta > 0.5 and now - (g.walkSpeedAt or 0) >= WALKSPEED_MIN_INTERVAL) then
 		g.humanoid.WalkSpeed = speed
+		g.walkSpeedAt = now
 	end
 	if g.currentLoop == "Run" and g.tracks.Run then
 		pcall(g.tracks.Run.AdjustSpeed, g.tracks.Run, math.clamp(speed / (RUN_ANIMATION_BASE_SPEED * g.scale), 0.8, 2.5))
