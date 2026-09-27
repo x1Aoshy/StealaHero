@@ -81,3 +81,32 @@ T.check(typeof(bg) == "Color3" and math.max(bg.R, bg.G, bg.B) < 0.25 and math.ab
 	tostring(bg))
 local pixel = H.path(sps, "GUI/PixelNightIcon")
 T.check(pixel ~= nil and pcall(H.luau.compile, src(pixel)), "GUI.PixelNightIcon must be injected and compile")
+
+-- 6. scenery (owner: "trees in the empty corners, little rocks outside and inside"): present, out of the way
+local scenery = ws:FindFirstChild("Scenery")
+if T.check(scenery ~= nil, "Workspace.Scenery missing") then
+	local trees, rocks, blockers, onStreet = 0, 0, {}, {}
+	local spawn = ws:FindFirstChild("SpawnLocation")
+	local sp = spawn and spawn.CFrame.Position
+	for _, m in ipairs(scenery:GetDescendants()) do
+		if m:IsA("Model") and m:GetAttribute("Scenery") == true then
+			if string.find(m.Name, "Tree", 1, true) then
+				trees += 1
+			elseif m.Name == "Rock" then
+				rocks += 1
+			end
+			local p = m.WorldPivotData.Position
+			local inHub = p.X > -109 and p.X < 80 and p.Z > -221 and p.Z < 226
+			if inHub and ((math.abs(p.Z) < 20 and p.X > -60) or (sp and math.sqrt((p.X - sp.X) ^ 2 + (p.Z - sp.Z) ^ 2) < 30)) then
+				table.insert(onStreet, m:GetFullName())
+			end
+		elseif m:IsA("BasePart") then
+			if m.CanTouch or m.CanQuery or (m.CanCollide and m.Name ~= "Trunk") then
+				table.insert(blockers, m:GetFullName())
+			end
+		end
+	end
+	T.check(trees >= 300 and rocks >= 150, "expected woods and rocks around the map (%d trees, %d rocks)", trees, rocks)
+	T.check(#blockers == 0, "scenery parts must not collide (trunks aside) nor take touch / query: %s", table.concat(blockers, ", ", 1, math.min(#blockers, 3)))
+	T.check(#onStreet == 0, "scenery on the main street / spawn: %s", table.concat(onStreet, ", ", 1, math.min(#onStreet, 3)))
+end
