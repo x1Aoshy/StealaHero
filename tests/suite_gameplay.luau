@@ -427,6 +427,41 @@ do
 		local ok, result = pcall(canCatch, g, { Position = Vector3.new(74, groundY + 3, 0), AssemblyLinearVelocity = Vector3.new(0, 0, 0) }, 2)
 		T.check(ok and result == false, "A3: a carrier in the safe zone is never caught")
 	end
+
+	-- lag-compensated catches (owner 2026-09-27 "super accurate hitbox"): judged against the villain rewound to what the
+	-- carrier saw (LagCompensationService.SeenBy), not its current server position
+	T.check(H.has(chase, "LagComp.SeenBy(g.hrp, player)") and H.has(chase, "canCatch(g, root, distance, player)")
+		and H.has(chase, "LagComp.Track(hrp)"), "A3: catches must use the lag-compensated villain position")
+	local seenAt = nil
+	local compGlobals = table.clone(globals)
+	compGlobals.flatDistance = function(a, b)
+		return math.sqrt((a.X - b.X) ^ 2 + (a.Z - b.Z) ^ 2)
+	end
+	compGlobals.LagComp = { SeenBy = function()
+		return seenAt
+	end }
+	for _, name in ipairs({ "HIT_FRAME_SECONDS", "HIT_MAX_FRAME_PAD", "SEEN_SLACK" }) do
+		compGlobals[name] = H.constant(chase, name)
+		T.check(compGlobals[name] ~= nil, "GuardChaseService constant %s missing", name)
+	end
+	local compCatch = loadPieces("A3 compensated", nil, { "catchDistance", "standingPosition", "canCatch" }, chase, compGlobals, "canCatch")
+	if compCatch then
+		local y = groundY + 3
+		local g = { hitDistance = 3, scale = 1, hrp = { Position = Vector3.new(201, y, 0) } }
+		local root = { Position = Vector3.new(200, y, 0), AssemblyLinearVelocity = Vector3.new(16, 0, 0) }
+		local player = {}
+		-- on the server the villain is already on the carrier, but the carrier's screen still showed it 6 studs back
+		seenAt = Vector3.new(206, y, 0)
+		local ok1, far = pcall(compCatch, g, root, 1, player)
+		T.check(ok1 and far == false, "A3 lag comp: a villain the carrier saw out of reach must not catch them (%s)", tostring(far))
+		-- the carrier saw the villain touch them
+		seenAt = Vector3.new(201.5, y, 0)
+		local ok2, near = pcall(compCatch, g, root, 1, player)
+		T.check(ok2 and near == true, "A3 lag comp: a villain the carrier saw touch them must catch them (%s)", tostring(near))
+		-- a stale past position never catches a carrier the villain is now far from
+		local ok3, stale = pcall(compCatch, g, root, 3 + 0.75 + 1 + compGlobals.SEEN_SLACK + 1, player)
+		T.check(ok3 and stale == false, "A3 lag comp: a villain now far away must not catch from its past position (%s)", tostring(stale))
+	end
 	T.check(H.has(chase, "AgentRadius = math.max(2, 1.6 * scale)"), "A3: AgentRadius must be max(2, 1.6 * scale)")
 	T.check(H.has(chase, "AgentCanJump = false"), "A3: villains path with AgentCanJump = false")
 	T.check(string.find(chase, "local agentHeight = if collider then collider.Size.Y", 1, true) ~= nil, "A3: AgentHeight must be the collider height")

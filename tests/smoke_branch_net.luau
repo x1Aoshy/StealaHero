@@ -119,3 +119,35 @@ local shop = H.path(place:GetService("StarterGui"), "Elements/Left/Tools/Shop/Bu
 T.check(shop ~= nil and shop:GetAttribute("SpSweep") ~= nil, "the Shop button must carry its idle sweep (SpSweep)")
 local perf = H.path(sps, "BranchControllers/PerfController")
 T.check(perf ~= nil and H.has(perf.Source, "MaxDistance = PerfController.BILLBOARD_RANGE"), "PerfController must cap plot billboards")
+
+-- 4. LagCompensationService (sandbox): ring history, interpolation, rewind capped by MAX_REWIND
+local Vector3 = H.roblox.Vector3
+local lagModule = H.path(sss, "BranchServices/LagCompensationService")
+if T.check(lagModule ~= nil, "BranchServices.LagCompensationService missing") then
+	local clock = 50
+	local chunk = H.sandbox(lagModule.Source, {
+		game = { GetService = function() return { GetPlayers = function() return {} end } end },
+		os = { clock = function() return clock end },
+		Vector3 = Vector3,
+		typeof = function(v) return if type(v) == "table" and v.__instance then "Instance" else typeof(v) end,
+	}, "LagCompensationService")
+	local ok, lag = pcall(chunk)
+	if T.check(ok and type(lag) == "table", "LagCompensationService did not load: %s", tostring(lag)) then
+		local root = { Position = Vector3.new(0, 0, 0), Parent = {} }
+		for i = 0, 60 do -- 1 s of samples, moving +10 studs/s along X
+			root.Position = Vector3.new(i / 6, 0, 0)
+			lag._record(root, 50 + i / 60)
+		end
+		local mid = lag.PositionAt(root, 50.5)
+		T.check(math.abs(mid.X - 5) < 0.01, "PositionAt must interpolate the history (X %.3f at t=0.5 s, expected 5)", mid.X)
+		T.check(math.abs(lag.PositionAt(root, 99).X - 10) < 0.01 and math.abs(lag.PositionAt(root, 0).X - 0) < 0.01,
+			"PositionAt must clamp to the newest / oldest sample")
+		local player = { __instance = true, IsA = function(_, c) return c == "Player" end, GetNetworkPing = function() return 5 end }
+		T.check(math.abs(lag.ViewDelay(player) - lag.MAX_REWIND) < 1e-6, "ViewDelay must cap a huge ping at MAX_REWIND")
+		local fast = { __instance = true, IsA = function(_, c) return c == "Player" end, GetNetworkPing = function() return 0.1 end }
+		T.check(math.abs(lag.ViewDelay(fast) - (0.1 + lag.INTERP_DELAY)) < 1e-6, "ViewDelay = round trip + interpolation buffer")
+		clock = 51
+		local seen = lag.SeenBy(root, fast)
+		T.check(math.abs(seen.X - (10 - (0.1 + lag.INTERP_DELAY) * 10)) < 0.05, "SeenBy must rewind by the viewer's delay (X %.2f)", seen.X)
+	end
+end

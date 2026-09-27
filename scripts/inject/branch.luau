@@ -4,6 +4,7 @@
 --   ServerScriptService/BranchServer                 Branch:Start(BranchServices)
 --   BranchServices/NetGuardService                    flood / oversized-payload guard on every RemoteEvent
 --   BranchServices/ServerStatsService                 ServerHz / ServerFrameMs / ServerMemoryMB workspace attributes
+--   BranchServices/LagCompensationService             position history + "where did this player see it" for hit checks
 --   StarterPlayerScripts/BranchClient                 Branch:Start(BranchControllers)
 --   BranchControllers/UiLifeController                idle UI animations (breathe / bob / sweep / twinkle)
 --   BranchControllers/PerfController                  plot billboards capped to a render distance
@@ -24,6 +25,12 @@ return {
 		target = "ServerScriptService/BranchServices/ServerStatsService",
 		class = "ModuleScript",
 		source = "src/ServerScriptService/BranchServices/ServerStatsService.luau",
+		create = true,
+	},
+	{
+		target = "ServerScriptService/BranchServices/LagCompensationService",
+		class = "ModuleScript",
+		source = "src/ServerScriptService/BranchServices/LagCompensationService.luau",
 		create = true,
 	},
 	{

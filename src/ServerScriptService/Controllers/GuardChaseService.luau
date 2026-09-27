@@ -71,8 +71,24 @@ local PATH_GOAL_REUSE_DISTANCE = 12
 local STRAIGHT_LINE_DISTANCE = 25
 local LOOKAHEAD_SECONDS = 0.35
 local HIT_BASE_PAD = 0.75
-local HIT_LATENCY_SECONDS = 0.1 -- client-owned characters replicate ~ping late
+local HIT_LATENCY_SECONDS = 0.1 -- client-owned characters replicate ~ping late (uncompensated fallback only)
 local HIT_MAX_LATENCY_PAD = 6
+-- Lag-compensated catches (owner 2026-09-27: "super accurate hitbox, even when the server lags"): the carrier's screen
+-- shows the villain one round trip + the interpolation buffer late, and the server sees the carrier one upload late:
+-- the catch compares the carrier's server position with the villain REWOUND to what that carrier saw
+-- (BranchServices.LagCompensationService), so no latency pad is needed, only a frame of movement.
+local HIT_FRAME_SECONDS = 1 / 30
+local HIT_MAX_FRAME_PAD = 1
+local SEEN_SLACK = 4 -- the villain must still be within reach + this now (a stale past position never catches from afar)
+local LagComp = nil
+do
+	local services = script.Parent and script.Parent.Parent and script.Parent.Parent:FindFirstChild("BranchServices")
+	local module = services and services:FindFirstChild("LagCompensationService")
+	if module then
+		local ok, result = pcall(require, module)
+		LagComp = if ok and type(result) == "table" then result else nil
+	end
+end
 local LEAD_MAX_SECONDS = 0.35
 local DEFAULT_FLAT_RADIUS = 20
 local MIN_WALK_SPEED = 8
@@ -508,9 +524,12 @@ local function getLiveRoot(player)
 	return nil
 end
 
-local function catchDistance(g, root)
+local function catchDistance(g, root, compensated)
 	local velocity = root.AssemblyLinearVelocity
 	local flatSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+	if compensated then
+		return g.hitDistance + HIT_BASE_PAD + math.min(flatSpeed * HIT_FRAME_SECONDS, HIT_MAX_FRAME_PAD)
+	end
 	return g.hitDistance + HIT_BASE_PAD + math.min(flatSpeed * HIT_LATENCY_SECONDS, HIT_MAX_LATENCY_PAD)
 end
 
@@ -553,8 +572,17 @@ end
 -- 3D catch: within flat reach, roots at most 2.5*scale + 3 apart in height (a carrier on a roof or a
 -- ledge above the villain is out of reach; a jumping one is judged where they will land), nothing solid in
 -- between, never in the safe zone.
-local function canCatch(g, root, distance)
-	if distance > catchDistance(g, root) or isInSafeZone(root.Position) then
+local function canCatch(g, root, distance, player)
+	if isInSafeZone(root.Position) then
+		return false
+	end
+	if LagComp and player then
+		-- judged where the carrier SAW the villain (rewound by their ping + the interpolation buffer)
+		local reach = catchDistance(g, root, true)
+		if flatDistance(LagComp.SeenBy(g.hrp, player), root.Position) > reach or distance > reach + SEEN_SLACK then
+			return false
+		end
+	elseif distance > catchDistance(g, root) then
 		return false
 	end
 	local origin = g.hrp.Position
@@ -1309,7 +1337,7 @@ local function stepChasing(g, now)
 		setAttr(g, "TargetPlayer", tostring(player.UserId))
 	end
 
-	local reachable = canCatch(g, root, distance)
+	local reachable = canCatch(g, root, distance, player)
 	if reachable and now - g.lastAttackAt >= ATTACK_COOLDOWN then
 		catchPlayer(g, player, uid, now)
 		return
@@ -2127,6 +2155,9 @@ local function setupZone(zone)
 	end
 
 	guardModel:SetAttribute("ClientClips", hasClientClips(guardModel))
+	if LagComp then
+		LagComp.Track(hrp) -- position history for lag-compensated catches
+	end
 	guardModel:SetAttribute("AreaId", zoneName)
 	guardModel:SetAttribute("HomeCFrame", home)
 	guardModel:SetAttribute("HeadLookAtDisabled", true)
