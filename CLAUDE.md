@@ -113,6 +113,15 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     (`scripts/tools/vendor_weapon_vfx.luau`: Speedsters' Eggman missile blast, the Ban Hammer lightning / impact) ->
     `ReplicatedStorage.Assets.VFX.HeroWeapons`, plus the place's LightningHit and Mutation_FX.Shocked.
   - Training dummies (CollectionService tag `HeroWeaponDummy`, spawned by the admin panel) are hit like players.
+    GearService's dummy keeper (`watchDummy` / `settleDummy`) turns their trip states off and stands them back up at
+    their spawn spot 0.8 s after each state ends.
+  **Round 10 (owner 2026-09-27)**:
+  - Luffy's fist plays the authored `Gomu_Pistol_Long` clip: a straight-ahead punch with `Stretch` keys up to x7.5.
+    `Kit.SetStretch` scales the rubber arm, and the fist rides its end by `StretchLength` (1.55, set by post_hero_weapons).
+  - Hitboxes match what the weapon draws. Thrusts are a line of `Range` x `Width` starting `LineOffset` to the right
+    of the root, at the right hand (GomuFist 15.5 x 2.3, offset 1.35); Bakugo reaches 10.5; the Power Pole sweep 13.5.
+  - Cap's shield: `grip_adjust.json` `BackfaceCopies` lists palettes whose single-sided meshes get a copy turned 180°
+    (`HeroBackface`), because DoubleSided alone still drew only the rim from behind.
 - **Admin panel** (owner 2026-09-27):
   - `HeroAdminAccess` holds the access rule: anyone in Studio, UserId 767108248, the game's owner (user, or rank 255 of
     the owning group). The old Cmdr / AdminStatusHandler whitelists are separate systems and are left alone.
@@ -125,6 +134,13 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     also toggles it.
   - Tabs: weapons (give all / one / remove, unlock the Index weapons), training dummies, economy, eggs, world
     (teleports, base themes, night / day), player, server stats.
+- **Treadmills** (`scripts/steps/treadmill.luau`, round 10): the skins used to sit ~1.2 studs sunk. Now each model
+  keeps its full size and is lifted as far as its hull allows without clashing with plot furniture (lowest point
+  `GROUND_CLEARANCE` above the floor). The Tool carries `BeltLift` (belt top above the floor).
+  - An invisible `BeltDeck` under the belt plus a `BeltRamp` wedge behind it (`TreadmillDeck`, CanCollide, no query /
+    touch) carry the runner; both renderers keep only those solid.
+  - A pre-pass nudges the PlotUpgrade / TreadmillUpgrade sign models away from the plate (0.25 steps, at most 2 studs)
+    when the lifted hull would hit them.
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
