@@ -169,6 +169,14 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     touch) carry the runner; both renderers keep only those solid.
   - A pre-pass nudges the PlotUpgrade / TreadmillUpgrade sign models away from the plate (0.25 steps, at most 2 studs)
     when the lifted hull would hit them.
+  - HUD while training (round 11, owner: "the hide effect goes crazy on the treadmill"):
+    - `MenuMotionController` used to re-send every HUD group away on ANY `PlayerGui.ChildAdded`. The treadmill's "+N"
+      speed billboard is parented to PlayerGui every 0.1-0.25 s, so with a menu open the Back-In hide tween restarted
+      forever and jittered. Now only a recreated HUD ScreenGui is handled, and `moveTo` never restarts a tween that is
+      already heading to the same goal.
+    - `TreadmillUI/Visibility` owns what it hides for the whole session: guards undo FriendBoost / BackpackGui
+      re-shows, `Apply` is idempotent, and the exit restores once and leaves BackpackGui to HideUI while it is locked.
+    - Covered by `tests/smoke_treadmill_hud.luau`.
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded

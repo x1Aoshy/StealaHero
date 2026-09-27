@@ -11,6 +11,13 @@
 -- Only Position (and the panels' own "SpOpenScale" UIScale) is animated, with engine tweens. Other scripts keep
 -- toggling Visible / Enabled on these GUIs as before (HideImportantUI while carrying an egg, the treadmill UI), and
 -- UiScaleController keeps owning their UIScale. Each group's resting Position is remembered while it is away.
+-- Owner 2026-09-27 ("on the treadmill the effect that hides the UI goes crazy, the logic fights"): the PlayerGui
+-- ChildAdded handler used to send EVERY group away again whenever anything at all was added to PlayerGui while a menu
+-- was open. On the treadmill SpeedGainAnimation.ShowPlusOne parents a "+N" BillboardGui to PlayerGui on every speed step
+-- (every 0.1-0.25 s, TreadmillUtil.ResolveWalkSpeedPowerAwardInterval), so opening the speed shop (or any menu) there
+-- restarted the 0.22 s Back-In hide tween several times a second: Back easing starts by moving backwards, so the groups
+-- crept back onto the screen and jittered instead of leaving. Now only a recreated HUD ScreenGui (respawn) is looked at,
+-- and only its fresh groups are sent away; a group already away or already on its way is never re-tweened (moveTo).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -46,11 +53,13 @@ local BASE_ATTRIBUTE = "SpHudRestPosition"
 local playerGui = nil
 local TabController = nil
 local hudHidden = false
-local groupTweens = setmetatable({}, { __mode = "k" }) -- [GuiObject] = Tween
+local groupTweens = setmetatable({}, { __mode = "k" }) -- [GuiObject] = { tween = Tween, goal = UDim2 }
 
--- Which screen edge a group leaves by: the nearest one, preferring bottom / top for groups that hug them.
-local function edgeOf(object)
-	local position, anchor = object.Position, object.AnchorPoint
+-- Which screen edge a group leaves by: the nearest one, preferring bottom / top for groups that hug them. `position`
+-- (default: the current one) is the resting Position, so a group caught mid-slide still picks its own edge.
+local function edgeOf(object, position)
+	position = position or object.Position
+	local anchor = object.AnchorPoint
 	local y = position.Y.Scale + (0.5 - anchor.Y) * object.Size.Y.Scale
 	local x = position.X.Scale + (0.5 - anchor.X) * object.Size.X.Scale
 	if y >= 0.8 then
@@ -89,15 +98,59 @@ local function groupObject(entry)
 	return nil
 end
 
-local function play(object, info, goal)
-	local previous = groupTweens[object]
-	if previous then
-		previous:Cancel()
+local function isPlaying(tween)
+	local state = tween.PlaybackState
+	return state == Enum.PlaybackState.Playing or state == Enum.PlaybackState.Begin or state == Enum.PlaybackState.Delayed
+end
+
+-- Tweens `object`'s Position to `goal`, the only writer of it while the HUD moves. Idempotent: an object already at
+-- `goal`, or already tweening there, is left alone (restarting a Back tween makes it jump backwards first). `restart`
+-- replays anyway (the pop-in places its own start). Returns the new tween, or nil when nothing had to move.
+local function moveTo(object, info, goal, restart)
+	local current = groupTweens[object]
+	local running = current ~= nil and isPlaying(current.tween)
+	if not restart then
+		if running and current.goal == goal then
+			return nil
+		end
+		if not running and object.Position == goal then
+			return nil
+		end
 	end
-	local tween = TweenService:Create(object, info, goal)
-	groupTweens[object] = tween
+	if current then
+		current.tween:Cancel()
+	end
+	local tween = TweenService:Create(object, info, { Position = goal })
+	groupTweens[object] = { tween = tween, goal = goal }
 	tween:Play()
 	return tween
+end
+MenuMotionController._moveTo = moveTo
+
+local function hideGroup(object)
+	local rest = object:GetAttribute(BASE_ATTRIBUTE)
+	if typeof(rest) ~= "UDim2" then
+		rest = object.Position
+		object:SetAttribute(BASE_ATTRIBUTE, rest)
+	end
+	moveTo(object, MenuMotionController.HIDE_INFO, rest + awayOffset(object, edgeOf(object, rest)))
+end
+
+local function showGroup(object)
+	local rest = object:GetAttribute(BASE_ATTRIBUTE)
+	if typeof(rest) ~= "UDim2" then
+		return
+	end
+	local tween = moveTo(object, MenuMotionController.SHOW_INFO, rest)
+	if tween then
+		tween.Completed:Once(function(state)
+			if state == Enum.PlaybackState.Completed and not hudHidden then
+				object:SetAttribute(BASE_ATTRIBUTE, nil)
+			end
+		end)
+	elseif object.Position == rest then
+		object:SetAttribute(BASE_ATTRIBUTE, nil)
+	end
 end
 
 local function setHudHidden(hidden)
@@ -108,20 +161,40 @@ local function setHudHidden(hidden)
 	for _, entry in ipairs(MenuMotionController.HUD_GROUPS) do
 		local object = groupObject(entry)
 		if object then
-			local rest = object:GetAttribute(BASE_ATTRIBUTE)
 			if hidden then
-				if typeof(rest) ~= "UDim2" then
-					rest = object.Position
-					object:SetAttribute(BASE_ATTRIBUTE, rest)
-				end
-				play(object, MenuMotionController.HIDE_INFO, { Position = rest + awayOffset(object, edgeOf(object)) })
-			elseif typeof(rest) == "UDim2" then
-				local tween = play(object, MenuMotionController.SHOW_INFO, { Position = rest })
-				tween.Completed:Once(function(state)
-					if state == Enum.PlaybackState.Completed and not hudHidden then
-						object:SetAttribute(BASE_ATTRIBUTE, nil)
-					end
-				end)
+				hideGroup(object)
+			else
+				showGroup(object)
+			end
+		end
+	end
+end
+
+-- A HUD ScreenGui added to PlayerGui (a ResetOnSpawn copy recreated on respawn, e.g. ShiftLockButton) while the HUD is
+-- away: its fresh groups start at their authored place, so they are sent away too. The groups already away are not
+-- touched.
+local function isHudGui(child)
+	if not child:IsA("ScreenGui") then
+		return false
+	end
+	for _, entry in ipairs(MenuMotionController.HUD_GROUPS) do
+		if entry[1] == child.Name then
+			return true
+		end
+	end
+	return false
+end
+MenuMotionController._isHudGui = isHudGui
+
+local function hideAddedGroups(gui)
+	if not hudHidden or gui.Parent ~= playerGui then
+		return
+	end
+	for _, entry in ipairs(MenuMotionController.HUD_GROUPS) do
+		if entry[1] == gui.Name then
+			local object = gui:FindFirstChild(entry[2])
+			if object and object:IsA("GuiObject") then
+				hideGroup(object)
 			end
 		end
 	end
@@ -174,7 +247,7 @@ local function popIn(gui)
 	end
 	panel.Position = rest + UDim2.fromOffset(MenuMotionController.POP_SLIDE, 0)
 	scale.Scale = MenuMotionController.POP_SCALE
-	play(panel, MenuMotionController.POP_INFO, { Position = rest })
+	moveTo(panel, MenuMotionController.POP_INFO, rest, true)
 	TweenService:Create(scale, MenuMotionController.POP_INFO, { Scale = 1 }):Play()
 end
 
@@ -205,14 +278,12 @@ function MenuMotionController:Start()
 	for _, gui in ipairs(playerGui:GetChildren()) do
 		watchPanel(gui)
 	end
-	playerGui.ChildAdded:Connect(function(gui)
-		watchPanel(gui)
-		-- a group recreated on respawn (ShiftLockButton resets) comes back where it was authored
-		if hudHidden then
-			task.defer(function()
-				hudHidden = false
-				setHudHidden(anyMenuOpen())
-			end)
+	playerGui.ChildAdded:Connect(function(child)
+		watchPanel(child)
+		-- Only a recreated HUD ScreenGui matters (see hideAddedGroups). Everything else parented to PlayerGui - the
+		-- treadmill's "+N" speed billboards every step, notifications, prompts, popups - leaves the HUD alone.
+		if hudHidden and isHudGui(child) then
+			task.defer(hideAddedGroups, child)
 		end
 	end)
 	refresh()
