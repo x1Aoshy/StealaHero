@@ -109,7 +109,11 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the scenery;
   - the UI life animations;
   - NetGuardService limits (it must never kick a real player: read its warn lines);
-  - the `ServerHz` / `ServerFrameMs` / `ServerMemoryMB` workspace attributes.
+  - the `ServerHz` / `ServerFrameMs` / `ServerMemoryMB` workspace attributes;
+  - lag compensation (`LagCompensationService`): villain catches and bat hits with simulated latency
+    (Studio > Network > Incoming Replication Lag);
+  - the device sizing (`UiScaleController`, `PlayerGui.UiDeviceProfile`) in the phone, tablet and console emulators,
+    and the round egg-grab prompts.
 
   The owner may send a moon icon of their own: until then the night timer shows the pixel-art moon
   (`HUD.PIXEL_MOON` in ui_30_hud).
