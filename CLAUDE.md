@@ -58,6 +58,23 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   clearance checks, stale-import guard by geometry fingerprint). A geometry change needs a re-import; a palette-only
   change does not. NO Neon and no lights in any base (build guard). Spider-Verse window panes flicker at runtime
   (`BaseWindowLights`). Claude cannot upload meshes: only the owner's Studio import creates the mesh assets.
+- **Owner Studio saves**: when the owner edits a compiled place in Studio and sends it back, keep it in
+  `assets/user_models/`, diff it against the build (`lune run scripts/tools/diff_places.luau <build.rbxl> <save.rbxl>`)
+  and replay the real edits in `scripts/steps/post_zzz_owner_layout.luau` (`OWNER_SAVE`, rigid `MOVES` read from the
+  save, `DELETES`, baseplate tiles). Moved groups carry `OwnerLayout`, and the old layout tests give way to them.
+- **Villain animations**: `scripts/tools/villain_anim/gen_villain_clips.py` (Euler poses, python3, no Blender) generates
+  `src/ReplicatedStorage/Directory/VillainAnimations/<Villain>.luau`. Never edit those by hand. They are published by
+  `post_villain_animations` and played by `Game/VillainClipPlayer` (Idle / Wake / Move / Walk / Attack on
+  Motor6D.Transform). GuardChaseService loads no Animator track for a villain that has clips (`ClientClips`).
+- **Branch framework**: Branch 2.0.0 is vendored in `vendor/Branch` (MIT) and installed at
+  `ReplicatedStorage.Packages.Branch`. New systems go in as segments:
+  - `ServerScriptService.BranchServices` (`*Service`, started by `BranchServer`);
+  - `StarterPlayerScripts.BranchControllers` (`*Controller`, started by `BranchClient`).
+
+  Branch.Data is not used (the player saves stay on `Library.Database`). Branch.Network is not used either: it needs
+  the Branch Studio plugin's codegen.
+- **Scenery**: `post_zzzzz_scenery` builds `Workspace.Scenery` (woods, treeline, rocks, pebbles), deterministically,
+  against the built world's occupancy.
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
@@ -84,3 +101,15 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
 - Test in Studio Play: the 6 imported bases (dev unlock: server command bar
   `for _, p in game.Players:GetPlayers() do p:SetAttribute("DevUnlockBaseThemes", true) end`), bat equip from the
   Index, the 4 leaderboards, the new economy, egg pass-through.
+- (2026-09-27) Test in Studio Play:
+  - each villain's clips (dozing idle, wake, chase run, Frieza's glide, attack) and a villain carrying an egg home;
+  - the per-hero auras (Goku white ki, Gohan SSJ, Superman red stars, Zoro green, Iron Man blue, Hawks none);
+  - the particle ground rings and the fixed flipbooks;
+  - the night wall closing the whole lane;
+  - the scenery;
+  - the UI life animations;
+  - NetGuardService limits (it must never kick a real player: read its warn lines);
+  - the `ServerHz` / `ServerFrameMs` / `ServerMemoryMB` workspace attributes.
+
+  The owner may send a moon icon of their own: until then the night timer shows the pixel-art moon
+  (`HUD.PIXEL_MOON` in ui_30_hud).
