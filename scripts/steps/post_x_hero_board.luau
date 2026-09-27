@@ -18,9 +18,11 @@
 --                                                                         switches the page LOCALLY for its viewer
 --     Podium > Spot1..3 > Tier / TierTop / TierEdge, FrontFace > NamePlate (SurfaceGui: Card > Ordinal, PlayerName,
 --              Value), Stand (invisible anchor: feet level + facing)   ServerScriptService.LeaderboardService stands
---                                                                         the R15 avatars of the TOTAL NETWORTH top 3 on
---                                                                         the Stand anchors and fills the plates ("???"
---                                                                         while a spot is empty); BaseSign "TOP 3"
+--                                                                         the R15 avatars of EVERY page's top 3 on the
+--                                                                         Stand anchors (attribute PodiumStat) and
+--                                                                         publishes the plates as Spot attributes; each
+--                                                                         viewer's client shows the selected tab's set
+--                                                                         ("???" while a spot is empty); BaseSign "TOP 3"
 --     frame / crown / trophy / pillars / ledge parts (HeroBoard* names)
 --
 -- Placement: the board hangs FLUSH on HubWall_EastSouth's inner face (read from Workspace.WorldWalls.Hub, 71.2 in the
@@ -28,7 +30,7 @@
 -- hub, centred on Step.CENTER_Z, bottom high enough that the podium avatars never cover the rows. The podium stands in
 -- front of it, a few studs off the wall: 1st (gold, tallest) in the centre, 2nd (silver) on the viewer's LEFT, 3rd
 -- (bronze) on the viewer's RIGHT (viewer = a player facing the board, looking +X: left = -Z). Reserved region: X 40..
--- 71.2, Z -200..-95 (away from the lane mouth Z -87..85, the plots and the Hero Park).
+-- 71.2, Z -200..-95 (away from the lane mouth Z -87..85 and the plots).
 -- Runs after post_world_sae (walls final) and before post_zz_base_themes (name order: post_w < post_x < post_zz), under
 -- Workspace.Hub.HeroBoard, a root post_world_sae's hub-content push never looks at.
 -- Lune: no lookAt / PivotTo (explicit CFrame.Angles frames, WorldPivotData), FontFace / ImageContent / per-corner radii
@@ -381,6 +383,9 @@ end
 local function buildPage(pages, spec, pageAspect)
 	local page = frame(pages, "Page_" .. spec.stat, Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromScale(1, 1), 2)
 	page:SetAttribute("LeaderboardStat", spec.stat)
+	-- the podium follows the selected tab (StarterPlayerScripts.Game.HeroBoard): its sign title and plate value colour
+	page:SetAttribute("LeaderboardTitle", spec.title)
+	page:SetAttribute("ValueColor", hex(spec.value))
 	page:SetAttribute("LeaderboardTitle", spec.title)
 	page:SetAttribute("LeaderboardRows", Step.ROWS)
 	page.Visible = spec.stat == Step.DEFAULT_STAT
@@ -699,6 +704,8 @@ local function buildPodium(model, F)
 	local P = Step.PODIUM
 	local podium = newModel(model, "Podium", F * CFrame.new(0, 0, (P.z0 + P.z1) / 2))
 	podium:SetAttribute("PodiumStat", Step.PODIUM_STAT)
+	-- every page's top 3 stands here (LeaderboardService); each viewer sees the one of the tab they have selected
+	podium:SetAttribute("PodiumFollowsTab", true)
 	local solid = { collide = true }
 	-- studded base slab, gold top lip, and a "TOP 3" sign along its front
 	boxIn(podium, "PodiumBase", F, -P.base.halfX, P.base.halfX, 0, P.base.h, P.base.z0, P.base.z1, C.navyLight, solid)

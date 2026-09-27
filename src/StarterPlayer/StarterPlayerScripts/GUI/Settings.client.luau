@@ -158,16 +158,20 @@ end
 local ROW_TEXT = {
 	HideMyPets = { "Hide Your Heroes", "Hides your own heroes in your pen!" },
 	HeroSize = { "Hero Size", "Makes heroes smaller or bigger, only for you!" },
-	DisableVideos = { "Hide Treadmill Phone", "Keeps the treadmill phone off!" }
+	DisableVideos = { "Hide Treadmill Phone", "Keeps the treadmill phone off!" },
+	ShowMoneyPopups = { "Money Popups", "Shows the floating +$ when you earn money!" }
 }
 local ROW_ORDER = {
 	HideOtherPets = 1,
 	HideMyPets = 2,
 	HeroSize = 3,
 	DisableVideos = 4,
-	Music = 5,
-	Trading = 6
+	ShowMoneyPopups = 5,
+	Music = 6,
+	Trading = 7
 }
+
+local DESCRIPTION_RIGHT = 0.715 -- the On / Off button starts at x = 0.734 of the row
 
 local function setRowText(row, title: string, description: string)
 	local displayName = row:FindFirstChild("DisplayName")
@@ -208,6 +212,7 @@ end
 local function prepareHideRows()
 	ensureClonedRow("HideMyPets", { "HideOtherPets", "DisableVideos", "Music", "SFX" })
 	ensureClonedRow("HeroSize", { "HideOtherPets", "DisableVideos", "Music", "SFX" })
+	ensureClonedRow("ShowMoneyPopups", { "HideOtherPets", "DisableVideos", "Music", "SFX" })
 
 	for key, texts in pairs(ROW_TEXT) do
 		local row = ScrollingFrame:FindFirstChild(key)
@@ -222,6 +227,20 @@ local function prepareHideRows()
 
 		if row and row:IsA("GuiObject") then
 			row.LayoutOrder = order
+		end
+	end
+
+	-- Owner 2026-09-27 (screenshot): the longer descriptions ran on under the On / Off button. The description box of
+	-- every row now ends before the button (x = DESCRIPTION_RIGHT of the row); TextScaled shrinks the text into it.
+	for _, row in ipairs(ScrollingFrame:GetChildren()) do
+		local label = row:IsA("Frame") and row:FindFirstChild("Username")
+		if label and label:IsA("TextLabel") and label.AnchorPoint.X == 0.5 then
+			local left = label.Position.X.Scale - label.Size.X.Scale / 2
+			local width = math.max(DESCRIPTION_RIGHT - left, 0.3)
+			label.Size = UDim2.new(width, 0, label.Size.Y.Scale, label.Size.Y.Offset)
+			label.Position = UDim2.new(left + width / 2, 0, label.Position.Y.Scale, label.Position.Y.Offset)
+			label.TextWrapped = true
+			label.TextScaled = true
 		end
 	end
 end
@@ -321,6 +340,7 @@ function t3.Init() -- line: 133
 	registerSettingRow("HideOtherPets")
 	registerSettingRow("HideMyPets")
 	registerSettingRow("DisableVideos")
+	registerSettingRow("ShowMoneyPopups")
 	SettingsCmds.Changed:Connect(function(property: string, b2: boolean) -- line: 142
 		-- upvalues: t2 (copy), color3_2 (copy), color3 (copy)
 		local v73 = t2[property]
@@ -378,6 +398,17 @@ function t3.Init() -- line: 133
 
 		Button.BackgroundColor3 = if not hideMineEnabled then color3 else color3_2
 		Status.Text = not hideMineEnabled and "Off" or "On"
+	end
+
+	-- Money Popups (off by default): a cloned row, so it must be painted from its own value like the rows above - it
+	-- used to keep its template's green "On" while the setting was off (owner 2026-09-27 screenshot).
+	local popupsRead, popupsEnabled = pcall(SettingsCmds.IsEnabled, "ShowMoneyPopups")
+	local ShowMoneyPopups = t2.ShowMoneyPopups
+
+	if ShowMoneyPopups then
+		local enabled = popupsRead and popupsEnabled == true
+		ShowMoneyPopups.Button.BackgroundColor3 = if not enabled then color3 else color3_2
+		ShowMoneyPopups.Status.Text = not enabled and "Off" or "On"
 	end
 
 	local v61 = SettingsCmds.IsEnabled("DisableVideos")

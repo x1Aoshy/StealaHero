@@ -196,6 +196,18 @@ local function getRemainingText(p4) -- line: 184
 		g91 = true
 	until not g91
 end
+-- Owner 2026-09-27: each row shows the hero's own voxel egg (Library.Client.EggPortrait) over its image.
+local EggPortrait = nil
+pcall(function()
+	EggPortrait = require(ReplicatedStorage.Library.Client.EggPortrait)
+end)
+local function showEggPortrait(row)
+	local image = EggPortrait and row.Root and row.Root:FindFirstChild("Main_Frame") and row.Root.Main_Frame:FindFirstChild("Image")
+	if image and image:IsA("ImageLabel") and row.Record and EggPortrait.Mount(image, row.Record.AssetCategory) ~= nil then
+		image.ImageTransparency = 1
+	end
+end
+
 local function updateRow(p5) -- line: 194
 	-- upvalues: Assets (copy), Workspace (copy), EggItemUtil (copy), LocalPlayer (copy), Products (copy), getRemainingSeconds (copy), GrowingEggListRow (copy), FormatDurationSymbol (copy)
 	local Record = p5.Record
@@ -240,6 +252,7 @@ local function updateRow(p5) -- line: 194
 
 				g106 = false
 				Update(p5, Icon, v99, s1, v100, v101)
+				showEggPortrait(p5)
 
 				return
 			end

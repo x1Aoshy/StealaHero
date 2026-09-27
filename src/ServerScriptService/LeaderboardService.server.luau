@@ -2,7 +2,7 @@
 -- Fills the hub's HERO BOARD (Workspace.Hub.HeroBoard, built by scripts/steps/post_x_hero_board.luau: one wall-mounted
 -- SurfaceGui with one page per stat, Screen > BoardGui > Board > List > Pages > Page_<stat>; every page carries the
 -- attribute LeaderboardStat and holds static rows Row01..RowNN (Rank.Label, Avatar, PlayerName, Value) plus an "Empty"
--- label) and stands the TOTAL NETWORTH top 3 on its podium:
+-- label) and stands every page's top 3 on its podium:
 --
 --   Page_Networth     TOTAL NETWORTH  Money + the sell value of every hero the player owns (pen and backpack,
 --                                     AssetService.HeroSellPrice = what the Sell stall pays) + the sell value of every
@@ -22,14 +22,17 @@
 --     this server, so a player sees their own row move right away. All pages are filled for everyone; which page a
 --     player SEES is chosen on their own client (StarterPlayerScripts.Game.HeroBoard, the tab ClickDetectors), so the
 --     server never writes a page's Visible.
---   * Podium (Podium > Spot1..3 > Stand, NamePlate): the real R15 avatars of the current top 3 of TOTAL NETWORTH
---     (mergedTop ordering) stand on the tiers in a static superhero pose each (1st hands on hips, 2nd arms crossed,
---     3rd fist raised + fist to chest), built from Players:GetHumanoidDescriptionFromUserId +
---     Players:CreateHumanoidModelFromDescription (every call pcall'd; a failed user is retried after
---     AVATAR_RETRY_SECONDS). An avatar is created once per user and only moved / re-posed when the ranks change, never
---     re-created while that user still stands on the podium. Avatars: HumanoidRootPart anchored, no collision / query /
---     touch, CollisionGroup "NPCs", no Humanoid name / health display (the NamePlate above it is ours). An empty spot
---     shows its pedestal with a "???" plate.
+--   * Podium (Podium > Spot1..3 > Stand, NamePlate) follows the tabs (owner 2026-09-27: "the Top 3 podiums change with
+--     them"): for EVERY page stat the real R15 avatars of its current top 3 (mergedTop ordering) stand on the tiers in
+--     a static superhero pose each (1st hands on hips, 2nd arms crossed, 3rd fist raised + fist to chest), tagged with
+--     the attribute PodiumStat; the plates are published as Spot attributes Name_<stat> / Value_<stat>. Each viewer's
+--     client (StarterPlayerScripts.Game.HeroBoard) shows only the selected tab's avatars (LocalTransparencyModifier)
+--     and writes that tab's plate texts, so the server never writes a plate label nor hides an avatar. A user's look
+--     is built ONCE (Players:GetHumanoidDescriptionFromUserId + Players:CreateHumanoidModelFromDescription, every call
+--     pcall'd, a failed user retried after AVATAR_RETRY_SECONDS) into a template kept in ServerStorage and cloned for
+--     each podium spot that user holds (one user can top several pages); a spot's clone is only re-created when its
+--     user changes. Avatars: HumanoidRootPart anchored, no collision / query / touch, CollisionGroup "NPCs", no
+--     Humanoid name / health display (the NamePlate is ours). An empty spot shows its pedestal with a "???" plate.
 --   * Without DataStore access (Studio without API access, outages) the board keeps working with the players in
 --     this server only.
 -- Everything is server-authoritative: clients never send a value. The server edits the board SurfaceGui directly (it
@@ -40,6 +43,7 @@ local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local SAVE_INTERVAL = 60
@@ -473,7 +477,7 @@ local function setText(label, text)
 end
 
 ----------------------------------------------------------------------------------------------------
--- Podium: the TOTAL NETWORTH top 3 as real avatars
+-- Podium: every page's top 3 as real avatars (each viewer sees the selected tab's)
 ----------------------------------------------------------------------------------------------------
 
 -- Joint rotation (degrees) in the joint's own frame (R15: X = the rig's right, Y = up, Z = back), applied Z first,
@@ -505,16 +509,18 @@ local POSES = {
 	},
 }
 
-type Spot = {
-	rank: number, model: Instance, stand: BasePart, nameLabel: Instance?, valueLabel: Instance?, userId: number?, wanted: number?,
-}
-type Avatar = { model: Model, userId: number, baseC0: { [Motor6D]: CFrame }, rank: number? }
+type Spot = { rank: number, model: Instance, stand: BasePart }
+-- one avatar standing on one spot for one stat (a clone of the user's template)
+type Placed = { model: Model, userId: number, baseC0: { [Motor6D]: CFrame } }
 
-local podiumStat = "Networth"
+local podiumStat = "Networth" -- the board's default tab (attribute PodiumStat); every page stat gets a podium set
+local podiumStats: { string } = {}
 local spots: { [number]: Spot } = {}
-local avatars: { [number]: Avatar } = {} -- by userId: built once, moved / re-posed when the ranks change
-local avatarPending: { [number]: boolean } = {}
-local avatarRetryAt: { [number]: number } = {}
+local placed: { [string]: { [number]: Placed } } = {} -- [stat][rank]
+local templates: { [number]: Model } = {} -- [userId]: the user's unposed avatar, parented under ServerStorage
+local templatePending: { [number]: boolean } = {}
+local templateRetryAt: { [number]: number } = {}
+local templateFolder: Folder? = nil
 local collisionGroupReady = false
 
 local function collectPodium()
@@ -528,20 +534,34 @@ local function collectPodium()
 		local spot = podium:FindFirstChild("Spot" .. rank)
 		local stand = spot and spot:FindFirstChild("Stand")
 		if stand and stand:IsA("BasePart") then
-			-- the tier's front plate (FrontFace > NamePlate > Card > PlayerName / Value)
-			local face = spot:FindFirstChild("FrontFace")
-			local plate = face and face:FindFirstChild("NamePlate")
-			local card = plate and plate:FindFirstChild("Card")
-			spots[rank] = {
-				rank = rank, model = spot, stand = stand,
-				nameLabel = card and card:FindFirstChild("PlayerName"), valueLabel = card and card:FindFirstChild("Value"),
-			}
+			spots[rank] = { rank = rank, model = spot, stand = stand }
 		end
 	end
-	if next(spots) ~= nil then
-		stats[podiumStat] = true
+	if next(spots) == nil then
+		log("podium has no Stand anchors - no avatars")
+		return
 	end
-	log(string.format("podium: %d spot(s), top %d of %s", #spots, PODIUM_SIZE, podiumStat))
+	-- one podium set per page, in board order (the default tab first)
+	local seen = {}
+	for _, stat in ipairs({ podiumStat }) do
+		seen[stat] = true
+		table.insert(podiumStats, stat)
+	end
+	for _, board in ipairs(boards) do
+		if not seen[board.stat] then
+			seen[board.stat] = true
+			table.insert(podiumStats, board.stat)
+		end
+	end
+	for _, stat in ipairs(podiumStats) do
+		stats[stat] = true
+		placed[stat] = {}
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "HeroBoardPodiumAvatars"
+	folder.Parent = ServerStorage
+	templateFolder = folder
+	log(string.format("podium: %d spot(s), top %d of %s", #spots, PODIUM_SIZE, table.concat(podiumStats, ", ")))
 end
 
 -- "NPCs" (non-collidable with players; ServerScriptService.Bootstrap sets its rules) registered defensively.
@@ -638,7 +658,10 @@ local function buildAvatar(userId: number): Model?
 					d.CollisionGroup = NPC_COLLISION_GROUP
 				end)
 			end
-		elseif d:IsA("LuaSourceContainer") then
+		elseif d:IsA("LuaSourceContainer") or d:IsA("ParticleEmitter") or d:IsA("Fire") or d:IsA("Smoke")
+			or d:IsA("Sparkles") or d:IsA("Trail") or d:IsA("Beam") or d:IsA("Light") or d:IsA("Highlight") then
+			-- no scripts; no accessory effects either (every stat has its own stacked set: the client hides the unused
+			-- ones with LocalTransparencyModifier, which effects ignore)
 			d:Destroy()
 		end
 	end
@@ -646,119 +669,120 @@ local function buildAvatar(userId: number): Model?
 	return model
 end
 
-local function applyPose(avatar: Avatar, rank: number)
+local function applyPose(entry: Placed, rank: number)
 	local pose = POSES[rank] or {}
-	for motor, base in pairs(avatar.baseC0) do
+	for motor, base in pairs(entry.baseC0) do
 		if motor.Parent ~= nil then
 			local rotation = pose[motor.Name]
 			motor.C0 = if rotation then base * rotation else base
 		end
 	end
-	avatar.rank = rank
 end
 
--- Stands `avatar` on `spot` (feet on the tier top, facing where the Stand faces) in the spot's pose.
-local function placeAvatar(avatar: Avatar, spot: Spot)
-	local model = avatar.model
+-- Stands a clone of the user's template on `spot` for `stat` (feet on the tier top, facing where the Stand faces),
+-- in the spot's pose.
+local function placeClone(stat: string, spot: Spot, userId: number): Placed?
+	local template = templates[userId]
+	if template == nil then
+		return nil
+	end
+	local model = template:Clone()
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart")
 	if not (humanoid and root and root:IsA("BasePart")) then
-		return
+		model:Destroy()
+		return nil
 	end
+	model.Name = "PodiumAvatar_" .. stat .. "_" .. tostring(userId)
+	model:SetAttribute("PodiumStat", stat)
+	model:SetAttribute("PodiumRank", spot.rank)
+	local baseC0 = {}
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("Motor6D") then
+			baseC0[d] = d.C0
+		end
+	end
+	local entry: Placed = { model = model, userId = userId, baseC0 = baseC0 }
 	local stand = spot.stand
 	local ground = stand.Position.Y - stand.Size.Y / 2
 	local hip = if humanoid.HipHeight > 0 then humanoid.HipHeight else 2
-	local target = CFrame.new(stand.Position.X, ground + hip + root.Size.Y / 2, stand.Position.Z) * stand.CFrame.Rotation
-	model:PivotTo(target)
+	model:PivotTo(CFrame.new(stand.Position.X, ground + hip + root.Size.Y / 2, stand.Position.Z) * stand.CFrame.Rotation)
 	model.Parent = spot.model
-	applyPose(avatar, spot.rank)
-	spot.userId = avatar.userId
+	applyPose(entry, spot.rank)
 	-- a rig can be rebuilt from its attachments once it is in Workspace: pose it again a moment later
 	local rank = spot.rank
 	task.delay(1, function()
-		if model.Parent ~= nil and avatar.rank == rank then
-			applyPose(avatar, rank)
+		if model.Parent ~= nil then
+			applyPose(entry, rank)
 		end
 	end)
+	return entry
 end
 
-local function requestAvatar(userId: number)
-	if avatarPending[userId] or os.clock() < (avatarRetryAt[userId] or 0) then
+-- Builds the user's template once (asynchronously); the next render places the clones.
+local function requestTemplate(userId: number)
+	if templates[userId] or templatePending[userId] or os.clock() < (templateRetryAt[userId] or 0) then
 		return
 	end
-	avatarPending[userId] = true
+	templatePending[userId] = true
 	task.spawn(function()
 		local ok, model = pcall(buildAvatar, userId)
-		avatarPending[userId] = nil
+		templatePending[userId] = nil
 		if not ok or model == nil then
-			avatarRetryAt[userId] = os.clock() + AVATAR_RETRY_SECONDS
+			templateRetryAt[userId] = os.clock() + AVATAR_RETRY_SECONDS
 			if not ok then
 				log("podium avatar for " .. tostring(userId) .. " failed: " .. tostring(model))
 			end
 			return
 		end
-		-- the ranks may have moved on while the avatar was loading
-		local wantedSpot = nil
-		for _, spot in pairs(spots) do
-			if spot.wanted == userId then
-				wantedSpot = spot
-			end
-		end
-		if wantedSpot == nil or avatars[userId] ~= nil then
+		if templates[userId] ~= nil then
 			model:Destroy()
 			return
 		end
-		local baseC0 = {}
-		for _, d in ipairs(model:GetDescendants()) do
-			if d:IsA("Motor6D") then
-				baseC0[d] = d.C0
-			end
-		end
-		local avatar: Avatar = { model = model, userId = userId, baseC0 = baseC0, rank = nil }
-		avatars[userId] = avatar
-		local okPlace, err = pcall(placeAvatar, avatar, wantedSpot)
-		if not okPlace then
-			log("podium avatar for " .. tostring(userId) .. " could not be placed: " .. tostring(err))
-			avatars[userId] = nil
-			avatarRetryAt[userId] = os.clock() + AVATAR_RETRY_SECONDS
-			model:Destroy()
-		end
+		model.Parent = templateFolder
+		templates[userId] = model
 	end)
 end
 
-local function updatePodium(entries)
-	local wantedRank = {}
-	for rank, spot in pairs(spots) do
-		local entry = entries[rank]
-		spot.wanted = if entry then entry.userId else nil
-		if entry then
-			wantedRank[entry.userId] = rank
-			setText(spot.nameLabel, nameOf(entry.userId))
-			setText(spot.valueLabel, formatStat(podiumStat, entry.value))
-		else
-			setText(spot.nameLabel, "???")
-			setText(spot.valueLabel, "")
-		end
-	end
-	-- avatars of users who left the top 3 (or whose model was destroyed) go away
-	for userId, avatar in pairs(avatars) do
-		if wantedRank[userId] == nil or avatar.model.Parent == nil then
-			avatars[userId] = nil
-			avatar.model:Destroy()
-		end
-	end
-	for rank, spot in pairs(spots) do
-		local userId = spot.wanted
-		local avatar = userId and avatars[userId]
-		if userId == nil then
-			spot.userId = nil
-		elseif avatar then
-			if spot.userId ~= userId or avatar.rank ~= rank then
-				placeAvatar(avatar, spot)
+local function updatePodium(live)
+	local wanted: { [number]: boolean } = {}
+	for _, stat in ipairs(podiumStats) do
+		local entries = mergedTop(stat, PODIUM_SIZE, live)
+		local set = placed[stat]
+		for rank, spot in pairs(spots) do
+			local entry = entries[rank]
+			local userId = entry and entry.userId
+			-- the plate of this stat, written by each viewer's client for the tab it shows
+			spot.model:SetAttribute("Name_" .. stat, if entry then nameOf(entry.userId) else "???")
+			spot.model:SetAttribute("Value_" .. stat, if entry then formatStat(stat, entry.value) else "")
+			local current = set[rank]
+			if current and (current.userId ~= userId or current.model.Parent == nil) then
+				set[rank] = nil
+				current.model:Destroy()
+				current = nil
 			end
-		else
-			spot.userId = nil
-			requestAvatar(userId)
+			if userId then
+				wanted[userId] = true
+				if current == nil then
+					if templates[userId] then
+						local ok, result = pcall(placeClone, stat, spot, userId)
+						if ok and result then
+							set[rank] = result
+						elseif not ok then
+							log("podium avatar for " .. tostring(userId) .. " could not be placed: " .. tostring(result))
+						end
+					else
+						requestTemplate(userId)
+					end
+				end
+			end
+		end
+	end
+	-- templates of users who hold no spot any more go away
+	for userId, template in pairs(templates) do
+		if not wanted[userId] then
+			templates[userId] = nil
+			template:Destroy()
 		end
 	end
 end
@@ -787,7 +811,7 @@ local function render()
 		end
 	end
 	if next(spots) ~= nil then
-		local ok, err = pcall(updatePodium, mergedTop(podiumStat, PODIUM_SIZE, live))
+		local ok, err = pcall(updatePodium, live)
 		if not ok then
 			log("podium update failed: " .. tostring(err))
 		end

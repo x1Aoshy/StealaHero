@@ -224,6 +224,122 @@ function resolveEggIcon(category, fallback)
 end
 pcall(resolveEggIcon, nil, "")
 
+-- Owner 2026-09-27: an egg slot shows the hero's own voxel egg (Library.Client.EggPortrait ViewportFrame on the slot
+-- Icon, its image hidden) instead of the generic egg image. Globals, like the chunk above. EggPortraitModule caches
+-- the module (false = missing). clearEggPortrait restores the Icon's image when the slot shows something else.
+EggPortraitModule = nil
+function mountEggPortrait(icon, category)
+	if EggPortraitModule == nil then
+		local library = ReplicatedStorage:FindFirstChild("Library")
+		local client = library and library:FindFirstChild("Client")
+		local module = client and client:FindFirstChild("EggPortrait")
+		local ok, result = pcall(require, module)
+		EggPortraitModule = if ok and type(result) == "table" then result else false
+	end
+	if not EggPortraitModule or type(category) ~= "string" then
+		return false
+	end
+	if HeroPortraitModule then
+		pcall(HeroPortraitModule.Clear, icon)
+	end
+	local ok, portrait = pcall(EggPortraitModule.Mount, icon, category)
+	if ok and portrait ~= nil then
+		if icon:GetAttribute("EggPortraitImageTransparency") == nil then
+			icon:SetAttribute("EggPortraitImageTransparency", icon.ImageTransparency)
+		end
+		icon.ImageTransparency = 1
+		return true
+	end
+	return false
+end
+-- Owner 2026-09-27: "when you have a hero in the inventory its viewport / face must show": hero slots mount the hero's
+-- live headshot (Library.Client.HeroPortrait, the Sell Heroes one) on the Icon the same way. HeroPortraitModule caches
+-- the module (false = missing).
+HeroPortraitModule = nil
+function mountHeroPortrait(icon, heroId)
+	if HeroPortraitModule == nil then
+		local library = ReplicatedStorage:FindFirstChild("Library")
+		local client = library and library:FindFirstChild("Client")
+		local module = client and client:FindFirstChild("HeroPortrait")
+		local ok, result = pcall(require, module)
+		HeroPortraitModule = if ok and type(result) == "table" then result else false
+	end
+	if not HeroPortraitModule or type(heroId) ~= "string" or not HeroPortraitModule.HasModel(heroId) then
+		return false
+	end
+	if EggPortraitModule then
+		pcall(EggPortraitModule.Clear, icon)
+	end
+	local ok, portrait = pcall(HeroPortraitModule.Mount, icon, heroId, { Framing = "Face" })
+	if ok and portrait ~= nil then
+		if icon:GetAttribute("EggPortraitImageTransparency") == nil then
+			icon:SetAttribute("EggPortraitImageTransparency", icon.ImageTransparency)
+		end
+		icon.ImageTransparency = 1
+		return true
+	end
+	return false
+end
+-- Owner 2026-09-27 (hero weapons replace the bats): a hero weapon's gear slot shows the weapon itself
+-- (Library.Client.WeaponPortrait ViewportFrame on the Icon, its image hidden). WeaponPortraitModule caches the module
+-- (false = missing). mountWeaponPortrait returns true when the slot now shows a weapon portrait.
+WeaponPortraitModule = nil
+function mountWeaponPortrait(icon, tool)
+	if WeaponPortraitModule == nil then
+		local library = ReplicatedStorage:FindFirstChild("Library")
+		local client = library and library:FindFirstChild("Client")
+		local module = client and client:FindFirstChild("WeaponPortrait")
+		local ok, result = pcall(require, module)
+		WeaponPortraitModule = if ok and type(result) == "table" then result else false
+	end
+	if not WeaponPortraitModule then
+		return false
+	end
+	local ok, portrait = pcall(WeaponPortraitModule.Mount, icon, tool)
+	if ok and portrait ~= nil then
+		return true
+	end
+	restoreIconImage(icon)
+	return false
+end
+function restoreIconImage(icon)
+	if icon:FindFirstChild("EggPortrait") or icon:FindFirstChild("HeroPortrait") or icon:FindFirstChild("WeaponPortrait") then
+		return -- a portrait still covers the image
+	end
+	local saved = icon:GetAttribute("EggPortraitImageTransparency")
+	if type(saved) == "number" then
+		icon.ImageTransparency = saved
+		icon:SetAttribute("EggPortraitImageTransparency", nil)
+	end
+end
+-- clears both portraits (slot emptied / another kind of item)
+function clearEggPortrait(icon)
+	if EggPortraitModule then
+		pcall(EggPortraitModule.Clear, icon)
+	end
+	if HeroPortraitModule then
+		pcall(HeroPortraitModule.Clear, icon)
+	end
+	if WeaponPortraitModule then
+		pcall(WeaponPortraitModule.Clear, icon)
+	end
+	restoreIconImage(icon)
+end
+-- a slot refreshed with the same kind of item keeps its portrait: Mount reuses a portrait of the same hero / egg, so a
+-- refresh (or a hotbar shift) never re-clones the model
+function clearOtherPortrait(icon, keep)
+	if keep ~= "Egg" and EggPortraitModule then
+		pcall(EggPortraitModule.Clear, icon)
+	end
+	if keep ~= "Hero" and HeroPortraitModule then
+		pcall(HeroPortraitModule.Clear, icon)
+	end
+	if keep ~= "Weapon" and WeaponPortraitModule then
+		pcall(WeaponPortraitModule.Clear, icon)
+	end
+	restoreIconImage(icon)
+end
+
 local Gears = require(ReplicatedStorage.Directory.Gears)
 
 Lock = require(ReplicatedStorage.Library.Functions.Lock)
@@ -3359,6 +3475,7 @@ function MakeSlot(p121, p122) -- line: 2573
 			local TextureId = p135.TextureId
 
 			AssetIconShape.Clear(Icon)
+			clearOtherPortrait(Icon, if v974 == "Asset" then "Hero" elseif v974 == "AssetEgg" then "Egg" elseif v974 == "Gear" then "Weapon" else nil)
 			Icon.Image = TextureId
 			Icon.ScaleType = Enum.ScaleType.Fit
 			ToolName.TextXAlignment = TextXAlignment
@@ -3405,6 +3522,9 @@ function MakeSlot(p121, p122) -- line: 2573
 					end
 
 					Icon.ImageColor3 = Color3.new(1.0, 1.0, 1.0)
+					if not mountHeroPortrait(Icon, v1084) then
+						clearEggPortrait(Icon)
+					end
 
 					if v1085.Rarity and v1085.Rarity.Gradient then
 						local v1087 = ToolName
@@ -3448,6 +3568,7 @@ function MakeSlot(p121, p122) -- line: 2573
 				if v1092 and v1093 then
 					Icon.Image = resolveEggIcon(v1091.AssetCategory, v1092.Icon ~= "" and v1092.Icon or TextureId)
 					Icon.ImageColor3 = Color3.new(1.0, 1.0, 1.0)
+					mountEggPortrait(Icon, v1091.AssetCategory)
 
 					if not v1092.HideRarity and v1093.Rarity and v1093.Rarity.Gradient then
 						local v1094 = ToolName
@@ -3471,6 +3592,7 @@ function MakeSlot(p121, p122) -- line: 2573
 
 				Icon.Image = TextureId and (TextureId ~= "" and TextureId) or (v1095 and v1095.Icon or "")
 				Icon.ImageColor3 = Color3.new(1.0, 1.0, 1.0)
+				mountWeaponPortrait(Icon, p135) -- a hero weapon shows itself instead of the old bat image
 				Shadow.Visible = false
 				p135Name = ""
 				v1080 = not shouldDisplayGearUses(p135) and "" or getGearUsesText(p135)
@@ -3656,6 +3778,7 @@ function MakeSlot(p121, p122) -- line: 2573
 
 		Shadow.Visible = false
 		AssetIconShape.Clear(Icon)
+		clearEggPortrait(Icon)
 		Icon.Image = ""
 		ToolName.Text = ""
 		ToolName.Visible = true

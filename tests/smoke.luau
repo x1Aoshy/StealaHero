@@ -174,6 +174,7 @@ T.check(fx ~= nil and not H.has(fx.Source, "IS CHASING YOU"), "the chase banner 
 
 -- 9. audio whitelist + branding
 local WHITELIST = { ["77120543307812"] = true, ["72264591133889"] = true, ["127039883737564"] = true, ["136993031050456"] = true, ["80736831159506"] = true }
+WHITELIST["142376088"] = true -- owner request 2026-09-27, Taco Rain music (scripts/steps/audio.luau OWNER_AUDIO; one Sound)
 local badSounds = {}
 for _, d in ipairs(place:GetDescendants()) do
 	if d:IsA("Sound") then
@@ -564,11 +565,13 @@ do
 			and beams == 1 and loose == 0 and rate <= 150.01) then
 			table.insert(badSkins, string.format("%s (%s: %d meshes, %d blank, %d belts, %d beams, %d loose, %.0f p/s)", skinName, modelName, meshes, blank, #belts, beams, loose, rate))
 		else
-			-- Root sits 3.9 above the floor on the belt line; the screen centre 5.1 above it, 2.5-6.5 studs ahead, over the belt
+			-- Root sits 3.9 above the floor on the belt line; the screen centre 5.1 above the floor (raised with the belt:
+			-- BeltLift - 0.05, round 10), 2.5-6.5 studs ahead, over the belt
 			local root, screen, belt = tool:FindFirstChild("Root"), tool:FindFirstChild("PhoneScreen"), belts[1]
 			local rel = screen and root and root.CFrame:PointToObjectSpace(screen.CFrame.Position)
 			local beltEnd = root and root.CFrame:PointToObjectSpace(belt.CFrame.Position).Z - math.max(belt.Size.X, belt.Size.Z) / 2
-			if not (rel and math.abs(rel.X) < 0.05 and -rel.Z >= 2.5 and -rel.Z <= 6.5 and math.abs(rel.Y - 1.2) < 0.05 and rel.Z > beltEnd) then
+			local raised = (tonumber(tool:GetAttribute("BeltLift")) or 0.05) - 0.05
+			if not (rel and math.abs(rel.X) < 0.05 and -rel.Z >= 2.5 and -rel.Z <= 6.5 and math.abs(rel.Y - 1.2 - raised) < 0.05 and rel.Z > beltEnd) then
 				table.insert(badScreens, skinName)
 			end
 		end
@@ -636,10 +639,21 @@ do
 			end
 		end
 	end
+	-- anything the owner placed by hand in Studio (post_zzz_owner_layout marks it OwnerLayout) stands where they put it
+	local function ownerPlaced(inst)
+		local node = inst
+		while node ~= nil and node ~= ws do
+			if node:GetAttribute("OwnerLayout") == true then
+				return true
+			end
+			node = node.Parent
+		end
+		return false
+	end
 	local function clearParts(root)
 		local parts = root and (root:IsA("BasePart") and { root } or root:GetDescendants()) or {}
 		for _, d in ipairs(parts) do
-			if d:IsA("BasePart") then
+			if d:IsA("BasePart") and not ownerPlaced(d) then
 				local mn, mx = H.aabb(d)
 				if mx.Y > groundY - 1 then
 					clear(d.Name, mn, mx, 1)
@@ -1855,7 +1869,9 @@ do
 		table.insert(bad, "Workspace.Hub.HeroBoard (screen pages + podium) missing")
 	else
 		local mn, mx = H.groupAabb(heroBoard)
-		if mx.X > 71.25 or mn.X < -99.6 or mn.Z < -211.03 or mx.Z > 215.97 then
+		if heroBoard:GetAttribute("OwnerLayout") == true then
+			-- the owner hung the board where they wanted it in Studio (post_zzz_owner_layout): no region rules
+		elseif mx.X > 71.25 or mn.X < -99.6 or mn.Z < -211.03 or mx.Z > 215.97 then
 			table.insert(bad, string.format("outside the hub (X %.1f..%.1f Z %.1f..%.1f)", mn.X, mx.X, mn.Z, mx.Z))
 		end
 		if mx.Z > -89 and mn.Z < 87 then

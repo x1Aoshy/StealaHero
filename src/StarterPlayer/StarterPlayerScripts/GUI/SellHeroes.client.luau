@@ -84,6 +84,18 @@ do
 end
 local PORTRAITS_PER_FRAME = 4
 
+-- optional: the eggs tab shows each egg's own voxel egg (owner 2026-09-27), else the config icon
+local EggPortrait = nil
+do
+	local module = Library.Client:FindFirstChild("EggPortrait") or Library.Client:WaitForChild("EggPortrait", 5)
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			EggPortrait = result
+		end
+	end
+end
+
 local activeAssets = Network.NET_MAP and Network.NET_MAP.ActiveAssets
 local REQUEST_SELL = (activeAssets and activeAssets.REQUEST_SELL) or "ActiveAssets: RequestSell"
 
@@ -190,6 +202,7 @@ type Entry = {
 	name: string,
 	icon: string?,
 	category: string?, -- hero id (heroes tab): its portrait replaces the icon
+	eggCategory: string?, -- hero id of an egg (eggs tab): its voxel egg replaces the icon
 	size: number,
 	value: number,
 	color: Color3?,
@@ -327,6 +340,7 @@ local function eggEntries(save): { Entry }
 					uid = uid,
 					name = if okName and type(name) == "string" then name else "Egg",
 					icon = eggIconFor(category),
+					eggCategory = category,
 					size = tonumber(egg.AssetScale) or 1,
 					value = if okPrice and type(price) == "number" and price == price then math.max(math.floor(price * multiplier), 0) else 0,
 					color = color,
@@ -434,6 +448,21 @@ end
 
 -- The hero's live headshot on the card Icon (its image hidden), else the entry icon (eggs, heroes without a model).
 local function showIcon(icon: ImageLabel, entry: Entry)
+	if EggPortrait ~= nil then
+		-- Mount keeps the egg the card already shows (no rebuild on a refresh) and replaces another one.
+		if entry.eggCategory ~= nil and EggPortrait.Mount(icon, entry.eggCategory) ~= nil then
+			if portraits ~= nil then
+				portraits:Cancel(icon)
+			end
+			if HeroPortrait ~= nil then
+				HeroPortrait.Clear(icon)
+			end
+			icon.Image = ""
+			icon.ImageTransparency = 1
+			return
+		end
+		EggPortrait.Clear(icon)
+	end
 	local category = entry.category
 	if portraits ~= nil and category ~= nil and HeroPortrait.HasModel(category) then
 		icon.Image = ""

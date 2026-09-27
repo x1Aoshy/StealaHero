@@ -7,14 +7,14 @@
 --                            -> Burst_Hatch once (not while the folder's SuppressHatchBurst attribute is set: a Hero
 --                            Size rebuild), then the rarity aura for the model's HeroId attribute, scaled to the
 --                            model's rendered Scale
---   villain chase            Guard model attribute GuardState == "Chasing" -> Aura_Villain on its root
---   stolen egg run           remote "Eggs: AreaEggCarryState" (IsCarrying) -> Aura_Carry on the character
+--   (villain chase: no aura any more; owner 2026-09-27 "remove the fire VFX" -- Aura_Villain stays stored, unused)
+--   stolen egg run           nothing on the character any more (owner 2026-09-27)
 --   escape / bounty paid     remote "Eggs: AreaEggClaimFeedback", which AreaEggService fires to the carrier
 --                            only when the claim paid out (the carry reached the safe zone: X <= 75 or
 --                            GameplayZ) -> Burst_Escape. A carry that ends any other way (villain catch in
 --                            the X 75-80 strip the chase still covers, gear knock, manual drop) never plays it.
 --   treadmill sprint         remote "Treadmills: ActiveTreadmillChanged" (non-nil id = running) -> Trail_Speed
---   money tick               remote "ActiveAssets: MoneyCollected" -> Sparkle_Cash, throttled
+--   money tick               nothing on the character any more (owner 2026-09-27: no pulsing gold sparkle)
 --
 -- Cost rules: every stored emitter arrives Enabled = false; auras are enabled only while their state lasts and
 -- are capped (MAX_AURAS) so a full plot cannot light up the whole screen; the local player's own heroes win
@@ -30,7 +30,6 @@ local Debris = game:GetService("Debris")
 local LOOKUP_TIMEOUT = 20
 local BURST_LIFETIME = 4 -- seconds a one-shot host part stays before Debris removes it
 local MAX_AURAS = 8 -- simultaneous hero auras on this client
-local CASH_SPARKLE_COOLDOWN = 4 -- seconds between money sparkles
 local AURA_TAG = "SabVfxAura"
 
 local LocalPlayer = Players.LocalPlayer
@@ -51,6 +50,26 @@ local AURA_BY_RARITY = {
 	Legendary = "Aura_Legendary",
 	Mythic = "Aura_Mythic",
 	Secret = "Aura_Secret",
+}
+
+-- Per-hero aura colour (same effect, recoloured to fit the character). Owner 2026-09-27: Shanks' lightning red,
+-- Iron Man's galaxy swirl arc-reactor blue instead of purple.
+local AURA_TINT_BY_HERO = {
+	Shanks = Color3.fromRGB(255, 38, 46),
+	IronMan = Color3.fromRGB(70, 165, 255),
+}
+
+-- Per-hero aura overrides (owner 2026-09-27; effects from scripts/steps/post_hero_auras.luau):
+--   effect      replaces the rarity aura (false: no aura at all)
+--   color       sets every emitter's colour outright (not the luminance-keeping tint)
+--   brightness  emitter Brightness (a bright white-hot ki)
+-- "Falcon sin aura": the winged hero of the roster is Hawks.
+local AURA_BY_HERO = {
+	Goku = { effect = "Aura_Ki", color = Color3.fromRGB(255, 255, 255), brightness = 3 },
+	Gohan = { effect = "Aura_SSJ" },
+	Superman = { effect = "Aura_RedStars" },
+	Zoro = { effect = "Aura_Blades" }, -- a swordsman's slashes + wind crescent, not Goku's ki (owner 2026-09-27)
+	Hawks = { effect = false },
 }
 
 local HeroCatalog do
@@ -141,6 +160,33 @@ local function scaleCopied(copied, factor)
 		for _, descendant in ipairs(instance:GetDescendants()) do
 			if descendant:IsA("ParticleEmitter") then
 				pcall(scaleEmitter, descendant, factor)
+			end
+		end
+	end
+end
+
+-- Recolours copied emitters / beams to `tint`, keeping their bright cores bright: each colour keypoint becomes the tint
+-- lifted toward white by how close to white it was.
+local function tintSequence(sequence, tint)
+	local keypoints = {}
+	for _, keypoint in ipairs(sequence.Keypoints) do
+		local c = keypoint.Value
+		local luminance = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B
+		local lift = math.clamp((luminance - 0.55) / 0.45, 0, 1) * 0.55
+		table.insert(keypoints, ColorSequenceKeypoint.new(keypoint.Time, tint:Lerp(Color3.new(1, 1, 1), lift)))
+	end
+	return ColorSequence.new(keypoints)
+end
+
+local function tintCopied(copied, tint)
+	for _, instance in ipairs(copied) do
+		local list = instance:GetDescendants()
+		table.insert(list, instance)
+		for _, d in ipairs(list) do
+			if d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") then
+				pcall(function()
+					d.Color = tintSequence(d.Color, tint)
+				end)
 			end
 		end
 	end
@@ -324,7 +370,11 @@ onHeroModel = function(model, isNew)
 		playBurst("Burst_Hatch", root.Position)
 	end
 
+	local override = AURA_BY_HERO[heroId]
 	local auraName = AURA_BY_RARITY[rarityOf(heroId) or ""]
+	if override and override.effect ~= nil then
+		auraName = override.effect or nil
+	end
 	if not auraName or not Sab:FindFirstChild(auraName) then
 		return
 	end
@@ -336,6 +386,28 @@ onHeroModel = function(model, isNew)
 		return
 	end
 	scaleCopied(copied, auraScaleOf(model))
+	local tint = AURA_TINT_BY_HERO[heroId]
+	if tint then
+		tintCopied(copied, tint)
+	end
+	if override and (override.color or override.brightness) then
+		for _, instance in ipairs(copied) do
+			local list = instance:GetDescendants()
+			table.insert(list, instance)
+			for _, d in ipairs(list) do
+				if d:IsA("ParticleEmitter") then
+					if override.color then
+						d.Color = ColorSequence.new(override.color)
+					end
+					if override.brightness then
+						pcall(function()
+							d.Brightness = override.brightness
+						end)
+					end
+				end
+			end
+		end
+	end
 	setEnabled(copied, true)
 	local entry = { copied = copied, connections = {} }
 	heroAuras[model] = entry
@@ -426,40 +498,8 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------------------------------------------------------
--- 2. Zone villains: aura while chasing
+-- 2. Zone villains: no chase aura (owner 2026-09-27: the fire VFX on the villains is gone)
 ---------------------------------------------------------------------------------------------------
-
-do
-	local objects = Workspace:WaitForChild("__OBJECTS", LOOKUP_TIMEOUT)
-	local areas = objects and objects:WaitForChild("Areas", LOOKUP_TIMEOUT)
-	local guardAreas = areas and areas:WaitForChild("GuardAreas", LOOKUP_TIMEOUT)
-
-	local function watchGuard(guard)
-		local root = guard:FindFirstChild("HumanoidRootPart")
-		if not root then
-			return
-		end
-		local copied = copyEffect("Aura_Villain", root, "Villain")
-		if #copied == 0 then
-			return
-		end
-		setEnabled(copied, false)
-		local function refresh()
-			setEnabled(copied, guard:GetAttribute("GuardState") == "Chasing")
-		end
-		guard:GetAttributeChangedSignal("GuardState"):Connect(refresh)
-		refresh()
-	end
-
-	if guardAreas then
-		for _, zone in ipairs(guardAreas:GetChildren()) do
-			local guard = zone:FindFirstChild("Guard")
-			if guard then
-				watchGuard(guard)
-			end
-		end
-	end
-end
 
 ---------------------------------------------------------------------------------------------------
 -- 3. Local player: carry aura, escape burst, treadmill trail, cash sparkle
@@ -469,7 +509,6 @@ local carryAura = {}
 local speedTrail = nil
 local carrying = false
 local treadmillActive = false
-local lastCashSparkle = 0
 
 local function clearCharacterEffects()
 	destroyCopied(carryAura)
@@ -558,14 +597,17 @@ local function connectRemote(name, handler)
 	end)
 end
 
--- Stolen egg: aura while carrying.
+-- Stolen egg: no aura on the character any more (owner 2026-09-27: "the character must not have that VFX"; the egg in
+-- hand already shows the carry). A leftover aura from before is still cleared when the carry ends.
 connectRemote("Eggs: AreaEggCarryState", function(payload)
 	local isCarrying = type(payload) == "table" and payload.IsCarrying == true
 	if isCarrying == carrying then
 		return
 	end
 	carrying = isCarrying
-	setCarryAura(isCarrying)
+	if not isCarrying then
+		setCarryAura(false)
+	end
 end)
 
 -- Escape / bounty paid. AreaEggService fires this to the carrier only from a successful claim (egg + cash
@@ -589,15 +631,5 @@ connectRemote("Treadmills: ActiveTreadmillChanged", function(treadmillId)
 	setSpeedTrail(active)
 end)
 
--- Hero income tick: a short gold sparkle, at most one every CASH_SPARKLE_COOLDOWN seconds.
-connectRemote("ActiveAssets: MoneyCollected", function()
-	local now = os.clock()
-	if now - lastCashSparkle < CASH_SPARKLE_COOLDOWN then
-		return
-	end
-	lastCashSparkle = now
-	local root = characterRoot()
-	if root then
-		playBurst("Sparkle_Cash", root.Position + Vector3.new(0, 2, 0))
-	end
-end)
+-- Hero income tick: no effect on the character (owner 2026-09-27: the gold sparkle that pulsed on the player every
+-- few seconds is gone; the money counter already shows the income).

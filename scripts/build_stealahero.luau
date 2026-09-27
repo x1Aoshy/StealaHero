@@ -49,6 +49,17 @@ do
     end
 end
 
+-- The same for the owner's hero weapon models (ServerStorage.HeroWeaponImports, assets/hero_weapons/HeroWeaponsImport.lua):
+-- keep them as assets/hero_weapons/imports/{weapons,vfx}/<Name>.rbxm (post_hero_weapons).
+do
+    local ok, err = pcall(function()
+        require("./lib/hero_weapon_imports").fromPlaceFile(OUT_PATH)
+    end)
+    if not ok then
+        print("[StealaHero Build] hero weapon imports check skipped: " .. tostring(err))
+    end
+end
+
 local raw = fs.readFile("Steal An Egg with treadmill V2.rbxl")
 local place = roblox.deserializePlace(raw)
 local ws = place.Workspace

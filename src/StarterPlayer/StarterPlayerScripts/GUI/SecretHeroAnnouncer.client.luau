@@ -4,9 +4,10 @@
 -- The server (Controllers.AreaEggService.announceSecretSpawn) fires Network["Eggs: SecretHeroSpawned"] to every client
 -- the moment an egg of Secret rarity or better spawns in a stage nest. Per announcement this client:
 --   1. posts a cyan bold system line in the chat: [SERVER] A SECRET HERO, <HERO> HAS SPAWNED IN <STAGE>!
---   2. drops a gold/cyan glowing banner from the top of the screen for BANNER_SECONDS (studded glossy band in the Free
---      Gift / Sell window style, rotating rays glow, the hero's costume egg spinning in a viewport), with a fanfare
---      (Library.Audio whitelisted "winner!" sound).
+--   2. drops a compact gold/cyan banner from the top of the screen for BANNER_SECONDS (square studded band, a soft
+--      rotating glow, the hero's costume egg spinning in a viewport), with a fanfare (Library.Audio whitelisted
+--      "winner!" sound). Owner 2026-09-27: "way too big ... make it smaller so it doesn't block so much of the screen,
+--      keep it noticeable": a third of the screen wide, 58 px tall, square corners.
 -- Announcements queue (one banner at a time) and each egg is announced once.
 
 local Players = game:GetService("Players")
@@ -17,6 +18,12 @@ local TextChatService = game:GetService("TextChatService")
 local TweenService = game:GetService("TweenService")
 
 local BANNER_SECONDS = 6
+local BANNER_HEIGHT = 58 -- px
+local BANNER_WIDTH = 0.34 -- of the screen, clamped to BANNER_MIN_WIDTH..BANNER_MAX_WIDTH px
+local BANNER_MIN_WIDTH = 250
+local BANNER_MAX_WIDTH = 430
+local SHOWN_Y = 50 -- px from the top (under the top bar)
+local HIDDEN_Y = -(BANNER_HEIGHT + 40)
 local CHAT_COLOR = "#00FFCC"
 local FANFARE_ID = 127039883737564 -- Library.Audio whitelist: Speedsters "winner!"
 local STUD_IMAGE = "rbxassetid://6927295847" -- the UI kit's stud tile (Kit.Images.stud)
@@ -73,13 +80,6 @@ local function postChatLine(message: string)
 	end
 end
 
-local function corner(parent: Instance, radius: number)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, radius)
-	c.Parent = parent
-	return c
-end
-
 local function stroke(parent: Instance, color: Color3, thickness: number, mode: Enum.ApplyStrokeMode?)
 	local s = Instance.new("UIStroke")
 	s.Color = color
@@ -105,7 +105,7 @@ local function label(parent: Instance, name: string, text: string, color: Color3
 	l.ZIndex = 6
 	stroke(l, INK, 2.5, Enum.ApplyStrokeMode.Contextual)
 	local limit = Instance.new("UITextSizeConstraint")
-	limit.MaxTextSize = 40
+	limit.MaxTextSize = 26
 	limit.Parent = l
 	l.Parent = parent
 	return l
@@ -119,7 +119,7 @@ local function eggViewport(parent: Instance, heroId: string)
 	viewport.SizeConstraint = Enum.SizeConstraint.RelativeYY
 	viewport.Position = UDim2.new(0, 6, 0.5, 0)
 	viewport.AnchorPoint = Vector2.new(0, 0.5)
-	viewport.Size = UDim2.new(1.25, 0, 1.25, 0)
+	viewport.Size = UDim2.new(1.2, 0, 1.2, 0)
 	viewport.Ambient = Color3.fromRGB(200, 200, 200)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-1, -1, -1)
@@ -171,25 +171,25 @@ local function buildBanner(data)
 	local holder = Instance.new("Frame")
 	holder.Name = "Holder"
 	holder.AnchorPoint = Vector2.new(0.5, 0)
-	holder.Position = UDim2.new(0.5, 0, 0, -170)
-	holder.Size = UDim2.new(0.62, 0, 0, 104)
+	holder.Position = UDim2.new(0.5, 0, 0, HIDDEN_Y)
+	holder.Size = UDim2.new(BANNER_WIDTH, 0, 0, BANNER_HEIGHT)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui
 	local limits = Instance.new("UISizeConstraint")
-	limits.MaxSize = Vector2.new(760, 104)
-	limits.MinSize = Vector2.new(300, 84)
+	limits.MaxSize = Vector2.new(BANNER_MAX_WIDTH, BANNER_HEIGHT)
+	limits.MinSize = Vector2.new(BANNER_MIN_WIDTH, BANNER_HEIGHT)
 	limits.Parent = holder
 
-	-- glow: rotating rays behind the band
+	-- glow: soft rotating rays just behind the band
 	local rays = Instance.new("ImageLabel")
 	rays.Name = "Rays"
 	rays.BackgroundTransparency = 1
 	rays.Image = RAYS_IMAGE
 	rays.ImageColor3 = CYAN
-	rays.ImageTransparency = 0.35
+	rays.ImageTransparency = 0.6
 	rays.AnchorPoint = Vector2.new(0.5, 0.5)
 	rays.Position = UDim2.new(0.5, 0, 0.5, 0)
-	rays.Size = UDim2.new(1.35, 0, 3.2, 0)
+	rays.Size = UDim2.new(1.08, 0, 1.9, 0)
 	rays.ZIndex = 1
 	rays.Parent = holder
 
@@ -199,8 +199,7 @@ local function buildBanner(data)
 	band.BackgroundColor3 = Color3.new(1, 1, 1)
 	band.ZIndex = 2
 	band.Parent = holder
-	corner(band, 16)
-	local bandStroke = stroke(band, INK, 4)
+	local bandStroke = stroke(band, INK, 3)
 	local gradient = Instance.new("UIGradient")
 	gradient.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, GOLD),
@@ -216,38 +215,36 @@ local function buildBanner(data)
 	studs.BackgroundTransparency = 1
 	studs.Image = STUD_IMAGE
 	studs.ScaleType = Enum.ScaleType.Tile
-	studs.TileSize = UDim2.fromOffset(20, 20)
-	studs.ImageTransparency = 0.8
+	studs.TileSize = UDim2.fromOffset(18, 18)
+	studs.ImageTransparency = 0.6
 	studs.Size = UDim2.new(1, 0, 1, 0)
 	studs.ZIndex = 3
 	studs.Parent = band
-	corner(studs, 16)
 
 	local gloss = Instance.new("Frame")
 	gloss.Name = "Gloss"
 	gloss.BackgroundColor3 = Color3.new(1, 1, 1)
 	gloss.BackgroundTransparency = 0.72
 	gloss.BorderSizePixel = 0
-	gloss.Size = UDim2.new(1, -12, 0.42, 0)
-	gloss.Position = UDim2.new(0, 6, 0, 5)
+	gloss.Size = UDim2.new(1, -8, 0.42, 0)
+	gloss.Position = UDim2.new(0, 4, 0, 3)
 	gloss.ZIndex = 4
 	gloss.Parent = band
-	corner(gloss, 12)
 	local glossFade = Instance.new("UIGradient")
 	glossFade.Rotation = 90
 	glossFade.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
 	glossFade.Parent = gloss
 
-	-- the egg viewport is 1.25x the band height (it pokes out of the band); the text starts right of it
+	-- the egg viewport is 1.2x the band height (it pokes out of the band); the text starts right of it
 	local viewport = eggViewport(band, tostring(data.HeroId))
-	local textLeft = if viewport then 142 else 20
+	local textLeft = if viewport then math.floor(BANNER_HEIGHT * 1.2) + 10 else 12
 
-	label(band, "Title", "SECRET HERO SPAWNED!", Color3.new(1, 1, 1), UDim2.new(1, -textLeft - 16, 0.44, 0),
-		UDim2.new(0, textLeft, 0.1, 0))
+	label(band, "Title", "SECRET HERO SPAWNED!", Color3.new(1, 1, 1), UDim2.new(1, -textLeft - 10, 0.48, 0),
+		UDim2.new(0, textLeft, 0.08, 0))
 	local message = string.format("%s has spawned in %s!", tostring(data.HeroName or data.HeroId),
 		tostring(data.StageName or data.AreaId or "a stage"))
-	local sub = label(band, "Message", message, Color3.fromRGB(12, 44, 70), UDim2.new(1, -textLeft - 16, 0.34, 0),
-		UDim2.new(0, textLeft, 0.56, 0))
+	local sub = label(band, "Message", message, Color3.fromRGB(12, 44, 70), UDim2.new(1, -textLeft - 10, 0.34, 0),
+		UDim2.new(0, textLeft, 0.58, 0))
 	local subStroke = sub:FindFirstChildOfClass("UIStroke")
 	if subStroke then
 		subStroke.Color = Color3.new(1, 1, 1)
@@ -278,15 +275,14 @@ local function play(data)
 			rays.Rotation = (rays.Rotation + dt * 40) % 360
 			local pulse = (math.sin(t * 6) + 1) / 2
 			bandStroke.Color = INK:Lerp(CYAN, pulse * 0.55)
-			band.Rotation = math.sin(t * 3) * 0.6
 		end
 	end)
 	local dropIn = TweenService:Create(holder, TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, 0, 0, 58) })
+		{ Position = UDim2.new(0.5, 0, 0, SHOWN_Y) })
 	dropIn:Play()
 	task.wait(BANNER_SECONDS)
 	local leave = TweenService:Create(holder, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-		{ Position = UDim2.new(0.5, 0, 0, -170) })
+		{ Position = UDim2.new(0.5, 0, 0, HIDDEN_Y) })
 	leave:Play()
 	leave.Completed:Wait()
 	alive = false

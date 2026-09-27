@@ -63,3 +63,31 @@ if T.check(announcer ~= nil and announcer:IsA("LocalScript"), "StarterPlayerScri
 end
 local catalog = H.fs.readFile("src/ReplicatedStorage/Directory/HeroCatalog.luau")
 T.check(string.find(catalog, "Id = \"JoyBoy\"[^\n]-Rarity = \"Secret\"") ~= nil, "HeroCatalog: JoyBoy must stay the Secret hero")
+
+-- 3. egg VFX (owner 2026-09-27, scripts/steps/post_hero_eggs_vfx.luau): every roster egg wears a small V40 particle set
+-- in its palette colours (EggVfx attachment: halo + sparkles, rays from Epic, one signature layer), calm rates
+local V40_EGG_TEXTURES = {}
+for _, id in ipairs({ "130130860248081", "3048527478", "8733488500", "13778464872", "123944207040840", "88325591034213",
+	"122367020211100", "137380952595409", "8733414465", "13448020277", "11847035494", "92739826225814", "11858773923" }) do
+	V40_EGG_TEXTURES["rbxassetid://" .. id] = true
+end
+local badVfx = {}
+for _, hero in ipairs(PLAN.HEROES) do
+	local egg = eggs and eggs:FindFirstChild(hero[1])
+	local emitters, attachment = {}, egg and egg:FindFirstChild("EggVfx", true)
+	for _, d in ipairs(egg and egg:GetDescendants() or {}) do
+		if d:IsA("ParticleEmitter") then
+			table.insert(emitters, d)
+		end
+	end
+	local ok = attachment ~= nil and attachment:IsA("Attachment") and #emitters >= 3 and #emitters <= 4
+		and type(egg:GetAttribute("EggVfxStyle")) == "string"
+	for _, e in ipairs(emitters) do
+		local texture = tostring(e.TextureContent.Uri or "")
+		ok = ok and V40_EGG_TEXTURES[texture] == true and e.Enabled and e.Rate <= 5
+	end
+	if not ok then
+		table.insert(badVfx, hero[1] .. " (" .. #emitters .. " emitters)")
+	end
+end
+T.check(#badVfx == 0, "roster eggs without their V40 egg VFX (3-4 calm emitters, EggVfx attachment): %s", table.concat(badVfx, ", ", 1, math.min(#badVfx, 6)))

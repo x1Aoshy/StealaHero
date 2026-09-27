@@ -21,6 +21,14 @@ local Asserts = require(ReplicatedStorage.Library.Asserts)
 local ButtonFX = require(ReplicatedStorage.Library.Client.GUIFX.ButtonFX)
 local Gears = require(ReplicatedStorage.Directory.Gears)
 local Trove = require(ReplicatedStorage.Library.Modules.Packages.Trove)
+local WeaponPortrait = nil
+do
+	local module = ReplicatedStorage.Library.Client:FindFirstChild("WeaponPortrait")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		WeaponPortrait = if ok and type(result) == "table" then result else nil
+	end
+end
 
 require(script.Types.Interface)
 
@@ -177,6 +185,20 @@ function AreaIndexProgressComponent._render(self, sectionId: string, gearId: str
 	view.ProgressBar.ProgressText.TextLabel.Text = `{discovered}/{total}`
 	view.ProgressBar.BatImage.Image = config.Icon
 	view.EquipBat.BatImage.Image = config.Icon
+	-- hero weapons (owner 2026-09-27) show the weapon itself instead of the old bat image: a square studded badge
+	-- inside the EQUIP button's left end and one capping the progress bar (round 9: the portraits used to sit in the
+	-- old bat image, a thin box turned -61 degrees that hung off the button over the hero cards)
+	if WeaponPortrait and type(WeaponPortrait.MountBadge) == "function" then
+		local okEquip, equipBadge = pcall(WeaponPortrait.MountBadge, view.EquipBat, gearId,
+			{ Position = UDim2.fromScale(0.11, 0.5), Height = 1.3 })
+		local okBar, barBadge = pcall(WeaponPortrait.MountBadge, view.ProgressBar, gearId,
+			{ Position = UDim2.fromScale(1, 0.5), Height = 2.1 })
+		local onButton = okEquip and equipBadge ~= nil
+		view.EquipBat.BatImage.Visible = not onButton
+		view.ProgressBar.BatImage.Visible = not (okBar and barBadge ~= nil)
+		view.EquipBat.TextLabelFrame.Position = if onButton then UDim2.fromScale(0.6, 0.5) else UDim2.fromScale(0.53, 0.5)
+		view.EquipBat.TextLabelFrame.Size = if onButton then UDim2.fromScale(0.62, 0.6) else UDim2.fromScale(0.7, 0.6)
+	end
 	view.ProgressBar.Visible = not complete
 	view.EquipBat.Visible = complete
 	view.EquipBat.NotificationBadge.Visible = complete and badge

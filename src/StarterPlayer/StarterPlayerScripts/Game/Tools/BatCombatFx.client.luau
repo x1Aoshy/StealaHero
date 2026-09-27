@@ -18,6 +18,8 @@
 -- burst at the victim (ReplicatedStorage.Assets.Particles.SlapVFX + Damage.Hitspark emitters, emitted once), a brief
 -- white Highlight flash on the victim and the whitelisted pop sound through Library.Audio (SFX setting respected).
 -- The camera shakes are sent by the server to the attacker and the victim (Game.CameraShake).
+-- Hero weapons (payloads with a Weapon field, tools with a HeroWeaponId, owner 2026-09-27) are left to
+-- BranchControllers.HeroWeaponController; this script keeps the classic bats.
 -- This script only draws: it never sends anything to the server. Every piece it creates is local and short-lived, and
 -- a missing optional piece (emitter folder, Audio module, motor) just skips that part of the effect.
 
@@ -422,8 +424,9 @@ local function getToolGameplayGuard()
 	return toolGameplayGuard
 end
 
+-- Hero weapons (HeroWeaponId attribute, owner 2026-09-27) are animated by BranchControllers.HeroWeaponController.
 local function isBatTool(tool)
-	return tool:IsA("Tool") and string.sub(tool.Name, -3) == "Bat"
+	return tool:IsA("Tool") and string.sub(tool.Name, -3) == "Bat" and tool:GetAttribute("HeroWeaponId") == nil
 end
 
 -- Same gates as GearService.onMeleeActivated, so a predicted swing is one the server accepts.
@@ -481,8 +484,8 @@ end
 task.spawn(getToolGameplayGuard) -- warm it up before the first click
 
 local function onBatFx(payload)
-	if type(payload) ~= "table" then
-		return
+	if type(payload) ~= "table" or payload.Weapon ~= nil then
+		return -- a hero weapon's broadcast (BranchControllers.HeroWeaponController)
 	end
 	if payload.Action == "Swing" then
 		local attacker = payload.Attacker

@@ -71,8 +71,24 @@ local PATH_GOAL_REUSE_DISTANCE = 12
 local STRAIGHT_LINE_DISTANCE = 25
 local LOOKAHEAD_SECONDS = 0.35
 local HIT_BASE_PAD = 0.75
-local HIT_LATENCY_SECONDS = 0.1 -- client-owned characters replicate ~ping late
+local HIT_LATENCY_SECONDS = 0.1 -- client-owned characters replicate ~ping late (uncompensated fallback only)
 local HIT_MAX_LATENCY_PAD = 6
+-- Lag-compensated catches (owner 2026-09-27: "super accurate hitbox, even when the server lags"): the carrier's screen
+-- shows the villain one round trip + the interpolation buffer late, and the server sees the carrier one upload late:
+-- the catch compares the carrier's server position with the villain REWOUND to what that carrier saw
+-- (BranchServices.LagCompensationService), so no latency pad is needed, only a frame of movement.
+local HIT_FRAME_SECONDS = 1 / 30
+local HIT_MAX_FRAME_PAD = 1
+local SEEN_SLACK = 4 -- the villain must still be within reach + this now (a stale past position never catches from afar)
+local LagComp = nil
+do
+	local services = script.Parent and script.Parent.Parent and script.Parent.Parent:FindFirstChild("BranchServices")
+	local module = services and services:FindFirstChild("LagCompensationService")
+	if module then
+		local ok, result = pcall(require, module)
+		LagComp = if ok and type(result) == "table" then result else nil
+	end
+end
 local LEAD_MAX_SECONDS = 0.35
 local DEFAULT_FLAT_RADIUS = 20
 local MIN_WALK_SPEED = 8
@@ -94,6 +110,7 @@ local IGNORE_RELEASE_DISTANCE = 6 -- a carrier given up on is chased again once 
 local RETRIEVE_REACH = 6
 local RETRIEVE_TIMEOUT = 15
 local ATTACK_PAUSE = 0.6
+local RETRIEVE_PICKUP_PAUSE = 0.45 -- the villain stops this long to lift a dropped egg before carrying it home
 local NETWORK_OWNER_REFRESH = 2
 local SETUP_WAIT_SECONDS = 15
 local RUN_ANIMATION_BASE_SPEED = 16
@@ -348,6 +365,21 @@ local function returnDroppedEgg(uid)
 	end
 end
 
+-- Lifts a Dropped egg into the villain's arms (AreaEggService state GuardCarried). Returns the egg's nest position,
+-- or nil when it could not be picked up (then the caller returns it to its nest the old way).
+local function pickUpDroppedEgg(uid)
+	local fn = callbacks.PickUpDroppedEgg
+	if not fn then
+		return nil
+	end
+	local ok, nest = pcall(fn, uid)
+	if not ok then
+		warnOnce("pickup-dropped", "PickUpDroppedEgg failed: " .. tostring(nest))
+		return nil
+	end
+	return if typeof(nest) == "CFrame" then nest.Position else nil
+end
+
 -- Policy wrappers: reuse RS GuardChasePolicy when it loads, same maths inline otherwise.
 local function resolveWakingDuration()
 	if GuardChasePolicy and GuardChasePolicy.GetWakingDuration then
@@ -492,9 +524,12 @@ local function getLiveRoot(player)
 	return nil
 end
 
-local function catchDistance(g, root)
+local function catchDistance(g, root, compensated)
 	local velocity = root.AssemblyLinearVelocity
 	local flatSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+	if compensated then
+		return g.hitDistance + HIT_BASE_PAD + math.min(flatSpeed * HIT_FRAME_SECONDS, HIT_MAX_FRAME_PAD)
+	end
 	return g.hitDistance + HIT_BASE_PAD + math.min(flatSpeed * HIT_LATENCY_SECONDS, HIT_MAX_LATENCY_PAD)
 end
 
@@ -515,15 +550,44 @@ local function castRay(g, origin, direction)
 	return nil
 end
 
+-- Where a carrier's root would be if they stood on the floor under them. A jumping carrier (FloorMaterial Air) is
+-- read at that height, so a jump never lifts the chase goal off the floor (isLineClear refused every airborne goal:
+-- the villain stopped, repathed and stuttered on each hop; owner 2026-09-27 "the pathfinder bugs while I jump")
+-- nor makes the carrier uncatchable in mid-air. Grounded carriers (and a fall with no floor below) keep their
+-- real position.
+local function standingPosition(g, root)
+	local position = root.Position
+	local humanoid = root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
+	if humanoid == nil or humanoid.FloorMaterial ~= Enum.Material.Air then
+		return position
+	end
+	local hit = castRay(g, position, Vector3.new(0, -GROUND_PROBE_DEPTH, 0))
+	if hit == nil then
+		return position
+	end
+	local standing = hit.Position.Y + humanoid.HipHeight + root.Size.Y / 2
+	return Vector3.new(position.X, math.min(position.Y, standing), position.Z)
+end
+
 -- 3D catch: within flat reach, roots at most 2.5*scale + 3 apart in height (a carrier on a roof or a
--- ledge above the villain is out of reach), nothing solid in between, never in the safe zone.
-local function canCatch(g, root, distance)
-	if distance > catchDistance(g, root) or isInSafeZone(root.Position) then
+-- ledge above the villain is out of reach; a jumping one is judged where they will land), nothing solid in
+-- between, never in the safe zone.
+local function canCatch(g, root, distance, player)
+	if isInSafeZone(root.Position) then
+		return false
+	end
+	if LagComp and player then
+		-- judged where the carrier SAW the villain (rewound by their ping + the interpolation buffer)
+		local reach = catchDistance(g, root, true)
+		if flatDistance(LagComp.SeenBy(g.hrp, player), root.Position) > reach or distance > reach + SEEN_SLACK then
+			return false
+		end
+	elseif distance > catchDistance(g, root) then
 		return false
 	end
 	local origin = g.hrp.Position
 	local target = root.Position
-	if math.abs(target.Y - origin.Y) > VERTICAL_CATCH_BASE + VERTICAL_CATCH_PER_SCALE * g.scale then
+	if math.abs(standingPosition(g, root).Y - origin.Y) > VERTICAL_CATCH_BASE + VERTICAL_CATCH_PER_SCALE * g.scale then
 		return false
 	end
 	return castRay(g, origin, target - origin) == nil
@@ -650,16 +714,16 @@ local function playLoop(g, key)
 	end
 end
 
-local function playAttack(g)
-	local track = g.tracks.Attack
-	if track then
-		pcall(track.Play, track, 0.05)
-	end
-end
-
+-- WalkSpeed replicates to every client on each write, and the rubber-band speed drifts every frame: small drifts are
+-- written at most every WALKSPEED_MIN_INTERVAL s, a jump of WALKSPEED_STEP or more right away (owner 2026-09-27:
+-- network / no lag; this was up to ~30 writes a second per chasing villain).
+local WALKSPEED_STEP, WALKSPEED_MIN_INTERVAL = 2, 0.2
 local function setWalkSpeed(g, speed)
-	if math.abs(g.humanoid.WalkSpeed - speed) > 0.5 then
+	local delta = math.abs(g.humanoid.WalkSpeed - speed)
+	local now = os.clock()
+	if delta >= WALKSPEED_STEP or (delta > 0.5 and now - (g.walkSpeedAt or 0) >= WALKSPEED_MIN_INTERVAL) then
 		g.humanoid.WalkSpeed = speed
+		g.walkSpeedAt = now
 	end
 	if g.currentLoop == "Run" and g.tracks.Run then
 		pcall(g.tracks.Run.AdjustSpeed, g.tracks.Run, math.clamp(speed / (RUN_ANIMATION_BASE_SPEED * g.scale), 0.8, 2.5))
@@ -805,7 +869,16 @@ end
 
 local enterChasing, enterReturning, enterRetrieving, enterSleeping, finishChase, configureSignature
 
+-- A villain pulled out of a retrieval while it holds an egg (sleep, return, teleport home) sets it back in its nest.
+local function releaseCarriedEgg(g)
+	if g.carryNest ~= nil and g.retrieveUid ~= nil then
+		returnDroppedEgg(g.retrieveUid)
+	end
+	g.carryNest = nil
+end
+
 enterSleeping = function(g, now)
+	releaseCarriedEgg(g)
 	g.state = STATE_SLEEPING
 	g.target = nil
 	g.retrieveUid = nil
@@ -824,6 +897,7 @@ enterSleeping = function(g, now)
 end
 
 local function enterWaking(g, now, player, root)
+	releaseCarriedEgg(g)
 	g.state = STATE_WAKING
 	g.wakeEndsAt = now + g.wakingDuration
 	g.target = nil
@@ -861,6 +935,7 @@ local function enterWaking(g, now, player, root)
 end
 
 enterChasing = function(g, now)
+	releaseCarriedEgg(g)
 	g.state = STATE_CHASING
 	g.nextMoveAt = 0
 	g.outOfReachSince = nil
@@ -876,6 +951,7 @@ enterChasing = function(g, now)
 end
 
 enterReturning = function(g, now)
+	releaseCarriedEgg(g)
 	g.state = STATE_RETURNING
 	g.target = nil
 	g.retrieveUid = nil
@@ -899,6 +975,7 @@ enterReturning = function(g, now)
 end
 
 enterRetrieving = function(g, now, uid)
+	releaseCarriedEgg(g)
 	g.state = STATE_RETRIEVING
 	g.target = nil
 	g.retrieveUid = uid
@@ -1169,7 +1246,9 @@ end
 
 local function catchPlayer(g, player, uid, now)
 	g.lastAttackAt = now
-	playAttack(g)
+	-- the swing: a procedural punch every client plays on the villain's joints (VillainChaseFx "Punch"; owner
+	-- 2026-09-27), instead of the stock tool-slash track
+	fireFx(g, "Punch", player, ATTACK_PAUSE)
 
 	if serverHitRemote then
 		pcall(serverHitRemote.FireClient, serverHitRemote, player, {
@@ -1265,7 +1344,7 @@ local function stepChasing(g, now)
 		setAttr(g, "TargetPlayer", tostring(player.UserId))
 	end
 
-	local reachable = canCatch(g, root, distance)
+	local reachable = canCatch(g, root, distance, player)
 	if reachable and now - g.lastAttackAt >= ATTACK_COOLDOWN then
 		catchPlayer(g, player, uid, now)
 		return
@@ -1291,7 +1370,8 @@ local function stepChasing(g, now)
 
 	local velocity = root.AssemblyLinearVelocity
 	local lead = math.min(distance / math.max(speed, 1), LEAD_MAX_SECONDS)
-	local goal = clampGoal(root.Position + Vector3.new(velocity.X, 0, velocity.Z) * lead)
+	-- the floor-level position of a jumping carrier (standingPosition): the goal stays walkable during a hop
+	local goal = clampGoal(standingPosition(g, root) + Vector3.new(velocity.X, 0, velocity.Z) * lead)
 	local heading = moveToward(g, goal, now, speed)
 
 	local closeEnough = g.hitDistance + 4
@@ -1319,22 +1399,32 @@ local function stepChasing(g, now)
 	end
 end
 
+-- Retrieval (owner 2026-09-27): walk to the dropped egg, lift it (GuardCarried: every client shows it in the
+-- villain's arms), carry it to its nest and set it down there. A new carrier to chase, a timeout or a stall sends
+-- the egg straight home (returnDroppedEgg) as before.
 local function stepRetrieving(g, now)
+	local uid = g.retrieveUid
+	local record = getRecord(uid)
+	local carrying = record ~= nil and record.State == "GuardCarried" and g.carryNest ~= nil
+
 	if now >= g.nextScanAt then
 		g.nextScanAt = now + TARGET_SCAN_INTERVAL
 		if selectTarget(g) then
+			if carrying then
+				returnDroppedEgg(uid) -- put it home before chasing again: never chase with an egg in the arms
+			end
+			g.carryNest = nil
 			enterChasing(g, now)
 			return
 		end
 	end
 
-	local uid = g.retrieveUid
-	local record = getRecord(uid)
-	if not record or record.State ~= "Dropped" or typeof(record.BottomCFrame) ~= "CFrame" then
+	if not record or (record.State ~= "Dropped" and not carrying) or typeof(record.BottomCFrame) ~= "CFrame" then
 		-- Re-stolen, claimed or already returned by someone else.
 		if uid then
 			g.pendingDropped[uid] = nil
 		end
+		g.carryNest = nil
 		finishChase(g, now)
 		return
 	end
@@ -1342,17 +1432,39 @@ local function stepRetrieving(g, now)
 	if now - g.retrieveStartedAt > RETRIEVE_TIMEOUT then
 		g.pendingDropped[uid] = nil
 		returnDroppedEgg(uid)
+		g.carryNest = nil
 		finishChase(g, now)
 		return
 	end
 
-	local eggPosition = record.BottomCFrame.Position
+	local eggPosition = if carrying then g.carryNest else record.BottomCFrame.Position
 	local goal = clampGoal(eggPosition)
 	local distance = flatDistance(g.hrp.Position, eggPosition)
 	if distance <= RETRIEVE_REACH + (goal.X - eggPosition.X) then
 		g.pendingDropped[uid] = nil
-		returnDroppedEgg(uid)
-		finishChase(g, now)
+		if carrying then
+			-- at the nest: set the egg down
+			returnDroppedEgg(uid)
+			g.carryNest = nil
+			finishChase(g, now)
+			return
+		end
+		local nest = pickUpDroppedEgg(uid)
+		if nest == nil then
+			returnDroppedEgg(uid)
+			finishChase(g, now)
+			return
+		end
+		-- lifted: now carry it to the nest (a fresh timeout for the walk; a short stop to pick it up)
+		g.carryNest = nest
+		g.retrieveStartedAt = now
+		g.pauseUntil = now + RETRIEVE_PICKUP_PAUSE
+		g.nextMoveAt = 0
+		g.progressPos = g.hrp.Position
+		g.progressAt = g.pauseUntil
+		pcall(function()
+			g.humanoid:MoveTo(g.hrp.Position)
+		end)
 		return
 	end
 
@@ -1370,6 +1482,7 @@ local function stepRetrieving(g, now)
 	if stalled >= NO_PROGRESS_SECONDS then
 		g.pendingDropped[uid] = nil
 		returnDroppedEgg(uid)
+		g.carryNest = nil
 		teleportHome(g, now, "stuck while retrieving an egg")
 	else
 		repathIfStuck(g, now, stalled)
@@ -1598,6 +1711,17 @@ local function collectJointedParts(model, root)
 		end
 	end
 	return reached
+end
+
+-- Villains with authored clips (ReplicatedStorage.Directory.VillainAnimations.<HeroId>, owner 2026-09-27: "each boss its
+-- own attack, run and a distracted / asleep idle; Frieza's float") are animated on every client by
+-- StarterPlayerScripts.Game.VillainClipPlayer: the server loads no Animator track for them (nothing to replicate, no
+-- track fighting the clips) and marks the rig ClientClips.
+local function hasClientClips(guardModel)
+	local heroId = guardModel:GetAttribute("HeroId")
+	local directory = ReplicatedStorage:FindFirstChild("Directory")
+	local folder = directory and directory:FindFirstChild("VillainAnimations")
+	return type(heroId) == "string" and folder ~= nil and folder:FindFirstChild(heroId) ~= nil
 end
 
 local function loadTracks(humanoid, zoneName)
@@ -1991,7 +2115,7 @@ local function setupZone(zone)
 		pathFailedUntil = 0,
 		wakingDuration = resolveWakingDuration(),
 		knockbackForce = KNOCKBACK_FORCE_BY_ZONE[zoneName] or DEFAULT_KNOCKBACK_FORCE,
-		tracks = loadTracks(humanoid, zoneName),
+		tracks = if hasClientClips(guardModel) then {} else loadTracks(humanoid, zoneName),
 		currentLoop = nil,
 		path = path,
 		agentParams = agentParams,
@@ -2037,6 +2161,10 @@ local function setupZone(zone)
 		end)
 	end
 
+	guardModel:SetAttribute("ClientClips", hasClientClips(guardModel))
+	if LagComp then
+		LagComp.Track(hrp) -- position history for lag-compensated catches
+	end
 	guardModel:SetAttribute("AreaId", zoneName)
 	guardModel:SetAttribute("HomeCFrame", home)
 	guardModel:SetAttribute("HeadLookAtDisabled", true)
@@ -2323,6 +2451,8 @@ function GuardChaseService.StartChase(player, record, wasDropped)
 		enterWaking(g, now, player, root)
 	elseif g.state == STATE_RETURNING or g.state == STATE_RETRIEVING then
 		-- On its way back: appear near the new carrier if it is far off (with the wake beat), else just turn round.
+		-- An egg it is carrying home goes back to its nest first (it must not teleport in the villain's arms).
+		releaseCarriedEgg(g)
 		local root = getLiveRoot(player)
 		if spawnForCarrier(g, player, root) then
 			enterWaking(g, now, player, root)

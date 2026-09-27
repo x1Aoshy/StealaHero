@@ -21,9 +21,30 @@ end
 ---------------------------------------------------------------------------------------------------
 local baseplate = ws:FindFirstChild("Baseplate")
 local groundY = 2.05
+-- owner Studio save 2026-09-27: a part is capped at 2048 studs, so the baseplate is the owner's 2048 x 2048 tiles
+-- (post_zzz_owner_layout); together they must cover the hub and the whole stage lane
+local tiles = {}
+for _, child in ipairs(ws:GetChildren()) do
+	if child.Name == "Baseplate" and child:IsA("BasePart") then
+		table.insert(tiles, child)
+	end
+end
+local function isBaseplate(part)
+	return part.Name == "Baseplate" and part.Parent == ws
+end
 if T.check(baseplate ~= nil and baseplate:IsA("BasePart"), "expected Workspace.Baseplate") then
 	local s = baseplate.Size
-	T.check(math.abs(s.X - 10000) < 1 and math.abs(s.Y - 20) < 1 and math.abs(s.Z - 3000) < 1, "baseplate size expected 10000x20x3000, found %s", tostring(s))
+	local coverMin, coverMax = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
+	local sized = true
+	for _, tile in ipairs(tiles) do
+		local a, b = H.aabb(tile)
+		coverMin = Vector3.new(math.min(coverMin.X, a.X), 0, math.min(coverMin.Z, a.Z))
+		coverMax = Vector3.new(math.max(coverMax.X, b.X), 0, math.max(coverMax.Z, b.Z))
+		sized = sized and tile.Size.X <= 2048 and tile.Size.Z <= 2048 and math.abs(tile.Size.Y - 20) < 1
+	end
+	T.check(sized and coverMin.X <= -120 and coverMax.X >= PLAN.STAGES[#PLAN.STAGES].xMax + 10 and coverMin.Z <= -230 and coverMax.Z >= 230,
+		"baseplate tiles (%d, <= 2048 studs) must cover the hub and the stage lane (X %.0f..%.0f, Z %.0f..%.0f)", #tiles, coverMin.X, coverMax.X,
+		coverMin.Z, coverMax.Z)
 	T.check(baseplate.Anchored and baseplate.CanCollide, "baseplate must be anchored and collidable")
 	local c = baseplate.Color
 	T.check(c.G > c.R and c.G > c.B, "baseplate should be the green grass floor, found rgb(%d,%d,%d)", c.R * 255, c.G * 255, c.B * 255)
@@ -69,7 +90,8 @@ end
 local lastX = PLAN.STAGES[#PLAN.STAGES].xMax
 local beyond = {}
 for _, top in ipairs(ws:GetChildren()) do
-	if top ~= baseplate and top.Name ~= "Terrain" and top.Name ~= "Camera" then
+	-- (Workspace.Scenery: the woods and rocks outside the walls, non-colliding decoration, owner 2026-09-27)
+	if not isBaseplate(top) and top.Name ~= "Terrain" and top.Name ~= "Camera" and top.Name ~= "Scenery" then
 		for _, p in ipairs(top:IsA("BasePart") and { top } or top:GetDescendants()) do
 			if p:IsA("BasePart") and (p.CanCollide or p.Transparency < 1) then
 				local mn = H.aabb(p)
@@ -220,7 +242,7 @@ end
 ---------------------------------------------------------------------------------------------------
 local collidables = {}
 for _, d in ipairs(ws:GetDescendants()) do
-	if d:IsA("BasePart") and not d:IsA("Terrain") and d.CanCollide and d ~= baseplate and not (guardAreas and d:IsDescendantOf(guardAreas)) then
+	if d:IsA("BasePart") and not d:IsA("Terrain") and d.CanCollide and not isBaseplate(d) and not (guardAreas and d:IsDescendantOf(guardAreas)) then
 		local mn, mx = H.aabb(d)
 		table.insert(collidables, { part = d, min = mn, max = mx })
 	end
@@ -925,8 +947,11 @@ for _, shop in ipairs(SHOPS) do
 			end
 		end
 	end
+	-- the owner moved the stands by hand in Studio (post_zzz_owner_layout marks them OwnerLayout): no X rule for them
+	local first = stands and H.path(stands, shop[2][1])
+	local ownerPlaced = first ~= nil and first:GetAttribute("OwnerLayout") == true
 	if mn then
-		T.check(mx.X <= PLAN.SHOP_MAX_X + 0.05, "%s shop reaches X %.1f (hub side of the stage-1 entrance: X <= %d)", shop[1], mx.X, PLAN.SHOP_MAX_X)
+		T.check(ownerPlaced or mx.X <= PLAN.SHOP_MAX_X + 0.05, "%s shop reaches X %.1f (hub side of the stage-1 entrance: X <= %d)", shop[1], mx.X, PLAN.SHOP_MAX_X)
 		T.check(mx.X >= PLAN.SHOP_MAX_X - 20, "%s shop (max X %.1f) must stand around the stage-1 entrance", shop[1], mx.X)
 		T.check(mn.Z >= PLAN.STREET_OVERHEAD_HALF_WIDTH or mx.Z <= -PLAN.STREET_OVERHEAD_HALF_WIDTH, "%s shop must leave the street to stage 1 open (|Z| <= 15)", shop[1])
 	end
@@ -1101,7 +1126,8 @@ for i = 1, 6 do
 		end
 	end
 end
-T.check(caps == 126 and braces == 120 and gems > 0, "D6 plot fences: expected 126 HubFenceCap, 120 HubFenceBrace and some HubFenceGem parts, found %d / %d / %d",
+-- (owner Studio save 2026-09-27: the fence gems are gone, post_zzz_owner_layout)
+T.check(caps == 126 and braces == 120 and gems == 0, "D6 plot fences: expected 126 HubFenceCap, 120 HubFenceBrace and no HubFenceGem (owner removed them), found %d / %d / %d",
 	caps, braces, gems)
 
 -- leaderboards (HEROBOARD 2026-09-26): the four free-standing boards are retired (scripts/steps/post_leaderboards.luau)

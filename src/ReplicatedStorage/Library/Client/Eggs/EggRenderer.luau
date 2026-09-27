@@ -63,6 +63,37 @@ function t1.ApplyPlacedCollisionPolicy(p3) -- line: 62
 		end
 	end
 end
+-- Taco Rain (owner 2026-09-27): an egg a falling taco hit carries the "Taco" mutation; every render of it (nest, base,
+-- hand) shows that mutation's particles (ReplicatedStorage.Mutation_FX.<Name>, scripts/steps/post_taco_rain.luau) on its
+-- PrimaryPart, tagged EggMutationFX. Eggs never showed a mutation before, so only the mutations listed here draw.
+t1.EGG_FX_MUTATIONS = { "Taco" }
+function t1.ApplyMutationParticles(p8, p9)
+	local Mutations = type(p9) == "table" and p9.Mutations
+	local PrimaryPart = p8.PrimaryPart
+	local Mutation_FX = ReplicatedStorage:FindFirstChild("Mutation_FX")
+
+	if type(Mutations) ~= "table" or PrimaryPart == nil or Mutation_FX == nil then
+		return
+	end
+
+	for _, name in ipairs(t1.EGG_FX_MUTATIONS) do
+		local folder = table.find(Mutations, name) and Mutation_FX:FindFirstChild(name)
+
+		if folder and not PrimaryPart:FindFirstChild("EggMutationFX_" .. name) then
+			local holder = Instance.new("Folder")
+
+			holder.Name = "EggMutationFX_" .. name
+			holder.Parent = PrimaryPart
+
+			for _, child in folder:GetChildren() do
+				local copy = child:Clone()
+
+				copy:AddTag("EggMutationFX")
+				copy.Parent = PrimaryPart
+			end
+		end
+	end
+end
 function t1.RenderVisual(p4, p5, b1: boolean?) -- line: 75
 	-- upvalues: Asserts (copy), Eggs (copy), Assets (copy), t1 (copy), EggScaleUtil (copy), AssetColorUtil (copy), BBFromModelVisibleOnly (copy)
 	Asserts.Instance(p5)
@@ -111,6 +142,8 @@ function t1.RenderVisual(p4, p5, b1: boolean?) -- line: 75
 	if b1 then
 		t1.ApplyPlacedCollisionPolicy(clone)
 	end
+
+	t1.ApplyMutationParticles(clone, p4.Record)
 
 	clone.Parent = p5
 

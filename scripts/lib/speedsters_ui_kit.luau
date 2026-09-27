@@ -381,6 +381,14 @@ Kit.ButtonFamilies = {
 		light = { thickness = 0.06, offset = -0.1, zIndex = 1, gradient = { { 0, "#a8ff80" }, { 0.6356, "#06f81a" }, { 1, "#1e5909" } } },
 		dark = { color = hex("#104300"), thickness = 0.06, offset = -0.05, zIndex = 2 },
 	}),
+	-- owner 2026-09-27: an already-claimed reward reads as a dull, muted green (it showed white with equip_grey)
+	claimed_muted = family({
+		source = "StarterGui.AfkRewardsGui.Earnings.Claim (muted)",
+		image = Kit.Images.actionPill, corner = 0.25, aspect = 2.8, solid = hex("#5b8a52"),
+		fill = { { 0, "#7fae73" }, { 0.4577, "#5f8f55" }, { 1, "#3f6538" } },
+		light = { thickness = 0.06, offset = -0.1, zIndex = 1, gradient = { { 0, "#b9d8ae" }, { 0.6356, "#6f9d63" }, { 1, "#2b4726" } } },
+		dark = { color = hex("#1f3a1b"), thickness = 0.06, offset = -0.05, zIndex = 2 },
+	}),
 	equip_grey = family({
 		source = "StarterGui.Index.Index.ScrollingFrame.UnequippedTemplate.Equip",
 		image = Kit.Images.equipButton, corner = 0.25, aspect = 4.1111, solid = hex("#bebebe"), bg = hex("#bebebe"),
@@ -771,8 +779,11 @@ end
 
 -- Writes the four per-corner radii (CornerRadius is not persisted by Lune) on the first UICorner, creating one
 -- when absent. radius: UDim or a scale number (0.05 -> UDim(0.05, 0)).
+-- Owner 2026-09-27: "no more rounded UI, leave them square with a separation": with Kit.SQUARE_UI every corner the
+-- kits and steps write is square (radius 0), whatever radius the caller asks for.
+Kit.SQUARE_UI = true
 function Kit.setCorner(inst, radius)
-	local r = udim(radius)
+	local r = if Kit.SQUARE_UI then UDim.new(0, 0) else udim(radius)
 	local corner = inst:FindFirstChildOfClass("UICorner")
 	if not corner then
 		corner = Instance.new("UICorner")

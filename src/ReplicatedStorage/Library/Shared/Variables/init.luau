@@ -86,6 +86,17 @@ return {
 				[false] = false
 			}
 		},
+		-- Owner 2026-09-27: "in settings, a switch to turn off that annoying spam of money numbers, off by default": the
+		-- floating "+$" amounts next to the money counter (GUI.MoneyUpdate) only show while this is on.
+		ShowMoneyPopups = {
+			displayName = "Money Popups",
+			description = "Shows the floating +$ amounts when you earn money.",
+			default = false,
+			options = {
+				[true] = true,
+				[false] = false
+			}
+		},
 		-- Key kept as DisableVideos (SpeedPhone and TreadmillUI read it); only the text changed.
 		DisableVideos = {
 			displayName = "Hide Treadmill Phone",

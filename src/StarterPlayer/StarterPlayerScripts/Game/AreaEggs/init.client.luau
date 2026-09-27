@@ -15,27 +15,102 @@ local StarterGui = game:GetService("StarterGui")
 local function DEBUG(msg)
 	warn("[AreaEggsDEBUG] " .. msg)
 end
-local AreaEggs = require(ReplicatedStorage.Library.Types.AreaEggs)
-local AreaEggNearbyPulse = require(script.AreaEggNearbyPulse)
-local BBFromModelVisibleOnly = require(ReplicatedStorage.Library.Functions.BBFromModelVisibleOnly)
-local Weld = require(ReplicatedStorage.Library.Functions.Weld)
-local CarryRunBackEffects = require(script.CarryRunBackEffects)
-local EggCmds = require(ReplicatedStorage.Library.Client.EggCmds)
-local EggRenderer = require(ReplicatedStorage.Library.Client.Eggs.EggRenderer)
-local AreaEggSlotIdentity = require(ReplicatedStorage.Library.Util.AreaEggSlotIdentity)
-local GuardAreaLookupUtil = require(ReplicatedStorage.Library.Util.GuardAreaLookupUtil)
-local HoverHighlight = require(script.HoverHighlight)
-local Log = require(ReplicatedStorage.Library.Modules.Packages.Log)
-local RewardScreenTransition = require(ReplicatedStorage.Library.Client.GUIFX.RewardScreenTransition)
-local NestResolver = require(script.NestResolver)
-local Message = require(ReplicatedStorage.Library.Client.NotificationCmds.Message)
-local Player = require(ReplicatedStorage.Library.Player)
-local RareEggHighlight = require(script.RareEggHighlight)
-local RenderBudget = require(ReplicatedStorage.Library.Modules.RenderBudget)
-local SmartProximityPrompt = require(ReplicatedStorage.Library.Client.SmartProximityPrompt)
-local Trove = require(ReplicatedStorage.Library.Modules.Packages.Trove)
-local WorkspaceEggVisibility = require(script.WorkspaceEggVisibility)
-local wcall = require(ReplicatedStorage.Library.Functions.wcall)
+
+-- Start-up watchdog (owner 2026-09-27: "the eggs no longer appear, the stages are empty": the server had spawned every
+-- egg, and this script printed nothing and raised no error). Every step of the start is named in `startupStage` (also
+-- the LocalPlayer attribute AreaEggsStage, which BranchControllers.EggHealthController reports); if the start has not
+-- finished STARTUP_WATCHDOG_SECONDS after it began, the log says which step it is waiting on instead of staying silent.
+local STARTUP_WATCHDOG_SECONDS = 10
+local startupStage = "begin"
+local startupFinished = false
+local function setStartupStage(stage)
+	startupStage = stage
+	pcall(function()
+		Players.LocalPlayer:SetAttribute("AreaEggsStage", stage)
+	end)
+end
+local deferredLoading = {} -- [module full name] = true while a presentation module is still loading
+task.delay(STARTUP_WATCHDOG_SECONDS, function()
+	local slow = {}
+	for name in pairs(deferredLoading) do
+		table.insert(slow, name)
+	end
+	if not startupFinished then
+		warn(`[AreaEggs] start-up still waiting after {STARTUP_WATCHDOG_SECONDS} s at: {startupStage}`)
+	end
+	if #slow > 0 then
+		warn(`[AreaEggs] still loading after {STARTUP_WATCHDOG_SECONDS} s (the eggs work without them): {table.concat(slow, ", ")}`)
+	end
+end)
+local function req(module)
+	setStartupStage("require " .. module:GetFullName())
+	return require(module)
+end
+-- Presentation-only modules (the carry run-back screen effects, the hover and rare-egg highlights, the claim transition
+-- and toast) load in the background, so the eggs are drawn and can be stolen even when one of them is slow to load or
+-- never finishes (they reach into the HUD). Until one arrives its calls do nothing, except Start(), which runs as soon
+-- as the module arrives.
+local function reqDeferred(module)
+	local name = module:GetFullName()
+	local real = nil
+	local startWanted = false
+	deferredLoading[name] = true
+	task.spawn(function()
+		local ok, value = pcall(require, module)
+		deferredLoading[name] = nil
+		if not ok then
+			warn(`[AreaEggs] {name} failed to load: {value}`)
+			return
+		end
+		real = value
+		if startWanted and type(value) == "table" and type(value.Start) == "function" then
+			local okStart, err = pcall(value.Start)
+			if not okStart then
+				warn(`[AreaEggs] {name}.Start failed: {err}`)
+			end
+		end
+	end)
+	return setmetatable({}, {
+		__index = function(_, key)
+			if real ~= nil then
+				return real[key]
+			end
+			if key == "Start" then
+				return function()
+					startWanted = true
+				end
+			end
+			return function() end
+		end,
+		__call = function(_, ...)
+			if real ~= nil then
+				return real(...)
+			end
+			return nil
+		end,
+	})
+end
+local AreaEggs = req(ReplicatedStorage.Library.Types.AreaEggs)
+local AreaEggNearbyPulse = req(script.AreaEggNearbyPulse)
+local BBFromModelVisibleOnly = req(ReplicatedStorage.Library.Functions.BBFromModelVisibleOnly)
+local Weld = req(ReplicatedStorage.Library.Functions.Weld)
+local CarryRunBackEffects = reqDeferred(script.CarryRunBackEffects)
+local EggCmds = req(ReplicatedStorage.Library.Client.EggCmds)
+local EggRenderer = req(ReplicatedStorage.Library.Client.Eggs.EggRenderer)
+local AreaEggSlotIdentity = req(ReplicatedStorage.Library.Util.AreaEggSlotIdentity)
+local GuardAreaLookupUtil = req(ReplicatedStorage.Library.Util.GuardAreaLookupUtil)
+local HoverHighlight = reqDeferred(script.HoverHighlight)
+local Log = req(ReplicatedStorage.Library.Modules.Packages.Log)
+local RewardScreenTransition = reqDeferred(ReplicatedStorage.Library.Client.GUIFX.RewardScreenTransition)
+local NestResolver = req(script.NestResolver)
+local Message = reqDeferred(ReplicatedStorage.Library.Client.NotificationCmds.Message)
+local Player = req(ReplicatedStorage.Library.Player)
+local RareEggHighlight = reqDeferred(script.RareEggHighlight)
+local RenderBudget = req(ReplicatedStorage.Library.Modules.RenderBudget)
+local SmartProximityPrompt = req(ReplicatedStorage.Library.Client.SmartProximityPrompt)
+local Trove = req(ReplicatedStorage.Library.Modules.Packages.Trove)
+local WorkspaceEggVisibility = req(script.WorkspaceEggVisibility)
+local wcall = req(ReplicatedStorage.Library.Functions.wcall)
 local States = AreaEggs.States
 local LocalPlayer = Players.LocalPlayer
 local v26 = Log.new()
@@ -56,6 +131,7 @@ local v29 = RenderBudget.new({
 	TargetSpreadSeconds = 0.35,
 	SpreadMinJobs = 10.0
 })
+setStartupStage("world lookups (Workspace.__OBJECTS.Areas)")
 local __OBJECTS = Workspace.__OBJECTS
 
 assert(__OBJECTS:IsA("Folder"), "Workspace.__OBJECTS must be a Folder")
@@ -500,6 +576,7 @@ local function applyInitialSnapshot(p14) -- line: 301
 	end
 end
 
+setStartupStage("connect handlers")
 EggCmds.AreaEggClaimed:Connect(function(p15) -- line: 334
 	-- upvalues: RewardScreenTransition (copy), Message (copy)
 	RewardScreenTransition()
@@ -959,8 +1036,265 @@ WorkspaceEggVisibility.ModelAdded:Connect(function(p19) -- line: 373
 		end)
 	end
 end)
+-- Villain carry (owner 2026-09-27: "the villains pick the eggs up, carry them and put them in their basket"): an egg
+-- the stage villain lifted (State "GuardCarried", set by AreaEggService when GuardChaseService reaches a Dropped egg)
+-- rides in front of the villain's chest, sized to the villain, with its arms posed around it (Motor6D.C0 offsets on
+-- the shared base VfxBaseC0, restored when the carry ends), until the server sets it down in its nest (Slot) or
+-- returns it some other way.
+local GUARD_CARRIED = "GuardCarried"
+local GUARD_CARRY_POSE = {
+	RightShoulder = { 72, 0, 14 },
+	LeftShoulder = { 72, 0, -14 },
+	RightElbow = { 38, 0, 0 },
+	LeftElbow = { 38, 0, 0 },
+}
+local guardCarryRenders = {} -- [uid] = Trove
+
+local function guardModelFor(areaId)
+	local ok, guard = pcall(function()
+		return __OBJECTS.Areas.GuardAreas[areaId]:FindFirstChild("Guard")
+	end)
+	return if ok and guard and guard:IsA("Model") then guard else nil
+end
+
+-- The joint's rest C0, shared with VillainChaseFx's punch so the two poses never stack.
+local function restC0(motor)
+	local base = motor:GetAttribute("VfxBaseC0")
+	if typeof(base) ~= "CFrame" then
+		base = motor.C0
+		motor:SetAttribute("VfxBaseC0", base)
+	end
+	return base
+end
+
+local function clearGuardCarry(uid)
+	local trove = guardCarryRenders[uid]
+	if trove then
+		guardCarryRenders[uid] = nil
+		pcall(function()
+			trove:Destroy()
+		end)
+	end
+end
+
+-- Deferred from the record update: works from the record's CURRENT state (a Slot update handled in the same cycle
+-- must win, or the egg would stay welded to the villain).
+local function renderGuardCarry(uid)
+	local record = EggCmds.GetAreaEggRecord(uid)
+	if record == nil or record.State ~= GUARD_CARRIED or guardCarryRenders[uid] then
+		return
+	end
+	local guard = guardModelFor(record.AreaId)
+	local torso = guard and (guard:FindFirstChild("UpperTorso") or guard:FindFirstChild("HumanoidRootPart"))
+	if not (torso and torso:IsA("BasePart")) then
+		return
+	end
+	local trove = Trove.new()
+	guardCarryRenders[record.Uid] = trove
+	local ok, resultOrErr = pcall(function()
+		return EggRenderer.RenderVisual({
+			OwnerUserId = 0,
+			ScaleAlpha = 1.0,
+			UID = record.Uid .. "_GuardCarried",
+			ModelName = record.Uid .. "_GuardCarried",
+			Record = {
+				AssetCategory = record.AssetCategory,
+				AssetScale = record.AssetScale,
+				AssetEyeColor = record.AssetEyeColor,
+				AssetColorSeed = record.AssetColorSeed,
+				AssetColorIndex = record.AssetColorIndex,
+				Mutations = table.clone(record.Mutations or {}),
+				BaseMutation = record.BaseMutation,
+			},
+		}, Folder, false)
+	end)
+	if not ok or not resultOrErr or not resultOrErr.Model then
+		clearGuardCarry(record.Uid)
+		return
+	end
+	local model = resultOrErr.Model
+	local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	if not primary then
+		model:Destroy()
+		clearGuardCarry(record.Uid)
+		return
+	end
+	trove:Add(model)
+	for _, desc in ipairs(model:GetDescendants()) do
+		if desc:IsA("BasePart") then
+			desc.Anchored = false
+			desc.CanCollide = false
+			desc.CanQuery = false
+			desc.CanTouch = false
+			desc.Massless = true
+		end
+	end
+	-- about 1.8 studs of egg per unit of villain scale, held just in front of the chest
+	local rigScale = tonumber(guard:GetAttribute("RigScale")) or 1
+	pcall(function()
+		local _, size = model:GetBoundingBox()
+		model:ScaleTo(model:GetScale() * (1.8 * rigScale) / math.max(size.Y, 0.1))
+	end)
+	local _, size = model:GetBoundingBox()
+	local offset = CFrame.new(0, -0.25 * rigScale, -(torso.Size.Z / 2 + size.Z / 2 + 0.15 * rigScale))
+	model:PivotTo(torso.CFrame * offset)
+	trove:Add(Weld(primary, torso, torso.CFrame:ToObjectSpace(primary.CFrame)))
+	-- arms around the egg
+	local posed = {}
+	for name, angles in pairs(GUARD_CARRY_POSE) do
+		local motor = guard:FindFirstChild(name, true)
+		if motor and motor:IsA("Motor6D") then
+			local base = restC0(motor)
+			motor.C0 = base * CFrame.Angles(math.rad(angles[1]), math.rad(angles[2]), math.rad(angles[3]))
+			posed[motor] = base
+		end
+	end
+	-- Game.VillainClipPlayer leaves the arm joints at rest while this is set, so the carry pose holds the egg
+	guard:SetAttribute("ClipArmsHeld", true)
+	trove:Add(function()
+		for motor, base in pairs(posed) do
+			if motor.Parent then
+				motor.C0 = base
+			end
+		end
+		if guard.Parent then
+			guard:SetAttribute("ClipArmsHeld", nil)
+		end
+	end)
+end
+
+-- Grab (owner 2026-09-27: "an animation of the character grabbing the egg"): when a player takes an egg (the record turns
+-- Carried), every client plays a procedural grab on that player's R15 character -- a squat with the torso bent forward
+-- and both hands reaching to the nest, then the egg is scooped up to the chest and the body rises -- as Motor6D.C0
+-- offsets over the rest pose (attribute VfxBaseC0), on top of what the Animator plays. Signs (R15, facing -Z): Waist
+-- rx < 0 bends forward, Hip rx > 0 swings the thigh forward, Knee rx < 0 bends, Shoulder rx > 0 raises the arm forward.
+-- R6 or missing joints: nothing.
+local GRAB_TIME = 0.85
+local GRAB_KEYS = {
+	{ 0, {} },
+	{ 0.32, { Root = { 0, 0, 0, -0.55 }, Waist = { -38, 0, 0 }, Neck = { 18, 0, 0 }, RightHip = { 48, 0, 0 }, LeftHip = { 48, 0, 0 },
+		RightKnee = { -82, 0, 0 }, LeftKnee = { -82, 0, 0 }, RightAnkle = { 30, 0, 0 }, LeftAnkle = { 30, 0, 0 },
+		RightShoulder = { 72, 0, -12 }, LeftShoulder = { 72, 0, 12 }, RightElbow = { 12, 0, 0 }, LeftElbow = { 12, 0, 0 } } },
+	{ 0.45, { Root = { 0, 0, 0, -0.55 }, Waist = { -34, 0, 0 }, Neck = { 14, 0, 0 }, RightHip = { 48, 0, 0 }, LeftHip = { 48, 0, 0 },
+		RightKnee = { -82, 0, 0 }, LeftKnee = { -82, 0, 0 }, RightAnkle = { 30, 0, 0 }, LeftAnkle = { 30, 0, 0 },
+		RightShoulder = { 64, 0, -22 }, LeftShoulder = { 64, 0, 22 }, RightElbow = { 40, 0, 0 }, LeftElbow = { 40, 0, 0 } } },
+	{ 0.75, { Root = { 0, 0, 0, 0.12 }, Waist = { 6, 0, 0 }, Neck = { 4, 0, 0 }, RightShoulder = { 48, 0, -18 }, LeftShoulder = { 48, 0, 18 },
+		RightElbow = { 84, 0, 0 }, LeftElbow = { 84, 0, 0 } } },
+	{ 1, {} },
+}
+local GRAB_JOINTS = { "Root", "Waist", "Neck", "RightHip", "LeftHip", "RightKnee", "LeftKnee", "RightAnkle", "LeftAnkle", "RightShoulder",
+	"LeftShoulder", "RightElbow", "LeftElbow" }
+local grabTokens = setmetatable({}, { __mode = "k" }) -- [character] = number
+
+local function grabPose(t)
+	local a, b = GRAB_KEYS[1], GRAB_KEYS[#GRAB_KEYS]
+	for i = 1, #GRAB_KEYS - 1 do
+		if t >= GRAB_KEYS[i][1] and t <= GRAB_KEYS[i + 1][1] then
+			a, b = GRAB_KEYS[i], GRAB_KEYS[i + 1]
+			break
+		end
+	end
+	local alpha = math.clamp((t - a[1]) / math.max(b[1] - a[1], 1e-3), 0, 1)
+	alpha = alpha * alpha * (3 - 2 * alpha)
+	local pose = {}
+	for _, joint in ipairs(GRAB_JOINTS) do
+		local from = a[2][joint] or { 0, 0, 0, 0 }
+		local to = b[2][joint] or { 0, 0, 0, 0 }
+		local function lerp(i)
+			return (from[i] or 0) + ((to[i] or 0) - (from[i] or 0)) * alpha
+		end
+		pose[joint] = CFrame.new(0, lerp(4), 0) * CFrame.Angles(math.rad(lerp(1)), math.rad(lerp(2)), math.rad(lerp(3)))
+	end
+	return pose
+end
+
+local function playGrab(character)
+	if character == nil or character:FindFirstChild("UpperTorso") == nil then
+		return
+	end
+	local motors = {}
+	for _, joint in ipairs(GRAB_JOINTS) do
+		local motor = character:FindFirstChild(joint, true)
+		if motor and motor:IsA("Motor6D") then
+			motors[joint] = { motor = motor, base = restC0(motor) }
+		end
+	end
+	if next(motors) == nil then
+		return
+	end
+	local token = (grabTokens[character] or 0) + 1
+	grabTokens[character] = token
+	local started = os.clock()
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		local t = (os.clock() - started) / GRAB_TIME
+		local done = t >= 1 or grabTokens[character] ~= token or character.Parent == nil
+		local pose = if done then nil else grabPose(t)
+		for name, info in pairs(motors) do
+			if info.motor.Parent then
+				info.motor.C0 = if pose then info.base * pose[name] else info.base
+			end
+		end
+		if done then
+			connection:Disconnect()
+		end
+	end)
+end
+
+local lastGrabbed = {} -- [uid] = carrier userId the grab was played for
+EggCmds.AreaEggUpdated:Connect(function(record)
+	if record == nil then
+		return
+	end
+	if record.State == States.Carried and record.CarrierUserId ~= nil then
+		if lastGrabbed[record.Uid] ~= record.CarrierUserId then
+			lastGrabbed[record.Uid] = record.CarrierUserId
+			local carrier = Players:GetPlayerByUserId(record.CarrierUserId)
+			if carrier then
+				playGrab(carrier.Character)
+			end
+		end
+	else
+		lastGrabbed[record.Uid] = nil
+	end
+end)
+
+EggCmds.AreaEggUpdated:Connect(function(record)
+	if record == nil then
+		return
+	end
+	if record.State == GUARD_CARRIED then
+		task.defer(renderGuardCarry, record.Uid)
+	else
+		clearGuardCarry(record.Uid)
+	end
+end)
+EggCmds.AreaEggRemoved:Connect(function(uid)
+	clearGuardCarry(uid)
+end)
+-- A full snapshot (join, resync) carries no per-record updates: reconcile the carries with it.
+EggCmds.AreaEggSnapshotUpdated:Connect(function(snapshot)
+	local carried = {}
+	for _, record in ipairs(if type(snapshot) == "table" and type(snapshot.Records) == "table" then snapshot.Records else {}) do
+		if record.State == GUARD_CARRIED then
+			carried[record.Uid] = true
+		end
+	end
+	for uid in pairs(guardCarryRenders) do
+		if not carried[uid] then
+			clearGuardCarry(uid)
+		end
+	end
+	for uid in pairs(carried) do
+		task.defer(renderGuardCarry, uid)
+	end
+end)
+
+setStartupStage("CarryRunBackEffects.Start")
 CarryRunBackEffects.Start()
+setStartupStage("WorkspaceEggVisibility.Start")
 WorkspaceEggVisibility.Start()
+setStartupStage("RareEggHighlight.Start")
 RareEggHighlight.Start()
 RunService.Heartbeat:Connect(function() -- line: 383
 	-- upvalues: v27 (copy), Workspace (copy), t1 (copy), Player (copy), LocalPlayer (copy), GuardAreaLookupUtil (copy), SeparationLine (copy)
@@ -980,6 +1314,7 @@ RunService.Heartbeat:Connect(function() -- line: 383
 		Prompt.Enabled = v130
 	end
 end)
+setStartupStage("snapshot request (Eggs: RequestAreaEggSnapshot)")
 do
 	local ok, snapshotOrErr = pcall(EggCmds.RequestAreaEggSnapshot)
 	if not ok then
@@ -992,4 +1327,63 @@ do
 		end
 	end
 end
+startupFinished = true
+setStartupStage("ready")
+
+-- Self-heal (same report): every RECONCILE_SECONDS the rendered eggs are checked against EggCmds' records. An egg that
+-- should sit in its nest but has no model (a missed update, a render job that returned early or failed) is rendered right
+-- away, and a failure is logged with its reason once per egg instead of being swallowed.
+local RECONCILE_SECONDS = 4
+local reconcileWarned = {} -- [uid] = last error text
+local queuedSeen = {} -- [uid] = version still marked queued at the previous pass (a job that returned early leaves it)
+local function reconcileRendered()
+	local snapshot = EggCmds.GetAreaEggSnapshot()
+	local repaired = 0
+	local stillQueued = {}
+	for _, record in ipairs(snapshot.Records) do
+		local queued = t2[record.Uid]
+		local waiting = queued ~= nil and queued == record.Version and queuedSeen[record.Uid] ~= queued
+		if queued ~= nil then
+			stillQueued[record.Uid] = queued
+		end
+		if record.State == States.Slot and t1[record.Uid] == nil and not waiting then
+			t2[record.Uid] = nil
+			local ok, err = pcall(applyRecordNow, record)
+			if ok then
+				repaired += 1
+				reconcileWarned[record.Uid] = nil
+			elseif reconcileWarned[record.Uid] ~= tostring(err) then
+				reconcileWarned[record.Uid] = tostring(err)
+				warn(`[AreaEggs] could not render egg {record.Uid} ({record.AreaId}/{record.NestId}): {err}`)
+			end
+		end
+	end
+	queuedSeen = stillQueued
+	for uid in pairs(reconcileWarned) do
+		if EggCmds.GetAreaEggRecord(uid) == nil then
+			reconcileWarned[uid] = nil
+		end
+	end
+	return repaired
+end
+task.spawn(function()
+	local first = true
+	while true do
+		task.wait(RECONCILE_SECONDS)
+		local ok, repairedOrErr = pcall(reconcileRendered)
+		if not ok then
+			warn("[AreaEggs] egg reconcile failed: " .. tostring(repairedOrErr))
+		elseif repairedOrErr > 0 then
+			print(`[AreaEggs] rendered {repairedOrErr} egg(s) that had no model`)
+		end
+		if first then
+			first = false
+			local rendered = 0
+			for _ in pairs(t1) do
+				rendered += 1
+			end
+			print(`[AreaEggs] ready: {#EggCmds.GetAreaEggSnapshot().Records} egg records, {rendered} rendered`)
+		end
+	end
+end)
 

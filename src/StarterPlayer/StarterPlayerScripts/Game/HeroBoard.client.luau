@@ -9,7 +9,12 @@
 --   * selected tab: its stat colour (tab attribute OnColor), full-bright icon and caption, the pointer diamond toward
 --     the list, a little pop (UIScale "Pop"); the others: OffColor, dimmed;
 --   * hovered tab (MouseHoverEnter / MouseHoverLeave): a lighter OffColor;
---   * the hint under the tabs reads CLICK A TAB! / TAP A TAB! for the current input.
+--   * the hint under the tabs reads CLICK A TAB! / TAP A TAB! for the current input;
+--   * the podium follows the selected tab (owner 2026-09-27): LeaderboardService stands every page's top 3 (avatars
+--     tagged PodiumStat, plates published as Spot attributes Name_<stat> / Value_<stat>); this client shows only the
+--     selected tab's avatars (LocalTransparencyModifier) and writes that tab's plates and the "TOP 3 · <title>" sign;
+--   * nobody gets stuck on one page: while the player has not clicked a tab for IDLE_SECONDS, the board moves to the
+--     next tab every CYCLE_SECONDS (podium included).
 -- Everything degrades quietly: a missing board or tab just leaves the default page (NETWORTH) on screen.
 
 local SoundService = game:GetService("SoundService")
@@ -21,6 +26,8 @@ local WAIT_SECONDS = 60
 local HOVER_MIX = 0.35 -- hovered tab colour: OffColor this far toward OnColor
 local POP_SCALE = 1.08
 local POP_TIME = 0.18
+local CYCLE_SECONDS = 10 -- auto-advance to the next tab ...
+local IDLE_SECONDS = 30 -- ... once the player has not clicked a tab for this long
 
 local hub = Workspace:WaitForChild("Hub", WAIT_SECONDS)
 local board = hub and hub:WaitForChild("HeroBoard", WAIT_SECONDS)
@@ -33,6 +40,7 @@ if type(selected) ~= "string" then
 	selected = "Networth"
 end
 local hovered = nil
+local lastClick = -math.huge
 
 local function boardRoot()
 	local screen = board:FindFirstChild("Screen")
@@ -91,6 +99,55 @@ local function styleTab(tab, isSelected, isHovered)
 	end
 end
 
+-- The podium for the selected stat: only its avatars show, its plates and the sign carry its names / title.
+local function setHidden(model, hidden)
+	local modifier = if hidden then 1 else 0
+	for _, d in ipairs(model:GetDescendants()) do
+		if (d:IsA("BasePart") or d:IsA("Decal")) and d.LocalTransparencyModifier ~= modifier then
+			d.LocalTransparencyModifier = modifier
+		end
+	end
+end
+
+local function applyPodium(page)
+	local podium = board:FindFirstChild("Podium")
+	if podium == nil then
+		return
+	end
+	local valueColor = page and page:GetAttribute("ValueColor")
+	for _, spot in ipairs(podium:GetChildren()) do
+		if spot:IsA("Model") and spot:GetAttribute("PodiumRank") then
+			local plate = spot:FindFirstChild("FrontFace") and spot.FrontFace:FindFirstChild("NamePlate")
+			local card = plate and plate:FindFirstChild("Card")
+			local name = card and card:FindFirstChild("PlayerName")
+			local value = card and card:FindFirstChild("Value")
+			local nameText = spot:GetAttribute("Name_" .. selected)
+			local valueText = spot:GetAttribute("Value_" .. selected)
+			if name and name:IsA("TextLabel") then
+				name.Text = if type(nameText) == "string" then nameText else "???"
+			end
+			if value and value:IsA("TextLabel") then
+				value.Text = if type(valueText) == "string" then valueText else ""
+				if typeof(valueColor) == "Color3" then
+					value.TextColor3 = valueColor
+				end
+			end
+			for _, child in ipairs(spot:GetChildren()) do
+				local stat = child:IsA("Model") and child:GetAttribute("PodiumStat")
+				if type(stat) == "string" then
+					setHidden(child, stat ~= selected)
+				end
+			end
+		end
+	end
+	local title = page and page:GetAttribute("LeaderboardTitle")
+	local sign = podium:FindFirstChild("BaseSign")
+	local label = sign and sign:FindFirstChild("Sign") and sign.Sign:FindFirstChild("Label")
+	if label and label:IsA("TextLabel") and type(title) == "string" then
+		label.Text = "TOP 3  \u{00B7}  " .. title
+	end
+end
+
 local function apply()
 	local tabs, pointers, pages = parts()
 	if pages[selected] == nil then
@@ -112,6 +169,7 @@ local function apply()
 	for stat, pointer in pairs(pointers) do
 		pointer.Visible = stat == selected
 	end
+	applyPodium(pages[selected])
 end
 
 local function pop(inst, from)
@@ -132,13 +190,15 @@ local function playClick()
 	end
 end
 
-local function selectStat(stat)
+local function selectStat(stat, auto)
 	if stat == selected then
 		return
 	end
 	selected = stat
 	apply()
-	playClick()
+	if not auto then
+		playClick()
+	end
 	local tabs, _, pages = parts()
 	pop(tabs[stat], POP_SCALE)
 	pop(pages[stat], 0.97)
@@ -157,6 +217,7 @@ local function bind(detector)
 	end
 	bound[detector] = true
 	detector.MouseClick:Connect(function()
+		lastClick = os.clock()
 		selectStat(stat)
 	end)
 	detector.MouseHoverEnter:Connect(function()
@@ -210,6 +271,75 @@ local function refreshHint()
 	end
 end
 UserInputService.LastInputTypeChanged:Connect(refreshHint)
+
+-- the podium: a new avatar or plate value shows / hides at once for this viewer's tab
+local podiumQueued = false
+local function queuePodium()
+	if not podiumQueued then
+		podiumQueued = true
+		task.defer(function()
+			podiumQueued = false
+			local _, _, pages = parts()
+			applyPodium(pages[selected])
+		end)
+	end
+end
+local function watchPodium(podium)
+	podium.DescendantAdded:Connect(queuePodium)
+	for _, spot in ipairs(podium:GetChildren()) do
+		spot.AttributeChanged:Connect(queuePodium)
+	end
+	podium.ChildAdded:Connect(function(spot)
+		spot.AttributeChanged:Connect(queuePodium)
+	end)
+end
+local podium = board:FindFirstChild("Podium")
+if podium then
+	watchPodium(podium)
+else
+	task.spawn(function()
+		local found = board:WaitForChild("Podium", WAIT_SECONDS)
+		if found then
+			watchPodium(found)
+			queuePodium()
+		end
+	end)
+end
+
+-- the tabs in board order (TabButtons.TabHit_<stat>, attribute TabIndex)
+local function tabOrder()
+	local order = {}
+	local folder = board:FindFirstChild("TabButtons")
+	for _, hit in ipairs(folder and folder:GetChildren() or {}) do
+		local stat, index = hit:GetAttribute("LeaderboardStat"), hit:GetAttribute("TabIndex")
+		if type(stat) == "string" and type(index) == "number" then
+			table.insert(order, { stat = stat, index = index })
+		end
+	end
+	table.sort(order, function(a, b)
+		return a.index < b.index
+	end)
+	return order
+end
+
+-- auto-cycle while the player is not choosing a tab
+task.spawn(function()
+	while true do
+		task.wait(CYCLE_SECONDS)
+		if os.clock() - lastClick >= IDLE_SECONDS then
+			local order = tabOrder()
+			if #order > 1 then
+				local nextIndex = 1
+				for i, entry in ipairs(order) do
+					if entry.stat == selected then
+						nextIndex = i % #order + 1
+					end
+				end
+				selectStat(order[nextIndex].stat, true)
+			end
+		end
+	end
+end)
 
 apply()
 refreshHint()

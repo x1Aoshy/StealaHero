@@ -134,6 +134,10 @@ local function animateNotification(p2, p3, p4, p5, t1: {[any]: any}) -- line: 93
 end
 local function spawnFloatingMoney(n5: number, _: string?) -- line: 134
 	-- upvalues: MoneyChange (copy), Simple (copy), Frame (copy), animateNotification (copy)
+	-- Owner 2026-09-27: the floating "+$" amounts are a Settings switch (ShowMoneyPopups), off by default.
+	if not SettingsCmds.IsEnabled("ShowMoneyPopups") then
+		return
+	end
 	local v55 = n5 < 0.0
 	local v56 = not v55 and "+" or "-"
 	local clone = MoneyChange:Clone()

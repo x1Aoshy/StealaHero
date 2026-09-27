@@ -49,6 +49,10 @@ end
 T.check(board:GetAttribute("DefaultStat") == "Networth" and board:GetAttribute("PodiumStat") == "Networth" and board:GetAttribute("LeaderboardRows") == 10,
 	"HeroBoard attributes: DefaultStat / PodiumStat Networth, LeaderboardRows 10")
 
+-- the owner re-hung the board by hand in Studio (post_zzz_owner_layout marks it OwnerLayout, moved rigidly from the
+-- save): the wall / region rules below give way to where they put it; the board still faces its own podium side
+local ownerPlaced = board:GetAttribute("OwnerLayout") == true
+
 -- 2. flush on HubWall_EastSouth's inner face, facing the hub, inside its corner of the hub
 local wall = H.path(ws, "WorldWalls/Hub/HubWall_EastSouth")
 local podium = board:FindFirstChild("Podium")
@@ -63,7 +67,9 @@ for _, d in ipairs(board:GetDescendants()) do
 		end
 	end
 end
-if T.check(wall ~= nil and mn ~= nil, "Workspace.WorldWalls.Hub.HubWall_EastSouth / board parts missing") then
+if ownerPlaced then
+	T.check(mn ~= nil, "HeroBoard parts missing")
+elseif T.check(wall ~= nil and mn ~= nil, "Workspace.WorldWalls.Hub.HubWall_EastSouth / board parts missing") then
 	local wmn, wmx = H.aabb(wall)
 	T.check(math.abs(wmn.X - WALL_FACE_X) <= 0.05, "HubWall_EastSouth inner face moved to X %.2f (the board hangs on X %.1f)", wmn.X, WALL_FACE_X)
 	T.check(math.abs(mx.X - WALL_FACE_X) <= 0.05 and #clipping == 0,
@@ -84,7 +90,7 @@ if not T.check(screen ~= nil and screen:IsA("BasePart") and gui ~= nil and gui:I
 	"HeroBoard.Screen > BoardGui (SurfaceGui) > Board missing") then
 	return
 end
-T.check(screen.CFrame.LookVector:Dot(V3.new(-1, 0, 0)) > 0.999 and gui.Face == Enum.NormalId.Front, "the board screen must face -X (the hub)")
+T.check((ownerPlaced or screen.CFrame.LookVector:Dot(V3.new(-1, 0, 0)) > 0.999) and gui.Face == Enum.NormalId.Front, "the board screen must face -X (the hub)")
 T.check(screen.Size.X >= 28 and screen.Size.X <= 34 and screen.Size.Y >= 17 and screen.Size.Y <= 23, "screen %.1f x %.1f studs (expected ~28-34 x 18-22)",
 	screen.Size.X, screen.Size.Y)
 T.check(gui.Enabled and gui.LightInfluence == 0 and gui.MaxDistance >= 200 and gui.SizingMode == Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -126,6 +132,10 @@ for index, spec in ipairs(STATS) do
 	local header = H.path(page, "Header/Title")
 	if page:GetAttribute("LeaderboardStat") ~= stat or page.Visible ~= (stat == "Networth") or not (header and header.Text == spec[2]) then
 		table.insert(problems, stat .. ": page attribute / default visibility / header")
+	end
+	-- the podium sign and plate colour follow the selected page (HeroBoard client)
+	if page:GetAttribute("LeaderboardTitle") ~= spec[2] or typeof(page:GetAttribute("ValueColor")) ~= "Color3" then
+		table.insert(problems, stat .. ": page LeaderboardTitle / ValueColor for the podium")
 	end
 	local rows = 0
 	for i = 1, 10 do
@@ -199,7 +209,8 @@ T.check(#hits == 0, "HERO BOARD tab click parts: %s", list(hits))
 
 -- 6. the podium: 1st centre (tallest, gold), 2nd on the viewer's LEFT, 3rd on the viewer's RIGHT, off the wall
 local pod = {}
-if T.check(podium ~= nil and podium:GetAttribute("PodiumStat") == "Networth", "HeroBoard.Podium (PodiumStat Networth) missing") then
+if T.check(podium ~= nil and podium:GetAttribute("PodiumStat") == "Networth" and podium:GetAttribute("PodiumFollowsTab") == true,
+	"HeroBoard.Podium (PodiumStat Networth, PodiumFollowsTab) missing") then
 	local viewer = -screen.CFrame.LookVector -- a player facing the board looks this way
 	local right = viewer:Cross(V3.new(0, 1, 0)).Unit
 	local centre = screen.CFrame.Position
@@ -231,7 +242,7 @@ if T.check(podium ~= nil and podium:GetAttribute("PodiumStat") == "Networth", "H
 			table.insert(pod, "Spot" .. rank .. " tier must be anchored and solid")
 		end
 		if not (stand.Transparency >= 1 and not stand.CanCollide and not stand.CanQuery and math.abs((sp.Y - stand.Size.Y / 2) - tmx.Y) < 0.02
-			and stand.CFrame.LookVector:Dot(V3.new(-1, 0, 0)) > 0.95) then
+			and stand.CFrame.LookVector:Dot(screen.CFrame.LookVector) > 0.95) then
 			table.insert(pod, "Spot" .. rank .. " Stand must be an invisible anchor on the tier top facing the hub")
 		end
 		if name.Text ~= "???" or value.Text ~= "" or not (plate:IsA("SurfaceGui") and plate.Face == Enum.NormalId.Front and plate.LightInfluence == 0) then
@@ -253,7 +264,7 @@ if T.check(podium ~= nil and podium:GetAttribute("PodiumStat") == "Networth", "H
 				screenBottom - spots[1].top))
 		end
 	end
-	if pmn and not (pmx.X <= WALL_FACE_X - 2 and pmn.X >= REGION.xMin and pmn.Z >= REGION.zMin and pmx.Z <= REGION.zMax and pmx.Z < LANE_MOUTH[1]) then
+	if pmn and not ownerPlaced and not (pmx.X <= WALL_FACE_X - 2 and pmn.X >= REGION.xMin and pmn.Z >= REGION.zMin and pmx.Z <= REGION.zMax and pmx.Z < LANE_MOUTH[1]) then
 		table.insert(pod, string.format("podium must stand a few studs off the wall inside the region (X %.1f..%.1f Z %.1f..%.1f)", pmn.X, pmx.X, pmn.Z, pmx.Z))
 	end
 	-- never a limb-named part on the podium (avatars only appear at runtime)
@@ -278,13 +289,21 @@ if T.check(service ~= nil and service:IsA("Script") and client ~= nil and client
 	T.check(H.has(src, "WaitForChild(\"HeroBoard\"") and H.has(src, "GetHumanoidDescriptionFromUserId") and H.has(src, "CreateHumanoidModelFromDescription")
 		and H.has(src, "Enum.HumanoidRigType.R15") and H.has(src, "IsCollisionGroupRegistered") and H.has(src, "NPC_COLLISION_GROUP = \"NPCs\"")
 		and H.has(src, "root.Anchored = true") and H.has(src, "d.CanCollide = false") and H.has(src, "DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None")
-		and H.has(src, "mergedTop(podiumStat, PODIUM_SIZE, live)") and H.has(src, "AVATAR_RETRY_SECONDS") and H.has(src, "motor.C0 = if rotation then base * rotation else base")
+		and H.has(src, "mergedTop(stat, PODIUM_SIZE, live)") and H.has(src, "AVATAR_RETRY_SECONDS") and H.has(src, "motor.C0 = if rotation then base * rotation else base")
 		and H.has(src, "RightShoulder") and H.has(src, "\"???\""),
-		"LeaderboardService must stand the TOTAL NETWORTH top 3 as posed R15 avatars (description + model APIs, anchored, NPCs group, no collisions, ??? plates)")
+		"LeaderboardService must stand every page's top 3 as posed R15 avatars (description + model APIs, anchored, NPCs group, no collisions, ??? plates)")
+	-- owner 2026-09-27: the podium changes with the tabs (every page's set tagged PodiumStat, plates as Spot attributes the
+	-- client writes; the server never writes a plate label nor hides an avatar)
+	T.check(H.has(src, "SetAttribute(\"PodiumStat\", stat)") and H.has(src, "SetAttribute(\"Name_\" .. stat") and H.has(src, "SetAttribute(\"Value_\" .. stat")
+		and not H.has(src, "spot.nameLabel") and not H.has(src, "LocalTransparencyModifier ="),
+		"LeaderboardService must publish every page's podium (PodiumStat avatars, Name_/Value_ spot attributes) and leave the showing to the client")
 	T.check(H.has(src, "Leaderboard_\" .. stat .. \"_\" .. STORE_VERSION") and H.has(src, "local STORE_VERSION = \"v1\"") and H.has(src, "math.log10(finite(value) + 1) * LOG_SCALE")
 		and not H.has(src, "page.Visible") and not H.has(src, "__OBJECTS"),
 		"LeaderboardService must keep the OrderedDataStore keys / log10 encoding and never switch a page (the client does)")
 	T.check(H.has(csrc, "MouseClick") and H.has(csrc, "MouseHoverEnter") and H.has(csrc, "MouseHoverLeave") and H.has(csrc, "ClickDetector")
 		and H.has(csrc, "page.Visible = visible") and H.has(csrc, "\"OnColor\"") and H.has(csrc, "TAP A TAB!"),
 		"HeroBoard client must switch the visible page locally from the tab ClickDetectors (click, hover, touch wording)")
+	T.check(H.has(csrc, "LocalTransparencyModifier") and H.has(csrc, "GetAttribute(\"PodiumStat\")") and H.has(csrc, "\"Name_\" .. selected")
+		and H.has(csrc, "LeaderboardTitle") and H.has(csrc, "CYCLE_SECONDS") and H.has(csrc, "IDLE_SECONDS") and H.has(csrc, "applyPodium(pages[selected])"),
+		"HeroBoard client must show the selected tab's podium (avatars, plates, sign) and auto-cycle the tabs while idle")
 end

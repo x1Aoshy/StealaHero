@@ -414,7 +414,8 @@ if T.check(cardFrame ~= nil, "Index stage card template (IndexEntries.Template.F
 	T.check(isClass(image, "ImageLabel") and image.ScaleType == Enum.ScaleType.Crop, "stage card Frame.Image must be an ImageLabel with ScaleType Crop")
 	for _, node in ipairs({ cardFrame, image, fallback }) do
 		if node then
-			T.check(allCorners(node:FindFirstChildOfClass("UICorner"), UDim.new(0, 10)), "%s: UICorner radii must be 10 px", node:GetFullName())
+			-- owner 2026-09-27: square UI (was 10 px)
+			T.check(allCorners(node:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)), "%s: UICorner radii must be square (0)", node:GetFullName())
 		end
 	end
 	if T.check(isClass(fallback, "Frame"), "stage card SpStageFallback (Frame) missing") then
@@ -446,7 +447,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- D7 HUD: sidebar Shop / Index buttons, currency pills, night timer
 ---------------------------------------------------------------------------------------------------
-local SIDEBAR_WRAPPER_SIZE = { 1, 0.2210759 } -- Elements.Left.Tools.Shop/Index Size before the visual pass
+local SIDEBAR_WRAPPER_SIZE = { 1, 0.2 } -- Elements.Left.Tools.Shop/Index: a 2.5:1 rectangle of the left column (owner 2026-09-27)
 local sideButtons = { { "Shop", "#4ed61b", "ShopIcon", 96787567013749 }, { "Index", "#14c4f4", "HeroIcon", 140189242202677 } }
 for _, spec in ipairs(sideButtons) do
 	local wrapper = H.path(sg, "Elements/Left/Tools/" .. spec[1])
@@ -467,12 +468,14 @@ for _, spec in ipairs(sideButtons) do
 		local icon = button:FindFirstChild(spec[3])
 		T.check(icon ~= nil and icon.Visible and H.imageId(icon) == spec[4] and (plate == nil or icon.ZIndex > plate.ZIndex),
 			"%s: visible %s (%d) above the sticker plate missing", label, spec[3], spec[4])
-		-- D7 keeps the sidebar's position and shape: the pre-pass wrapper size and pill corner (0.3)
+		-- owner 2026-09-27: square minimalist stud tiles (were 190x70 pills with a 0.3 corner), square corners
 		local size = wrapper.Size
 		T.check(math.abs(size.X.Scale - SIDEBAR_WRAPPER_SIZE[1]) < 1e-3 and size.X.Offset == 0 and math.abs(size.Y.Scale - SIDEBAR_WRAPPER_SIZE[2]) < 1e-3
-			and size.Y.Offset == 0, "%s: wrapper Size must stay {%g,0,%g,0} (D7 keeps the shape), found %s", spec[1], SIDEBAR_WRAPPER_SIZE[1], SIDEBAR_WRAPPER_SIZE[2],
+			and size.Y.Offset == 0, "%s: wrapper Size must be {%g,0,%g,0} (2.5:1 rectangle), found %s", spec[1], SIDEBAR_WRAPPER_SIZE[1], SIDEBAR_WRAPPER_SIZE[2],
 			tostring(size))
-		T.check(allCorners(button:FindFirstChildOfClass("UICorner"), UDim.new(0.3, 0)), "%s: button corner radius must stay 0.3", label)
+		T.check(allCorners(button:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)), "%s: button corners must be square", label)
+		local ratio = wrapper:FindFirstChildOfClass("UIAspectRatioConstraint")
+		T.check(ratio ~= nil and math.abs(ratio.AspectRatio - 2.5) < 1e-3, "%s: the sidebar button must be a 2.5:1 rectangle", label)
 	end
 end
 if left then
@@ -499,9 +502,8 @@ if T.check(badge ~= nil, "Index.Button.NotificationBadge missing") then
 		and number:FindFirstChildOfClass("UIStroke") ~= nil and hex(number:FindFirstChildOfClass("UIStroke").Color) == "#0b1b3d",
 		"NotificationBadge number must be white GothamSSm Heavy with an ink stroke")
 end
--- Currency rows (owner brief, 3rd pass): minimalist SQUARED translucent ribbons (flat ink band, small corner, no
--- gradient / outline), the Shop / Index label type on the values, the Shop's banknotes icon on Money, the Speed "+"
--- at the right end of its ribbon, and a real gap between the rows.
+-- Currency rows (owner brief, 3rd pass; 5th pass: no band at all): the Shop / Index label type on the values, the Shop's
+-- banknotes icon on Money, the Speed "+" on the shoe's corner, and a real gap between the rows.
 local rows = H.path(sg, "Money/Bottom/Frame")
 if T.check(rows ~= nil, "StarterGui.Money.Bottom.Frame missing") then
 	local column = rows:FindFirstChildOfClass("UIListLayout")
@@ -519,11 +521,10 @@ if T.check(rows ~= nil, "StarterGui.Money.Bottom.Frame missing") then
 			end
 			local outline = row:FindFirstChild("SpStrokeDark")
 			local edge = row:FindFirstChild("SpStrokeLight")
-			T.check(hex(row.BackgroundColor3) == "#0b1b3d" and row.BackgroundTransparency >= 0.35 and row.BackgroundTransparency <= 0.6
-				and corner ~= nil and allCorners(corner, corner.TopLeftRadius) and corner.TopLeftRadius.Scale <= 0.2 and corner.TopLeftRadius.Offset == 0
-				and not gradientOn and (outline == nil or not outline.Enabled or outline.Transparency >= 1)
-				and isClass(edge, "UIStroke") and edge.Transparency >= 0.7,
-				"Money row %s must be a flat squared translucent ink ribbon (#0b1b3d @0.35-0.6, corner <= 0.2, no gradient / outline, faint SpStrokeLight)", name)
+			-- owner 2026-09-27 (5th pass): no band behind the currency rows at all
+			T.check(row.BackgroundTransparency >= 1 and not gradientOn and (outline == nil or not outline.Enabled or outline.Transparency >= 1)
+				and (edge == nil or not edge.Enabled or edge.Transparency >= 1),
+				"Money row %s must have no background band, gradient or outline (owner: no bg on the money / shoe UI)", name)
 			T.check(row:FindFirstChildOfClass("UIAspectRatioConstraint") ~= nil, "Money row %s needs an aspect constraint (its layout is in ribbon-height units)", name)
 			for _, d in ipairs(row:GetDescendants()) do
 				if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.TextScaled and not d.TextWrapped then
@@ -563,25 +564,25 @@ if T.check(rows ~= nil, "StarterGui.Money.Bottom.Frame missing") then
 	local speedFace = H.path(rows, "SpeedValue/CurrentBoost/Shadow")
 	T.check(speedFace ~= nil and hex(speedFace.TextColor3) == "#00ddff", "SpeedValue.CurrentBoost.Shadow keeps its script-owned cyan #00ddff")
 	T.check(shopType(speedFace), "SpeedValue value must use the Shop / Index label type")
-	-- the "+" shortcut (ButtonFX-bound by SpeedShopShortcut) sits at the RIGHT end of the speed ribbon
+	-- the "+" shortcut (ButtonFX-bound by SpeedShopShortcut). Owner 2026-09-27: no background, the "+" right on the
+	-- shoe image's top-right corner.
 	local speed = rows:FindFirstChild("SpeedValue")
 	local holder = speed and speed:FindFirstChild("ImageLabel")
 	local plus = holder and holder:FindFirstChild("ImageButton")
 	local glyph = plus and plus:FindFirstChild("SpPlus")
 	T.check(isClass(plus, "ImageButton") and plus.ImageTransparency == 1 and glyph ~= nil and glyph.Text == "+" and glyph.TextScaled and glyph.TextWrapped,
 		"Speed row needs its \"+\" button (SpPlus, TextScaled + TextWrapped)")
-	local ratio = speed and speed:FindFirstChildOfClass("UIAspectRatioConstraint")
-	if plus and holder and ratio then
-		-- ribbon-height units: the holder is a RelativeYY square list item that starts after the row's left padding
-		local pad = speed:FindFirstChildOfClass("UIPadding")
-		local width = ratio.AspectRatio
-		local start = pad and pad.PaddingLeft.Scale * width or 0
-		local contentH = pad and (1 - pad.PaddingTop.Scale - pad.PaddingBottom.Scale) or 1
-		local side = holder.Size.Y.Scale * contentH
-		local left = start + (plus.Position.X.Scale - plus.AnchorPoint.X * plus.Size.X.Scale) * side
-		local right = left + plus.Size.X.Scale * side
-		T.check(holder.SizeConstraint == Enum.SizeConstraint.RelativeYY and left > start + side and right <= width and right >= width * 0.95,
-			"Speed \"+\" must sit at the right end of the speed ribbon, clear of the shoe icon (spans %.2f-%.2f of %.2f ribbon heights)", left, right, width)
+	if plus then
+		T.check(plus.BackgroundTransparency == 1, "Speed \"+\" must have no background (owner: no background on the shoe)")
+		local cx = plus.Position.X.Scale + (0.5 - plus.AnchorPoint.X) * plus.Size.X.Scale
+		local cy = plus.Position.Y.Scale + (0.5 - plus.AnchorPoint.Y) * plus.Size.Y.Scale
+		T.check(cx >= 0.7 and cx <= 1.1 and cy >= -0.1 and cy <= 0.35,
+			"Speed \"+\" must sit on the shoe image's top-right corner (centre %.2f, %.2f of the shoe)", cx, cy)
+		for _, c in ipairs(plus:GetChildren()) do
+			if c:IsA("UIGradient") or c:IsA("UIStroke") then
+				T.check(not c.Enabled, "Speed \"+\" must not keep its gold key cap (%s)", c.Name)
+			end
+		end
 	end
 end
 local timer = sg:FindFirstChild("GameResetTimer")
@@ -589,19 +590,29 @@ if T.check(timer ~= nil, "StarterGui.GameResetTimer missing") then
 	for _, spec in ipairs({ { "TimeLeft", 131317614803230 }, { "EndingSoon", 86038047961937 } }) do
 		local root = timer:FindFirstChild(spec[1])
 		if T.check(root ~= nil, "GameResetTimer.%s missing", spec[1]) then
+			-- owner 2026-09-27: no background at all (no pill, shadow or glow squares), a pixel-art moon / sun
 			local pill = root:FindFirstChild("Background")
-			local g = pill and pill:FindFirstChildOfClass("UIGradient")
-			T.check(pill ~= nil and math.abs(pill.BackgroundTransparency - 0.22) < 0.01 and g ~= nil and hex(g.Color.Keypoints[1].Value) == "#2c4a9c"
-				and allCorners(pill:FindFirstChildOfClass("UICorner"), UDim.new(0.5, 0)) and isClass(pill:FindFirstChild("SpStroke"), "UIStroke"),
-				"GameResetTimer.%s must be a translucent night-blue pill (#2c4a9c, 0.22, rounded, SpStroke rim)", spec[1])
-			local shadow = root:FindFirstChild("SpShadow")
-			T.check(pill ~= nil and shadow ~= nil and shadow.ZIndex == pill.ZIndex - 1, "GameResetTimer.%s.SpShadow must sit one ZIndex below the pill", spec[1])
+			local visibleBg = pill == nil or pill.BackgroundTransparency < 1
+			for _, d in ipairs(pill and pill:GetDescendants() or {}) do
+				if d:IsA("GuiObject") and d.Visible then
+					visibleBg = true
+				end
+			end
+			T.check(not visibleBg and root:FindFirstChild("SpShadow") == nil, "GameResetTimer.%s must have no background (pill / shadow)", spec[1])
 			local iconFrame = H.path(root, "Main/Frame")
 			local icon = iconFrame and iconFrame:FindFirstChild("ImageLabel")
 			T.check(icon ~= nil and H.imageId(icon) == spec[2], "GameResetTimer.%s timer icon must stay %d", spec[1], spec[2])
-			for n = 1, 4 do
-				local glow = iconFrame and iconFrame:FindFirstChild("SpGlow" .. n)
-				T.check(glow ~= nil and icon ~= nil and glow.ZIndex < icon.ZIndex, "GameResetTimer.%s.Main.Frame.SpGlow%d must glow behind the moon", spec[1], n)
+			T.check(iconFrame ~= nil and iconFrame:FindFirstChild("SpGlow1") == nil, "GameResetTimer.%s: no glow discs behind the moon", spec[1])
+			for _, name in ipairs({ "SpPixelMoon", "SpPixelSun" }) do
+				local pixel = iconFrame and iconFrame:FindFirstChild(name)
+				local px = 0
+				for _, d in ipairs(pixel and pixel:GetChildren() or {}) do
+					if d:IsA("Frame") then
+						px += 1
+					end
+				end
+				T.check(px >= 20 and icon ~= nil and icon:GetAttribute("PixelIcons") == true, "GameResetTimer.%s.Main.Frame.%s pixel icon missing (%d runs)",
+					spec[1], name, px)
 			end
 			local text = H.path(root, "Main/TextLabel")
 			T.check(text ~= nil and text.AutomaticSize == Enum.AutomaticSize.None and text.FontFace.Weight == Enum.FontWeight.Heavy

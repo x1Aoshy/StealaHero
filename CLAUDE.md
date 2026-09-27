@@ -46,6 +46,8 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   from `assets/user_models/StealaHero_user_models_0747.rbxl`), converted to R15 by `scripts/lib/rig_convert.luau`.
 - `assets/models/bases/<Stage>/` — the 6 stage bases (see below). `assets/animations/` — hero animation rig/previews.
   `assets/eggs/` — hero egg models/textures. `docs/` — plans. `design/`, `audit/` — references and one-off tools.
+- `assets/vfx_library/VfxLibrary.rbxl` — standalone place with every VFX model of Steal a Hero, Steal an Egg,
+  Speedsters (sibling `../Speedsters`) and V40 (`reference/`), built by `scripts/tools/build_vfx_library.luau`.
 
 ## Pipelines
 - **Stage bases** (Stark Lab, Hall of Justice, Brooklyn Rooftop, U.A. Hero Arena, Capsule Corp Arena, Sunny Pirate
@@ -56,6 +58,147 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   clearance checks, stale-import guard by geometry fingerprint). A geometry change needs a re-import; a palette-only
   change does not. NO Neon and no lights in any base (build guard). Spider-Verse window panes flicker at runtime
   (`BaseWindowLights`). Claude cannot upload meshes: only the owner's Studio import creates the mesh assets.
+- **Owner Studio saves**: when the owner edits a compiled place in Studio and sends it back, keep it in
+  `assets/user_models/`, diff it against the build (`lune run scripts/tools/diff_places.luau <build.rbxl> <save.rbxl>`)
+  and replay the real edits in `scripts/steps/post_zzz_owner_layout.luau` (`OWNER_SAVE`, rigid `MOVES` read from the
+  save, `DELETES`, baseplate tiles). Moved groups carry `OwnerLayout`, and the old layout tests give way to them.
+- **Villain animations**: `scripts/tools/villain_anim/gen_villain_clips.py` (Euler poses, python3, no Blender) generates
+  `src/ReplicatedStorage/Directory/VillainAnimations/<Villain>.luau`. Never edit those by hand. They are published by
+  `post_villain_animations` and played by `Game/VillainClipPlayer` (Idle / Wake / Move / Walk / Attack on
+  Motor6D.Transform). GuardChaseService loads no Animator track for a villain that has clips (`ClientClips`).
+- **Branch framework**: Branch 2.0.0 is vendored in `vendor/Branch` (MIT) and installed at
+  `ReplicatedStorage.Packages.Branch`. New systems go in as segments:
+  - `ServerScriptService.BranchServices` (`*Service`, started by `BranchServer`);
+  - `StarterPlayerScripts.BranchControllers` (`*Controller`, started by `BranchClient`): UiLife, Perf, UiScale,
+    EggHealth, MenuMotion.
+
+  Branch.Data is not used (the player saves stay on `Library.Database`). Branch.Network is not used either: it needs
+  the Branch Studio plugin's codegen.
+- **Scenery**: `post_zzzzz_scenery` builds `Workspace.Scenery` (woods, treeline, rocks, pebbles), deterministically,
+  against the built world's occupancy.
+- **Hero weapons** (the bats, owner 2026-09-27): the melee Tools keep their names (Bat = Cap's shield, Forest = Power
+  Pole, Desert = web shooter, Lake = batarang, Jungle = Bakugo's gauntlet, Snow / Cosmic = Mjolnir, Volcano = Gum-Gum
+  fist; `Library.Modules.HeroWeapons.BY_TOOL`, Prehistoric / Abyss Ocean stay classic bats). The owner's files are in
+  `assets/hero_weapons/` (7 R15 attack KeyframeSequences `.rbxmx` - animations only, no meshes -, baked samples, their
+  `HeroWeaponTools.luau` kit, now `Library.Modules.HeroWeaponTools`). `scripts/tools/hero_weapons/gen_weapon_clips.py`
+  -> `src/ReplicatedStorage/Directory/WeaponAnimations/<WeaponId>.luau` (never edit by hand; Impact keyframe = hit
+  time); `weapon_models.py [--render]` authors the part models in grip space -> `assets/hero_weapons/weapon_models.json`
+  (+ previews posed on the clips); `post_hero_weapons` builds the Tools like `Kit.Prepare`. GearService resolves the
+  hit at Impact by the weapon's Kind and applies a 2.5 s state (`HeroDebuff` attribute) instead of the ragdoll;
+  `BranchControllers.HeroWeaponController` plays the clips, projectiles and states; `Library.Client.WeaponPortrait`
+  draws the weapon in the hotbar / Index.
+  **The owner's real models** are FBX (`assets/hero_weapons/fbx/weapons` 8, `fbx/vfx` 7 effect meshes; `fbx/anim` are
+  the same clips on a dummy, not needed). Claude cannot upload meshes, so the owner imports them in Studio: Import 3D
+  the 15 files into the latest build, paste `assets/hero_weapons/HeroWeaponsImport.lua` in the command bar (generated
+  by `gen_import_helper.py` with `fbx_manifest.json`: it fixes scale / pivot against the FBX, runs the owner's
+  `Kit.Prepare`, files everything in `ServerStorage.HeroWeaponImports`), saves and sends the place. The build extracts
+  it to `assets/hero_weapons/imports/{weapons,vfx}/*.rbxm` (`scripts/lib/hero_weapon_imports.luau`, also
+  `lune run scripts/tools/extract_hero_weapon_imports.luau <save.rbxl | .rbxm>`); an imported weapon replaces its part
+  stand-in (`Handle = RightHand * GripFromHand`), the effects go to `ReplicatedStorage.HeroWeaponVfx` and the
+  controller uses them (cocoon, star ring, bolts, comic explosion, bat smoke, web blob / net). Test the path without
+  Studio with `STEALAHERO_WEAPON_IMPORTS=synthetic` (block stand-ins at the FBX bounds). Previews:
+  `render_fbx_weapons.py` (the owner's meshes held with their kit's grip on their clips).
+  **Round 9 (owner 2026-09-27)**:
+  - Mjolnir, the Power Pole, Cap's shield, the batarang and the web shooter play clips authored in
+    `scripts/tools/hero_weapons/author_weapon_clips.py` (Euler poses; `--render` writes filmstrips
+    `assets/hero_weapons/previews/clip_<Id>.png` with the owner's FBX at the build's grip). `gen_weapon_clips.py` now only
+    converts Bakugo's and Luffy's rbxmx. Extra clip fields: `FullBody` (legs play while running), `Extend` (the pole's
+    length keys), `Release`.
+  - `assets/hero_weapons/grip_adjust.json` shifts / twists a model in the hand (Mjolnir: held above the pommel, head
+    along the forearm).
+  - The shield, batarang and web are AIMED (`Kind` Boomerang / Grenade / Shot): the client sends its aim point on
+    `Network["Gear: WeaponAim"]`, the server clamps it (`HeroWeapons.AimEnd`) and flies the projectile itself
+    (`HeroWeapons.PathPoint`, shared with the clients: `Launch` / `ProjectileEnd` broadcasts).
+  - Weapons carry no mesh VFX (the pole's energy arc is dropped); VFX are particles: `vendor/weapon_vfx.rbxm`
+    (`scripts/tools/vendor_weapon_vfx.luau`: Speedsters' Eggman missile blast, the Ban Hammer lightning / impact) ->
+    `ReplicatedStorage.Assets.VFX.HeroWeapons`, plus the place's LightningHit and Mutation_FX.Shocked.
+  - Training dummies (CollectionService tag `HeroWeaponDummy`, spawned by the admin panel) are hit like players.
+    GearService's dummy keeper (`watchDummy` / `settleDummy`) turns their trip states off between hits and eases them
+    back up at their spawn spot 0.5 s after each state ends. Round 11: a hit ragdolls a dummy on the server
+    (`ragdollDummy`: limb sockets, Physics + PlatformStand, limbs collide, every part server-owned, flung along the hit;
+    `endDummyRagdoll` at the state's end). The keeper never touches a limp, stunned or settling dummy.
+    Round 11b ("it still does not recover well; its head spins on its own axis"): the client wobble decided whether a
+    joint held its own last write with an exact CFrame `==`. On a rig no Animator rewrites (the dummy), float noise made
+    each frame's wobble stack and it was never handed back. Now it uses `holdsOurs` (FuzzyEq), dummies get no wobble,
+    and their joints go back to rest when the state ends. At the ragdoll's end the server eases the dummy upright at
+    once, with the root anchored (no engine GettingUp).
+  **Round 10 (owner 2026-09-27)**:
+  - Luffy's fist plays the authored `Gomu_Pistol_Long` clip: a straight-ahead punch with `Stretch` keys up to x7.5.
+    `Kit.SetStretch` scales the rubber arm, and the fist rides its end by `StretchLength` (1.55, set by post_hero_weapons).
+  - Hitboxes match what the weapon draws. Thrusts are a line of `Range` x `Width` starting `LineOffset` to the right
+    of the root, at the right hand (GomuFist 15.5 x 2.3, offset 1.35); Bakugo reaches 10.5; the Power Pole sweep 13.5.
+  - Cap's shield: `grip_adjust.json` `BackfaceCopies` lists palettes whose single-sided meshes get a copy turned 180°
+    (`HeroBackface`), because DoubleSided alone still drew only the rim from behind.
+- **Admin panel** (owner 2026-09-27):
+  - `HeroAdminAccess` holds the access rule: anyone in Studio, UserId 767108248, the game's owner (user, or rank 255 of
+    the owning group). The old Cmdr / AdminStatusHandler whitelists are separate systems and are left alone.
+  - `BranchServices.HeroAdminService` answers `Network["Admin: Command"]`: it re-checks access on every call, rate-limits,
+    validates, logs `[HeroAdmin]`, sets the `HeroAdmin` player attribute and clones `ServerStorage.HeroAdminPanel` into
+    an admin's PlayerGui.
+  - `scripts/steps/ui_85_admin_panel.luau` builds the panel with ui_kit; its LocalScript is
+    `src/ServerStorage/HeroAdminPanel/HeroAdminClient.client.luau`.
+  - The TopbarPlus `HeroAdminIcon` (a part-built 3D crown in a ViewportFrame) sits next to Backpack / Settings; F4
+    also toggles it.
+  - Tabs (round 12): PLAYER, DUMMIES, EGGS, WORLD, SERVER.
+    - The target selector shows on PLAYER and EGGS only.
+    - PLAYER has sub-tabs: ACTIONS (release, respawn, heal, go to, bring, unlock base themes), ECONOMY, WEAPONS and
+      DATA (the target's saved profile plus a DANGER ZONE with WIPE ALL DATA).
+    - DUMMIES has spawn / clear and ARM YOURSELF. WORLD has Taco Rain with a THIS SERVER / ALL SERVERS scope, the
+      teleports and day / night. SERVER has announcements and live stats.
+  - Wipe (`WipeData`): `Library.Database.WipeProfile` resets a loaded profile to a new player's defaults and saves it.
+    Every later save of that session writes the frozen fresh payload, so nothing stale is saved back. The player is
+    kicked 2 s later; 8 s after that their leaderboard / Flappy rows are removed. Guards: two taps ("CONFIRM WIPE
+    <name>" for 4 s), the confirmed UserId must match the target, one wipe per 15 s per admin, a `[HeroAdmin] WIPE`
+    log. The old save stays in the DataStore version history for 30 days.
+  - Cross-server (`BranchServices.HeroBroadcastService`, MessagingService topic "HeroAdmin_Global"): ALL SERVERS
+    Taco Rain and global announcements. Only admin-checked calls publish; receivers validate every message (known
+    event, types, age, clamps) and ignore their own echo. If MessagingService fails, the action stays on this server
+    and the panel says so.
+  - Announcements: filtered with TextService before anything is shown or sent (a filter failure sends nothing), at
+    most 150 characters, one per 3 s per admin. `Network["Announcement: Show"]` (server -> client) is drawn by
+    `BranchControllers.AnnouncementController`: the stud banner built by `ui_86_announcements`, top centre, about
+    8 s, queued up to 5.
+  - Round 10: Economy takes typed amounts. The client sends the raw text; `HeroAdminService.ParseAmount` accepts K / M /
+    B / T / Qa / Qi (any case), decimals, `1e12` and commas, and refuses <= 0, NaN / inf and > 1e15. The commands are
+    `GiveMoney` / `TakeMoney` / `GiveSpeed` / `TakeSpeed`; money floors at 0 and speed is clamped to [10, 5e11].
+  - The close X was dim because the kit's emboss disc sat above its art. It now carries a `TextButton` glyph like the
+    Index window's, inside the band at ZIndex 20.
+- **Taco Rain** (owner 2026-09-27, admin World tab: start 60 / 90 s, stop), ported from V40's "Events / Raining Tacos":
+  - Only the admin panel starts it: `TacoRainService.StartRain` / `StopRain`. They used to be named `Start` / `Stop`,
+    and Branch calls every segment's `:Start()` at boot, so every server began with a 75 s rain (round 11). Never give
+    a Branch segment a dot-style `Start(arg)`; smoke_taco_rain checks every segment for it.
+  - `BranchServices.TacoRainService` rolls every second: 15% chance to aim a taco at an egg placed on a player's base
+    or resting in a stage nest (`AreaEggService.GetRestingEggs` / `AddRestingEggMutation`), 30 hits max per event.
+  - When the taco lands (1.7 s), the server re-checks the egg and gives it the `Taco` mutation (`Mutations.luau`:
+    ValueMulti 3, never rolled). Mutations stack additively, so Rainbow + Taco = 5.5x. The mutation reaches the
+    hatched hero's income.
+  - `Network["TacoRain: Event"]` broadcasts Drop / Hit / Miss. The Workspace attributes `TacoRainUntil` /
+    `TacoRainHits` drive `BranchControllers.TacoRainController`: tint, TacoAmbient sky, pooled 3D tacos, StruckVFX
+    bursts, a floating "x3 TACO!", and a lighter mode on phones.
+  - `EggRenderer.ApplyMutationParticles` draws `Mutation_FX.Taco` on every render of a taco'd egg.
+  - Assets: `vendor/taco_rain.rbxm` (`scripts/tools/vendor_taco_rain.luau`, from the VFX library), published by
+    `post_taco_rain`. Its flipbooks follow Speedsters' sheet table (`Step.SHEETS`): the taco picture 84855954319870 is
+    one image, and V40 drew it as a 4x4 sheet (a huge, broken crop). `StruckVFXSmall` (0.4 size) is the burst for the
+    decorative tacos; egg hits keep the full `StruckVFX`.
+  - A taco landing near the local player shakes the camera: up to 1.5° within 30 studs for an egg hit, 0.6° within
+    14 studs for a decorative taco, throttled to one every 0.35 s.
+  - Music: `SoundService.TacoRainMusic` = 142376088, the only `AudioStep.OWNER_AUDIO` exception to the whitelist
+    (owner request). It stays silent if that audio is not shared with the experience.
+- **Treadmills** (`scripts/steps/treadmill.luau`, round 10): the skins used to sit ~1.2 studs sunk. Now each model
+  keeps its full size and is lifted as far as its hull allows without clashing with plot furniture (lowest point
+  `GROUND_CLEARANCE` above the floor). The Tool carries `BeltLift` (belt top above the floor).
+  - An invisible `BeltDeck` under the belt plus a `BeltRamp` wedge behind it (`TreadmillDeck`, CanCollide, no query /
+    touch) carry the runner; both renderers keep only those solid.
+  - A pre-pass nudges the PlotUpgrade / TreadmillUpgrade sign models away from the plate (0.25 steps, at most 2 studs)
+    when the lifted hull would hit them.
+  - HUD while training (round 11, owner: "the hide effect goes crazy on the treadmill"):
+    - `MenuMotionController` used to re-send every HUD group away on ANY `PlayerGui.ChildAdded`. The treadmill's "+N"
+      speed billboard is parented to PlayerGui every 0.1-0.25 s, so with a menu open the Back-In hide tween restarted
+      forever and jittered. Now only a recreated HUD ScreenGui is handled, and `moveTo` never restarts a tween that is
+      already heading to the same goal.
+    - `TreadmillUI/Visibility` owns what it hides for the whole session: guards undo FriendBoost / BackpackGui
+      re-shows, `Apply` is idempotent, and the exit restores once and leaves BackpackGui to HideUI while it is locked.
+    - Covered by `tests/smoke_treadmill_hud.luau`.
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
@@ -64,7 +207,8 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
 ## Hard rules
 - No asset uploads by Claude, never invent asset ids (reuse ids already in the place/assets). Never use the Speedster
   Escape logo 92044769924002.
-- Audio whitelist only: 77120543307812, 72264591133889, 127039883737564, 136993031050456, 80736831159506.
+- Audio whitelist only: 77120543307812, 72264591133889, 127039883737564, 136993031050456, 80736831159506. The only
+  exception is 142376088, the Taco Rain music the owner asked for by id (`AudioStep.OWNER_AUDIO`, on one Sound).
 - UI: every window/popup uses the Free Gift / Sell All studded glossy style (`scripts/lib/ui_kit.luau`).
 - Economy: money was scaled down x125 on 2026-09-25 (Black Widow ~4 $/s max); publishing it needs a full server
   shutdown. Server-authoritative gameplay; validate remotes; keep identifiers other code looks up.
@@ -82,3 +226,85 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
 - Test in Studio Play: the 6 imported bases (dev unlock: server command bar
   `for _, p in game.Players:GetPlayers() do p:SetAttribute("DevUnlockBaseThemes", true) end`), bat equip from the
   Index, the 4 leaderboards, the new economy, egg pass-through.
+- (2026-09-27) Test in Studio Play:
+  - each villain's clips (dozing idle, wake, chase run, Frieza's glide, attack) and a villain carrying an egg home;
+  - the per-hero auras (Goku white ki, Gohan SSJ, Superman red stars, Zoro green, Iron Man blue, Hawks none);
+  - the particle ground rings and the fixed flipbooks;
+  - the night wall closing the whole lane;
+  - the scenery;
+  - the UI life animations;
+  - NetGuardService limits (it must never kick a real player: read its warn lines);
+  - the `ServerHz` / `ServerFrameMs` / `ServerMemoryMB` workspace attributes;
+  - lag compensation (`LagCompensationService`): villain catches and bat hits with simulated latency
+    (Studio > Network > Incoming Replication Lag);
+  - the device sizing (`UiScaleController`, `PlayerGui.UiDeviceProfile`) in the phone, tablet and console emulators,
+    and the round egg-grab prompts.
+
+  The owner may send a moon icon of their own: until then every moon / sun image shows the pixel-art icons
+  (`HUD.PIXEL_MOON` / `HUD.PIXEL_SUN` in ui_30_hud; the SpPixelIcon layers are driven by `GUI/PixelNightIcon`).
+- (2026-09-27, 4th pass) The owner saw EMPTY stages in a live server: the server spawned every egg
+  ("Initial population done: 38/38") but the egg client (`Game/AreaEggs`) never drew one and logged nothing. The root
+  cause was not found statically. The client now names the step it waits on after 10 s (`[AreaEggs] start-up still
+  waiting at: ...`), loads the presentation-only modules in the background, reconciles drawn eggs every 4 s, and
+  `BranchControllers.EggHealthController` logs `[EggHealth] ...` when the stages show no eggs. If the eggs are still
+  missing, ask for those two log lines: they name the culprit.
+- (2026-09-27, 4th pass) Test in Studio Play:
+  - Zoro's `Aura_Blades`;
+  - the egg / hero list pop-in and the HUD sliding away under menus (`MenuMotionController`);
+  - the treadmill model viewports in the speed shop;
+  - the "+" on the shoe's corner;
+  - the pixel moons in the night countdown, on the egg tab and over growing eggs.
+- (2026-09-27, 5th pass) The floating "+$" money amounts are the `ShowMoneyPopups` setting (Settings row "Money
+  Popups", off by default; `GUI/MoneyUpdate` injected by `scripts/inject/hud_polish.luau`). The currency rows have no
+  band (`RIBBON.band = false`). The Shop / Index icons are 0.95 of the pill height (`GLOSSY_GEOMETRY.iconSize`).
+  HUD groups hidden under a menu travel `AWAY_SCALE` = 1.25 screens (their content spills outside their boxes).
+- (2026-09-27, 6th pass) Hero weapons replaced the bats (see Pipelines). The owner's mapping puts the Power Pole on the
+  Forest (Avengers) stage and Mjolnir on Snow (Dragon Ball) / Cosmic; swapping is one line in `HeroWeapons.BY_TOOL`.
+  Traps: the placed trap's Hitbox used to stay at the template's lobby spot (anchored clone moved before parenting, the
+  weld never dragged it) - fixed in `placeTrap`; a trap only catches OTHER players (test with 2 clients). The ragdoll
+  only joints / collides real body parts (trail / aura parts made it stiff). Test in Studio Play (2+ clients):
+  - each weapon's attack clip, the Power Pole extend and the Gum-Gum stretch;
+  - the web line, the batarang and the shield throw;
+  - the 7 states (web net, lightning, knockback slide, stars, smoke + grey screen, BOOM, spin);
+  - the hotbar / Index weapon portraits;
+  - the red target glow;
+  - traps catching another player on a stage.
+- (2026-09-27, 9th pass) Owner feedback on the weapons (see Pipelines > Hero weapons, Round 9):
+  - the shield showed only its rim from behind (single-sided faces: every weapon MeshPart is DoubleSided now);
+  - Mjolnir was held under its head: new grip + jump / ground-slam clip + a light attacker shake;
+  - the batarang stayed in the hand: it flies out and explodes;
+  - the Power Pole's yellow mesh is gone; it grows out of the hand and spins;
+  - the Index weapon icons sat in the old rotated bat image: `WeaponPortrait.MountBadge` studded tiles.
+
+  Test in Studio Play with 2+ clients (or a training dummy): aim with the mouse / a tap, the shield's curve and
+  return, the batarang blast, Mjolnir's slam, the pole spin.
+- (2026-09-27, 10th pass) Test in Studio Play:
+  - Luffy's long punch and its reach, with 2+ clients or a dummy;
+  - the shield seen from behind;
+  - the dummies standing back up after every state;
+  - the raised treadmills: runner on the belt, the ramp, the moved upgrade signs;
+  - admin amounts like `10m` / `2.5B`, and the close X;
+  - Taco Rain: whether 142376088 plays, the sky and tint, the taco size, a hit on a base egg and on a stage egg.
+- (2026-09-27, 11th pass) Test in Studio Play:
+  - a training dummy going limp on a hit (legs included) and getting back up on its spot;
+  - a fresh server starts with no Taco Rain;
+  - the taco sky with no broken texture;
+  - the camera shake when a taco lands near you;
+  - the HUD on the treadmill (see the treadmill HUD notes).
+- (2026-09-27, 12th pass) Test in Studio Play / a live server:
+  - the new admin tabs and sub-tabs, and the confirm captions;
+  - a wipe on a test account (kicked, rejoins from zero, leaderboard rows gone);
+  - an ALL SERVERS Taco Rain and a global announcement reaching a second live server ("Cross-server: ready");
+  - the announcement banner on phone / console (the text filter only works live, not in Studio);
+  - the dummy getting up cleanly after every weapon, with no head spin.
+- (2026-09-27, 8th pass) The owner imported the 15 FBX models themselves and sent them as a raw `.rbxm`
+  (`assets/user_models/HeroWeaponImports_owner_0927.rbxm`, extracted to `assets/hero_weapons/imports/`): every weapon
+  now uses the owner's model (the kit's Prepare runs offline: grip from the import pivot = FBX origin, palette
+  materials, energy palettes Neon with their colour) and the 7 effect models are in `ReplicatedStorage.HeroWeaponVfx`.
+  **Owner rule: no VFX built from parts / meshes anywhere except their 7 effect models** - effects are particles
+  (templates already in the place), Beams and Trails (the smoke test enforces it on HeroWeaponController).
+- (2026-09-27, 7th pass) The owner sent the real weapon / effect FBX models (see Pipelines > Hero weapons;
+  `HeroWeaponsImport.lua`). Ragdoll fix: the get-up loop called `bodyParts(character)`
+  without the Humanoid, errored every frame and left the body frozen with PlatformStand on (and able to attack):
+  fixed; a ragdoll now unequips the weapon, and GearService / the controller refuse attacks from a body that is down.
+  Weapon victims no longer trip (FallingDown / Ragdoll states off during the state, stood back up after).

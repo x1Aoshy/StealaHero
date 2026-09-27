@@ -1,0 +1,1366 @@
+{
+ "Weapons": {
+  "Bakugo_Gauntlet": {
+   "WeaponId": "BakugoGauntlet",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "groove",
+     "centre": [
+      -0.0,
+      0.03,
+      -0.0
+     ],
+     "size": [
+      0.78,
+      0.16,
+      0.18
+     ],
+     "triangles": 108
+    },
+    {
+     "name": "Bakugo_Gauntlet__Body__bat_edge",
+     "section": "Body",
+     "palette": "bat_edge",
+     "material": "bat_edge",
+     "centre": [
+      -1.005,
+      -0.34,
+      0.0
+     ],
+     "size": [
+      0.22,
+      0.28,
+      0.49
+     ],
+     "triangles": 108
+    },
+    {
+     "name": "Bakugo_Gauntlet__Body__groove",
+     "section": "Body",
+     "palette": "groove",
+     "material": "groove",
+     "centre": [
+      -0.0,
+      0.45,
+      -0.0
+     ],
+     "size": [
+      1.76,
+      1.96,
+      1.76
+     ],
+     "triangles": 768
+    },
+    {
+     "name": "Bakugo_Gauntlet__Body__olive",
+     "section": "Body",
+     "palette": "olive",
+     "material": "olive",
+     "centre": [
+      -0.0,
+      0.52,
+      0.0048
+     ],
+     "size": [
+      2.0678,
+      1.76,
+      2.0679
+     ],
+     "triangles": 3960
+    },
+    {
+     "name": "Bakugo_Gauntlet__Body__olive_light",
+     "section": "Body",
+     "palette": "olive_light",
+     "material": "olive_light",
+     "centre": [
+      -0.0,
+      0.52,
+      -0.0048
+     ],
+     "size": [
+      1.9583,
+      1.76,
+      2.0679
+     ],
+     "triangles": 1320
+    },
+    {
+     "name": "Bakugo_Gauntlet__Body__orange",
+     "section": "Body",
+     "palette": "orange",
+     "material": "orange",
+     "centre": [
+      -0.0,
+      0.82,
+      -0.918
+     ],
+     "size": [
+      0.72,
+      0.12,
+      0.018
+     ],
+     "triangles": 168
+    },
+    {
+     "name": "Bakugo_Gauntlet__Body__silver",
+     "section": "Body",
+     "palette": "silver",
+     "material": "silver",
+     "centre": [
+      -0.225,
+      0.5802,
+      0.0
+     ],
+     "size": [
+      2.17,
+      2.3405,
+      1.72
+     ],
+     "triangles": 2620
+    },
+    {
+     "name": "Bakugo_Gauntlet__Pin__orange",
+     "section": "Pin",
+     "palette": "orange",
+     "material": "orange",
+     "centre": [
+      -0.833,
+      0.64,
+      -0.5225
+     ],
+     "size": [
+      0.464,
+      0.47,
+      0.445
+     ],
+     "triangles": 380
+    }
+   ]
+  },
+  "Batarang": {
+   "WeaponId": "Batarang",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "bat_grip",
+     "centre": [
+      -0.0,
+      0.04,
+      0.035
+     ],
+     "size": [
+      0.26,
+      0.72,
+      0.27
+     ],
+     "triangles": 108
+    },
+    {
+     "name": "Batarang__Body__bat_edge",
+     "section": "Body",
+     "palette": "bat_edge",
+     "material": "bat_edge",
+     "centre": [
+      -0.0,
+      0.1249,
+      -0.6605
+     ],
+     "size": [
+      3.226,
+      1.3543,
+      0.201
+     ],
+     "triangles": 1648
+    },
+    {
+     "name": "Batarang__Body__bat_grip",
+     "section": "Body",
+     "palette": "bat_grip",
+     "material": "bat_grip",
+     "centre": [
+      0.0011,
+      0.0633,
+      -0.3756
+     ],
+     "size": [
+      2.3423,
+      0.6066,
+      0.7411
+     ],
+     "triangles": 160
+    },
+    {
+     "name": "Batarang__Body__bat_matte",
+     "section": "Body",
+     "palette": "bat_matte",
+     "material": "bat_matte",
+     "centre": [
+      0.0,
+      0.1479,
+      -0.2683
+     ],
+     "size": [
+      3.0288,
+      1.1536,
+      0.9125
+     ],
+     "triangles": 980
+    }
+   ]
+  },
+  "CapShield": {
+   "WeaponId": "CapShield",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "leather",
+     "centre": [
+      -0.0,
+      0.0,
+      0.06
+     ],
+     "size": [
+      0.17,
+      0.66,
+      0.14
+     ],
+     "triangles": 108
+    },
+    {
+     "name": "CapShield__Body__hero_blue",
+     "section": "Body",
+     "palette": "hero_blue",
+     "material": "hero_blue",
+     "centre": [
+      0.0,
+      -0.0,
+      -0.4448
+     ],
+     "size": [
+      1.27,
+      1.27,
+      0.0504
+     ],
+     "triangles": 448
+    },
+    {
+     "name": "CapShield__Body__hero_red",
+     "section": "Body",
+     "palette": "hero_red",
+     "material": "hero_red",
+     "centre": [
+      -0.0032,
+      -0.0,
+      -0.2701
+     ],
+     "size": [
+      3.0096,
+      3.016,
+      0.299
+     ],
+     "triangles": 1792
+    },
+    {
+     "name": "CapShield__Body__leather",
+     "section": "Body",
+     "palette": "leather",
+     "material": "leather",
+     "centre": [
+      0.0,
+      -0.0,
+      -0.055
+     ],
+     "size": [
+      1.1,
+      1.08,
+      0.54
+     ],
+     "triangles": 72
+    },
+    {
+     "name": "CapShield__Body__mjolnir_metal",
+     "section": "Body",
+     "palette": "mjolnir_metal",
+     "material": "mjolnir_metal",
+     "centre": [
+      0.0,
+      -0.0,
+      -0.2468
+     ],
+     "size": [
+      2.92,
+      2.92,
+      0.2663
+     ],
+     "triangles": 448
+    },
+    {
+     "name": "CapShield__Body__silver",
+     "section": "Body",
+     "palette": "silver",
+     "material": "silver",
+     "centre": [
+      0.0,
+      -0.0,
+      -0.3625
+     ],
+     "size": [
+      2.45,
+      2.45,
+      0.285
+     ],
+     "triangles": 1626
+    },
+    {
+     "name": "CapShield__Body__steel_dark",
+     "section": "Body",
+     "palette": "steel_dark",
+     "material": "steel_dark",
+     "centre": [
+      -0.0003,
+      -0.0,
+      -0.3531
+     ],
+     "size": [
+      2.4575,
+      2.458,
+      0.1451
+     ],
+     "triangles": 2304
+    }
+   ]
+  },
+  "GomuFist": {
+   "WeaponId": "GomuFist",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "rubber_skin",
+     "centre": [
+      -0.0,
+      0.1,
+      -0.0
+     ],
+     "size": [
+      0.53,
+      0.23,
+      0.53
+     ],
+     "triangles": 188
+    },
+    {
+     "name": "GomuFist__Cuff__hero_red",
+     "section": "Cuff",
+     "palette": "hero_red",
+     "material": "hero_red",
+     "centre": [
+      -0.0,
+      0.09,
+      -0.0
+     ],
+     "size": [
+      0.57,
+      0.14,
+      0.57
+     ],
+     "triangles": 188
+    },
+    {
+     "name": "GomuFist__Fist__rubber_shadow",
+     "section": "Fist",
+     "palette": "rubber_shadow",
+     "material": "rubber_shadow",
+     "centre": [
+      -0.0122,
+      2.2408,
+      -0.8568
+     ],
+     "size": [
+      0.9439,
+      0.5281,
+      0.1543
+     ],
+     "triangles": 104
+    },
+    {
+     "name": "GomuFist__Fist__rubber_skin",
+     "section": "Fist",
+     "palette": "rubber_skin",
+     "material": "rubber_skin",
+     "centre": [
+      -0.0781,
+      2.1987,
+      -0.1114
+     ],
+     "size": [
+      2.0782,
+      1.7938,
+      1.65
+     ],
+     "triangles": 2886
+    },
+    {
+     "name": "GomuFist__Rubber__rubber_skin",
+     "section": "Rubber",
+     "palette": "rubber_skin",
+     "material": "rubber_skin",
+     "centre": [
+      -0.0,
+      0.9,
+      -0.0
+     ],
+     "size": [
+      1.28,
+      1.5,
+      1.28
+     ],
+     "triangles": 156
+    }
+   ]
+  },
+  "Mjolnir": {
+   "WeaponId": "Mjolnir",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "hammer_leather",
+     "centre": [
+      0.0,
+      -0.085,
+      0.0
+     ],
+     "size": [
+      0.28,
+      1.53,
+      0.28
+     ],
+     "triangles": 236
+    },
+    {
+     "name": "Mjolnir__Body__hammer_edge",
+     "section": "Body",
+     "palette": "hammer_edge",
+     "material": "hammer_edge",
+     "centre": [
+      -0.0,
+      0.3563,
+      -0.0
+     ],
+     "size": [
+      2.2919,
+      2.9905,
+      1.118
+     ],
+     "triangles": 8418
+    },
+    {
+     "name": "Mjolnir__Body__hammer_forged",
+     "section": "Body",
+     "palette": "hammer_forged",
+     "material": "hammer_forged",
+     "centre": [
+      -0.0,
+      1.26,
+      -0.0
+     ],
+     "size": [
+      2.28,
+      1.15,
+      1.1
+     ],
+     "triangles": 44
+    },
+    {
+     "name": "Mjolnir__Body__hammer_inlay",
+     "section": "Body",
+     "palette": "hammer_inlay",
+     "material": "hammer_inlay",
+     "centre": [
+      -0.0,
+      0.375,
+      -0.0
+     ],
+     "size": [
+      2.2751,
+      2.97,
+      1.124
+     ],
+     "triangles": 900
+    },
+    {
+     "name": "Mjolnir__Body__hammer_leather",
+     "section": "Body",
+     "palette": "hammer_leather",
+     "material": "hammer_leather",
+     "centre": [
+      -0.025,
+      -1.428,
+      0.0
+     ],
+     "size": [
+      0.478,
+      0.576,
+      0.086
+     ],
+     "triangles": 320
+    }
+   ]
+  },
+  "PowerPole": {
+   "WeaponId": "PowerPole",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "hero_red",
+     "centre": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "size": [
+      0.2,
+      3.38,
+      0.2
+     ],
+     "triangles": 236
+    },
+    {
+     "name": "PowerPole__Body__hero_red",
+     "section": "Body",
+     "palette": "hero_red",
+     "material": "hero_red",
+     "centre": [
+      0.0,
+      -0.0,
+      0.0
+     ],
+     "size": [
+      0.198,
+      3.308,
+      0.1916
+     ],
+     "triangles": 480
+    },
+    {
+     "name": "PowerPole__VFX__gold_energy",
+     "section": "VFX",
+     "palette": "gold_energy",
+     "material": "gold_energy",
+     "centre": [
+      -0.8277,
+      -0.1351,
+      0.2
+     ],
+     "size": [
+      1.7542,
+      3.1384,
+      0.0476
+     ],
+     "triangles": 296
+    }
+   ]
+  },
+  "PowerPole_GoldToy": {
+   "WeaponId": "PowerPole_GoldToy",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "hero_red",
+     "centre": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "size": [
+      0.21,
+      3.15,
+      0.21
+     ],
+     "triangles": 188
+    },
+    {
+     "name": "PowerPole_GoldToy__Body__gold",
+     "section": "Body",
+     "palette": "gold",
+     "material": "gold",
+     "centre": [
+      0.0,
+      -0.0,
+      0.0
+     ],
+     "size": [
+      0.294,
+      3.41,
+      0.29
+     ],
+     "triangles": 568
+    },
+    {
+     "name": "PowerPole_GoldToy__Body__hero_red",
+     "section": "Body",
+     "palette": "hero_red",
+     "material": "hero_red",
+     "centre": [
+      0.0,
+      -0.18,
+      0.0
+     ],
+     "size": [
+      0.27,
+      0.384,
+      0.2668
+     ],
+     "triangles": 720
+    },
+    {
+     "name": "PowerPole_GoldToy__Body__silver",
+     "section": "Body",
+     "palette": "silver",
+     "material": "silver",
+     "centre": [
+      0.0,
+      -0.0,
+      0.0
+     ],
+     "size": [
+      0.304,
+      3.37,
+      0.3
+     ],
+     "triangles": 288
+    },
+    {
+     "name": "PowerPole_GoldToy__Body__stud_red",
+     "section": "Body",
+     "palette": "stud_red",
+     "material": "stud_red",
+     "centre": [
+      0.0,
+      -0.15,
+      0.0
+     ],
+     "size": [
+      0.24,
+      0.65,
+      0.24
+     ],
+     "triangles": 140
+    },
+    {
+     "name": "PowerPole_GoldToy__VFX__gold_energy",
+     "section": "VFX",
+     "palette": "gold_energy",
+     "material": "gold_energy",
+     "centre": [
+      -0.7988,
+      -0.3189,
+      0.395
+     ],
+     "size": [
+      2.0344,
+      2.8235,
+      0.3818
+     ],
+     "triangles": 328
+    }
+   ]
+  },
+  "WebShooter": {
+   "WeaponId": "WebShooter",
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "web_red_cloth",
+     "centre": [
+      -0.0,
+      0.33,
+      0.512
+     ],
+     "size": [
+      1.025,
+      1.04,
+      0.07
+     ],
+     "triangles": 108
+    },
+    {
+     "name": "WebShooter__Body__cartridge_brass",
+     "section": "Body",
+     "palette": "cartridge_brass",
+     "material": "cartridge_brass",
+     "centre": [
+      -0.0,
+      0.2037,
+      -0.644
+     ],
+     "size": [
+      0.62,
+      1.1475,
+      0.162
+     ],
+     "triangles": 1404
+    },
+    {
+     "name": "WebShooter__Body__ink",
+     "section": "Body",
+     "palette": "ink",
+     "material": "ink",
+     "centre": [
+      0.0,
+      -0.035,
+      -0.625
+     ],
+     "size": [
+      0.078,
+      0.008,
+      0.078
+     ],
+     "triangles": 44
+    },
+    {
+     "name": "WebShooter__Body__silver",
+     "section": "Body",
+     "palette": "silver",
+     "material": "silver",
+     "centre": [
+      -0.0,
+      0.2075,
+      -0.617
+     ],
+     "size": [
+      0.607,
+      1.055,
+      0.16
+     ],
+     "triangles": 680
+    },
+    {
+     "name": "WebShooter__Body__steel_dark",
+     "section": "Body",
+     "palette": "steel_dark",
+     "material": "steel_dark",
+     "centre": [
+      -0.0,
+      0.3302,
+      -0.067
+     ],
+     "size": [
+      1.15,
+      1.0017,
+      1.286
+     ],
+     "triangles": 1220
+    },
+    {
+     "name": "WebShooter__Body__web_blue_cloth",
+     "section": "Body",
+     "palette": "web_blue_cloth",
+     "material": "web_blue_cloth",
+     "centre": [
+      -0.0,
+      0.64,
+      0.552
+     ],
+     "size": [
+      0.62,
+      0.41,
+      0.018
+     ],
+     "triangles": 108
+    },
+    {
+     "name": "WebShooter__Body__web_red_cloth",
+     "section": "Body",
+     "palette": "web_red_cloth",
+     "material": "web_red_cloth",
+     "centre": [
+      0.0,
+      0.33,
+      -0.0213
+     ],
+     "size": [
+      1.12,
+      1.04,
+      1.0775
+     ],
+     "triangles": 324
+    }
+   ]
+  }
+ },
+ "Vfx": {
+  "Bat_Smoke_Cloud": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "smoke_dark",
+     "centre": [
+      -0.0,
+      0.5,
+      -0.0
+     ],
+     "size": [
+      1.3315,
+      1.16,
+      1.16
+     ],
+     "triangles": 80
+    },
+    {
+     "name": "Bat_Smoke_Cloud__Bats__bat_matte",
+     "section": "Bats",
+     "palette": "bat_matte",
+     "material": "bat_matte",
+     "centre": [
+      -0.2489,
+      1.5513,
+      -0.01
+     ],
+     "size": [
+      3.1695,
+      1.2323,
+      0.275
+     ],
+     "triangles": 1644
+    },
+    {
+     "name": "Bat_Smoke_Cloud__Bats__smoke_mid",
+     "section": "Bats",
+     "palette": "smoke_mid",
+     "material": "smoke_mid",
+     "centre": [
+      -0.2965,
+      1.2723,
+      -0.0749
+     ],
+     "size": [
+      2.3519,
+      0.7942,
+      0.0643
+     ],
+     "triangles": 78
+    },
+    {
+     "name": "Bat_Smoke_Cloud__Body__smoke_dark",
+     "section": "Body",
+     "palette": "smoke_dark",
+     "material": "smoke_dark",
+     "centre": [
+      -0.019,
+      0.7835,
+      -0.0446
+     ],
+     "size": [
+      2.4608,
+      1.641,
+      1.4081
+     ],
+     "triangles": 480
+    },
+    {
+     "name": "Bat_Smoke_Cloud__Body__smoke_mid",
+     "section": "Body",
+     "palette": "smoke_mid",
+     "material": "smoke_mid",
+     "centre": [
+      0.2471,
+      0.806,
+      -0.125
+     ],
+     "size": [
+      2.0471,
+      1.692,
+      1.246
+     ],
+     "triangles": 240
+    }
+   ]
+  },
+  "Comic_Explosion": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "fire_yellow",
+     "centre": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "size": [
+      1.0842,
+      1.24,
+      1.06
+     ],
+     "triangles": 80
+    },
+    {
+     "name": "Comic_Explosion__Flames__fire_orange",
+     "section": "Flames",
+     "palette": "fire_orange",
+     "material": "fire_orange",
+     "centre": [
+      0.0751,
+      0.0691,
+      -0.2214
+     ],
+     "size": [
+      3.2737,
+      3.0222,
+      1.1278
+     ],
+     "triangles": 408
+    },
+    {
+     "name": "Comic_Explosion__Flames__fire_yellow",
+     "section": "Flames",
+     "palette": "fire_yellow",
+     "material": "fire_yellow",
+     "centre": [
+      0.0626,
+      0.0573,
+      -0.0892
+     ],
+     "size": [
+      2.7192,
+      2.5097,
+      0.6058
+     ],
+     "triangles": 288
+    },
+    {
+     "name": "Comic_Explosion__Smoke__smoke_dark",
+     "section": "Smoke",
+     "palette": "smoke_dark",
+     "material": "smoke_dark",
+     "centre": [
+      0.1766,
+      -0.1057,
+      0.32
+     ],
+     "size": [
+      2.5111,
+      2.6211,
+      0.84
+     ],
+     "triangles": 320
+    },
+    {
+     "name": "Comic_Explosion__Smoke__smoke_white",
+     "section": "Smoke",
+     "palette": "smoke_white",
+     "material": "smoke_white",
+     "centre": [
+      0.105,
+      0.2767,
+      0.295
+     ],
+     "size": [
+      3.1334,
+      2.8866,
+      0.89
+     ],
+     "triangles": 640
+    }
+   ]
+  },
+  "Dazed_Stars": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "gold_energy",
+     "centre": [
+      0.0,
+      -0.0,
+      0.0
+     ],
+     "size": [
+      1.65,
+      0.05,
+      1.6433
+     ],
+     "triangles": 576
+    },
+    {
+     "name": "Dazed_Stars__Star1__gold",
+     "section": "Star1",
+     "palette": "gold",
+     "material": "gold",
+     "centre": [
+      -0.7993,
+      0.0899,
+      0.1332
+     ],
+     "size": [
+      0.1552,
+      0.4332,
+      0.437
+     ],
+     "triangles": 276
+    },
+    {
+     "name": "Dazed_Stars__Star2__gold",
+     "section": "Star2",
+     "palette": "gold",
+     "material": "gold",
+     "centre": [
+      0.1088,
+      0.1799,
+      0.8025
+     ],
+     "size": [
+      0.437,
+      0.4332,
+      0.1552
+     ],
+     "triangles": 276
+    },
+    {
+     "name": "Dazed_Stars__Star3__gold",
+     "section": "Star3",
+     "palette": "gold",
+     "material": "gold",
+     "centre": [
+      0.7993,
+      0.0899,
+      -0.1332
+     ],
+     "size": [
+      0.1552,
+      0.4332,
+      0.437
+     ],
+     "triangles": 276
+    },
+    {
+     "name": "Dazed_Stars__Star4__gold",
+     "section": "Star4",
+     "palette": "gold",
+     "material": "gold",
+     "centre": [
+      -0.1088,
+      0.1799,
+      -0.8025
+     ],
+     "size": [
+      0.437,
+      0.4332,
+      0.1552
+     ],
+     "triangles": 276
+    }
+   ]
+  },
+  "Mjolnir_Lightning": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "lightning",
+     "centre": [
+      0.9545,
+      1.725,
+      -0.0701
+     ],
+     "size": [
+      0.8925,
+      0.7808,
+      0.1576
+     ],
+     "triangles": 56
+    },
+    {
+     "name": "Mjolnir_Lightning__Body__lightning",
+     "section": "Body",
+     "palette": "lightning",
+     "material": "lightning",
+     "centre": [
+      -0.9548,
+      1.7255,
+      -0.0703
+     ],
+     "size": [
+      0.8913,
+      0.7865,
+      0.1608
+     ],
+     "triangles": 56
+    }
+   ]
+  },
+  "Web_Blob": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "web_neon",
+     "centre": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "size": [
+      0.5706,
+      0.6,
+      0.42
+     ],
+     "triangles": 80
+    },
+    {
+     "name": "Web_Blob__Body__web_neon",
+     "section": "Body",
+     "palette": "web_neon",
+     "material": "web_neon",
+     "centre": [
+      -0.0231,
+      0.0235,
+      0.0488
+     ],
+     "size": [
+      0.9525,
+      0.9442,
+      0.1658
+     ],
+     "triangles": 130
+    }
+   ]
+  },
+  "Web_Cocoon": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "web_shadow",
+     "centre": [
+      -0.0,
+      0.055,
+      -0.0
+     ],
+     "size": [
+      2.304,
+      0.104,
+      2.2901
+     ],
+     "triangles": 480
+    },
+    {
+     "name": "Web_Cocoon__Diagonal-1__web_white",
+     "section": "Diagonal-1",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0027,
+      1.8098,
+      0.0003
+     ],
+     "size": [
+      3.447,
+      3.5219,
+      2.4
+     ],
+     "triangles": 5168
+    },
+    {
+     "name": "Web_Cocoon__Diagonal1__web_white",
+     "section": "Diagonal1",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0027,
+      1.8098,
+      -0.0003
+     ],
+     "size": [
+      3.447,
+      3.5219,
+      2.4
+     ],
+     "triangles": 5168
+    },
+    {
+     "name": "Web_Cocoon__LooseSilk__web_white",
+     "section": "LooseSilk",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0,
+      4.197,
+      0.5551
+     ],
+     "size": [
+      2.6609,
+      1.5811,
+      0.3426
+     ],
+     "triangles": 184
+    },
+    {
+     "name": "Web_Cocoon__Studs0__web_white",
+     "section": "Studs0",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      0.0,
+      0.83,
+      -0.0
+     ],
+     "size": [
+      3.4412,
+      0.8507,
+      2.4019
+     ],
+     "triangles": 5280
+    },
+    {
+     "name": "Web_Cocoon__Studs1__web_white",
+     "section": "Studs1",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0,
+      2.23,
+      -0.0
+     ],
+     "size": [
+      3.4813,
+      0.8507,
+      2.4213
+     ],
+     "triangles": 5280
+    },
+    {
+     "name": "Web_Cocoon__Studs2__web_white",
+     "section": "Studs2",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0,
+      3.18,
+      -0.0
+     ],
+     "size": [
+      2.6552,
+      0.1507,
+      1.8512
+     ],
+     "triangles": 2640
+    },
+    {
+     "name": "Web_Cocoon__Wraps0__web_white",
+     "section": "Wraps0",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0,
+      0.6551,
+      -0.0
+     ],
+     "size": [
+      3.4516,
+      1.3021,
+      2.3982
+     ],
+     "triangles": 4608
+    },
+    {
+     "name": "Web_Cocoon__Wraps1__web_white",
+     "section": "Wraps1",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0,
+      1.9572,
+      -0.0
+     ],
+     "size": [
+      3.451,
+      1.3017,
+      2.4027
+     ],
+     "triangles": 4608
+    },
+    {
+     "name": "Web_Cocoon__Wraps2__web_white",
+     "section": "Wraps2",
+     "palette": "web_white",
+     "material": "web_white",
+     "centre": [
+      -0.0,
+      3.085,
+      -0.0
+     ],
+     "size": [
+      3.0519,
+      0.9787,
+      2.1223
+     ],
+     "triangles": 3456
+    }
+   ]
+  },
+  "Web_Net": {
+   "Meshes": [
+    {
+     "name": "Handle",
+     "section": "Handle",
+     "palette": null,
+     "material": "web_neon",
+     "centre": [
+      -0.5251,
+      -0.0016,
+      0.0591
+     ],
+     "size": [
+      1.0556,
+      0.0485,
+      0.1688
+     ],
+     "triangles": 16
+    },
+    {
+     "name": "Web_Net__Body__web_neon",
+     "section": "Body",
+     "palette": "web_neon",
+     "material": "web_neon",
+     "centre": [
+      -0.0005,
+      0.0,
+      0.0605
+     ],
+     "size": [
+      2.1229,
+      2.124,
+      0.1726
+     ],
+     "triangles": 1392
+    }
+   ]
+  }
+ }
+}

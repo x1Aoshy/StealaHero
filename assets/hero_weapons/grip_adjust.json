@@ -1,0 +1,21 @@
+{
+  "_comment": "Per owner model: Shift moves the model (FBX origin space) so the hand grips that spot, Twist turns it about its handle axis (degrees): Handle = RightHand * gripRotation * CFrame.Angles(0, Twist, 0) * CFrame.new(Shift) * (origin -> Handle). Read by scripts/steps/post_hero_weapons.luau and scripts/tools/hero_weapons/author_weapon_clips.py. BackfaceCopies: palettes of single-sided flat meshes that get a copy facing the other way.",
+  "Mjolnir": {
+    "Shift": [
+      0,
+      0.58,
+      0
+    ],
+    "Twist": -90,
+    "Why": "held by the lower wrap above the pommel (not under the head), the head's striking axis along the forearm like a real hammer"
+  },
+  "CapShield": {
+    "BackfaceCopies": [
+      "steel_dark",
+      "silver",
+      "mjolnir_metal",
+      "hero_blue"
+    ],
+    "Why": "the shield's discs are single-sided faces (front only): from behind, the wielder's view, only the rim showed even with DoubleSided set, so each disc gets a copy turned 180 degrees about its vertical axis facing backward"
+  }
+}

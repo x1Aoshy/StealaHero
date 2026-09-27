@@ -7,16 +7,17 @@
 --   RigScale                    -> effect sizes (HEROES)
 --   Hovering                    -> Frieza's hover ring
 --   ChaseFx "<Kind>;<seq>;<targetUserId>;<seconds>[;<x,y,z>;<x,y,z>]"
---                               -> one-shots: Spawn / Vanish (every villain), Surge (Darkseid eye beams),
---                                  Leap (Carnage lunge trail), Beam (Frieza energy beam), Roar (Kaido shockwave)
+--                               -> one-shots: Spawn / Vanish (every villain: themed teleport burst), Punch (every
+--                                  villain: the catch swing), Surge (Darkseid eye beams), Leap (Carnage lunge trail),
+--                                  Beam (Frieza energy beam), Roar (Kaido shockwave)
 -- plus the remote "Guards: ServerHit" for the catch punch.
 --
 -- Signatures: Thanos heavy footstep thumps + proximity camera shake; Darkseid red eye glow + eye beams on each
 -- surge; Carnage lunge trail; Shigaraki decay particle trail + crumbling ground; Frieza hover ring + energy beam;
 -- Kaido giant footsteps + ground-shake roar. All effects are silent (no Sound), non-colliding parts in
 -- Workspace.__DEBRIS (only emitter/trail/beam attachments sit on the villain's own parts), are only built near
--- the camera and are cleaned up by Debris / when the chase ends. The SabVfx villain aura is left to
--- SabVfxController.
+-- the camera and are cleaned up by Debris / when the chase ends. Spawn / Vanish play a particle-only teleport burst
+-- themed per villain (teleportBurst; owner 2026-09-27). Villains wear no aura (the SabVfx fire aura is gone).
 -- Camera shake: only for the chased carrier outside the safe zone, amplitude <= 0.5, off with Reduced Motion.
 
 local Debris = game:GetService("Debris")
@@ -172,25 +173,150 @@ end
 
 local FLAT = CFrame.Angles(0, 0, math.pi / 2) -- a Cylinder's axis is X: lay it flat as a disc
 
--- Expanding, fading disc on the ground (footstep thump, shockwave, spawn ring).
-local function pulseDisc(position, color, fromDiameter, toDiameter, duration, transparency, material)
-	local disc = newFxPart("VillainFxDisc", Enum.PartType.Cylinder, Vector3.new(0.15, fromDiameter, fromDiameter), CFrame.new(position) * FLAT, color, transparency or 0.35, material)
-	TweenService:Create(disc, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = Vector3.new(0.15, toDiameter, toDiameter),
-		Transparency = 1,
-	}):Play()
-	Debris:AddItem(disc, duration + 0.1)
-	return disc
+-- Teleport VFX (owner 2026-09-27: "no weird part effect, emit a TP VFX that fits the villain's theme and colour").
+-- Particles only, textures from the V40 SAB reference effects (egg glow / rays / pixel stars / space puffs /
+-- lightning arcs / pixel blobs / pixel smoke / fire specs): a soft flash, rays, sparkles and a smoke puff at the feet
+-- in the villain's colour, plus one themed layer. Sizes follow the villain's RigScale.
+local TP_TEX = {
+	glow = "rbxassetid://13580351149",
+	rays = "rbxassetid://3048527478",
+	star = "rbxassetid://8733414465",
+	pixelStar = "rbxassetid://13448020277",
+	puff = "rbxassetid://11866495294",
+	space = "rbxassetid://92739826225814",
+	arc = "rbxassetid://13778464872",
+	blob = "rbxassetid://8733488500",
+	decay = "rbxassetid://11847035494",
+	fire = "rbxassetid://123944207040840",
+	wave = "rbxassetid://119676097455144", -- CrystalSpinWheel "Waves": a soft ring, drawn flat on the ground
+	ring = "rbxassetid://14444570452", -- Witch Fuse "shockwave1Ring" flipbook
+}
+-- V40 4x4 flipbook sheets (every V40 emitter using them sets Grid4x4, nearly all OneShot: one animation per particle
+-- life). Without the layout Roblox draws the whole sheet, a grid of 16 tiny frames (owner 2026-09-27: "the TP
+-- flipbooks are wrong, badly emitted").
+local TP_FLIPBOOK = {
+	star = true, pixelStar = true, puff = true, space = true, arc = true, blob = true, decay = true, fire = true, ring = true,
+}
+
+local function seq(points)
+	local keys = {}
+	for _, p in ipairs(points) do
+		table.insert(keys, NumberSequenceKeypoint.new(p[1], p[2]))
+	end
+	return NumberSequence.new(keys)
 end
 
--- Upright light column (spawn / vanish).
-local function flashColumn(position, color, height, diameter, duration)
-	local column = newFxPart("VillainFxColumn", Enum.PartType.Cylinder, Vector3.new(height, diameter, diameter), CFrame.new(position + Vector3.new(0, height * 0.5, 0)) * FLAT, color, 0.25)
-	TweenService:Create(column, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Size = Vector3.new(height, 0.1, 0.1),
-		Transparency = 1,
-	}):Play()
-	Debris:AddItem(column, duration + 0.1)
+-- spec: tex, count, life {min,max}, size (points, x scale), speed {min,max} (x scale), spread, drag, accel (x scale),
+-- light, rotation, transparency points, colour mix toward white (0..1) or a fixed colour
+local TP_BASE = {
+	{ tex = "glow", count = 2, life = { 0.35, 0.45 }, size = { { 0, 0 }, { 0.3, 7 }, { 1, 0 } }, speed = { 0, 0 }, light = 1, transparency = { { 0, 0.15 }, { 1, 1 } } },
+	{ tex = "rays", count = 6, life = { 0.45, 0.6 }, size = { { 0, 0 }, { 1, 4.5 } }, speed = { 0, 0 }, light = 1, rotation = true, mix = 0.3,
+		transparency = { { 0, 0.2 }, { 1, 1 } } },
+	{ tex = "star", count = 16, life = { 0.4, 0.8 }, size = { { 0, 0.45 }, { 1, 0 } }, speed = { 8, 16 }, spread = 180, drag = 4, light = 1, mix = 0.45 },
+}
+local TP_PUFF = { tex = "puff", count = 10, life = { 0.5, 0.8 }, size = { { 0, 1.5 }, { 1, 3 } }, speed = { 5, 9 }, spread = 85, drag = 5, light = 0,
+	rotation = true, dark = 0.45, transparency = { { 0, 0.45 }, { 1, 1 } } }
+local TP_THEME = {
+	Thanos = { tex = "space", count = 6, life = { 0.6, 0.9 }, size = { { 0, 0.8 }, { 0.4, 2.2 }, { 1, 0 } }, speed = { 3, 6 }, spread = 180, drag = 3, light = 0, rotation = true },
+	Darkseid = { tex = "arc", count = 5, life = { 0.08, 0.2 }, size = { { 0, 4 }, { 1, 4 } }, speed = { 0, 0 }, light = 1, rotation = true },
+	Carnage = { tex = "blob", count = 14, life = { 0.3, 0.7 }, size = { { 0, 0.8 }, { 1, 0 } }, speed = { 12, 22 }, spread = 180, accel = { 0, -30, 0 }, light = 0, dark = 0.35 },
+	Shigaraki = { tex = "decay", count = 10, life = { 0.8, 1.2 }, size = { { 0, 1.2 }, { 1, 2.2 } }, speed = { 2, 5 }, spread = 180, accel = { 0, 3, 0 }, light = 0, rotation = true,
+		transparency = { { 0, 0.3 }, { 1, 1 } } },
+	Frieza = { tex = "pixelStar", count = 14, life = { 0.5, 0.9 }, size = { { 0, 0.5 }, { 1, 0 } }, speed = { 4, 9 }, spread = 60, accel = { 0, 14, 0 }, light = 1, mix = 0.25 },
+	Kaido = { tex = "fire", count = 14, life = { 0.4, 0.8 }, size = { { 0, 1.2 }, { 1, 0 } }, speed = { 6, 12 }, spread = 70, accel = { 0, 10, 0 }, light = 0.6 },
+}
+
+-- extra spec keys: flat (lies on the ground: VelocityPerpendicular, emitted straight up at a crawl), brightness, zOffset
+local function tpEmitter(host, spec, color, scale, strength)
+	local e = Instance.new("ParticleEmitter")
+	e.Name = "Tp_" .. spec.tex
+	e.Texture = TP_TEX[spec.tex]
+	if TP_FLIPBOOK[spec.tex] then
+		e.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+		e.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+	end
+	if spec.flat then
+		e.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	end
+	if spec.brightness then
+		e.Brightness = spec.brightness
+	end
+	if spec.zOffset then
+		e.ZOffset = spec.zOffset
+	end
+	e.Enabled = false
+	e.LightEmission = spec.light or 0
+	e.LightInfluence = 0
+	e.Lifetime = NumberRange.new(spec.life[1], spec.life[2])
+	local speed = spec.speed or (if spec.flat then { 0.01, 0.01 } else { 0, 0 })
+	e.Speed = NumberRange.new(speed[1] * scale, speed[2] * scale)
+	local spread = spec.spread or 0
+	e.SpreadAngle = Vector2.new(spread, spread)
+	e.EmissionDirection = Enum.NormalId.Top
+	e.Drag = spec.drag or 0
+	local a = spec.accel or { 0, 0, 0 }
+	e.Acceleration = Vector3.new(a[1], a[2], a[3]) * scale
+	local points = {}
+	for _, p in ipairs(spec.size) do
+		table.insert(points, { p[1], p[2] * scale })
+	end
+	e.Size = seq(points)
+	e.Transparency = seq(spec.transparency or { { 0, 0 }, { 0.7, 0.2 }, { 1, 1 } })
+	if spec.rotation then
+		e.Rotation = NumberRange.new(0, 360)
+		e.RotSpeed = NumberRange.new(-60, 60)
+	end
+	local c = color
+	if spec.mix then
+		c = c:Lerp(WHITE, spec.mix)
+	elseif spec.dark then
+		c = c:Lerp(Color3.new(0, 0, 0), spec.dark)
+	end
+	e.Color = ColorSequence.new(c)
+	e.Parent = host
+	if spec.count > 0 and strength > 0 then
+		e:Emit(math.max(1, math.floor(spec.count * strength + 0.5)))
+	end
+	return e
+end
+
+-- One teleport burst at `position` (the villain's root) with a smoke puff at its feet.
+local function teleportBurst(entry, position, strength)
+	local scale = entry.scale
+	local color = entry.color
+	local host = newFxPart("VillainFxTeleport", Enum.PartType.Block, Vector3.new(1, 1, 1) * scale, CFrame.new(position), WHITE, 1)
+	for _, spec in ipairs(TP_BASE) do
+		tpEmitter(host, spec, color, scale, strength)
+	end
+	local theme = entry.key and TP_THEME[entry.key]
+	if theme then
+		tpEmitter(host, theme, color, scale, strength)
+	end
+	local feet = newFxPart("VillainFxTeleportFeet", Enum.PartType.Block, Vector3.new(2, 0.2, 2) * scale,
+		CFrame.new(position - Vector3.new(0, 3 * scale, 0)), WHITE, 1)
+	tpEmitter(feet, TP_PUFF, color, scale, strength)
+	Debris:AddItem(host, 2.5)
+	Debris:AddItem(feet, 2.5)
+end
+
+-- Ground ring (footstep thump, landing, shockwave; owner 2026-09-27: "remove that ugly mesh when they step, put a
+-- nice VFX"): particles only, a soft wave ring lying flat on the floor growing from `fromDiameter` to `toDiameter`,
+-- plus a flipbook shockwave ring on the big ones. Same signature as the old Neon disc it replaces.
+local function pulseDisc(position, color, fromDiameter, toDiameter, duration, transparency)
+	local host = newFxPart("VillainFxGround", Enum.PartType.Block, Vector3.new(1, 0.1, 1), CFrame.new(position + Vector3.new(0, 0.05, 0)), WHITE, 1)
+	local alpha = math.clamp(transparency or 0.3, 0, 0.9)
+	tpEmitter(host, {
+		tex = "wave", flat = true, count = 1, life = { duration, duration }, light = 1, brightness = 2, zOffset = 0.05,
+		size = { { 0, fromDiameter * 0.6 }, { 1, toDiameter * 0.6 } }, transparency = { { 0, alpha }, { 0.6, 0.55 }, { 1, 1 } },
+	}, color, 1, 1)
+	if toDiameter >= 12 then
+		tpEmitter(host, {
+			tex = "ring", flat = true, count = 1, life = { duration * 0.7, duration * 0.7 }, light = 1, brightness = 2,
+			size = { { 0, 0 }, { 0.15, toDiameter * 0.35 }, { 1, toDiameter * 0.55 } }, transparency = { { 0, 0.1 }, { 0.5, 0.3 }, { 1, 1 } },
+		}, color, 1, 1)
+	end
+	Debris:AddItem(host, duration + 0.3)
+	return host
 end
 
 -- One shared invisible host moved to a point and emitting a burst (particles stay in world space).
@@ -202,7 +328,9 @@ local function ensureBurstHost()
 	burstHost = newFxPart("VillainFxEmitters", Enum.PartType.Block, Vector3.new(1, 0.2, 1), CFrame.new(0, -500, 0), WHITE, 1)
 	dustEmitter = Instance.new("ParticleEmitter")
 	dustEmitter.Name = "Dust"
-	dustEmitter.Texture = SMOKE_TEXTURE
+	dustEmitter.Texture = TP_TEX.puff
+	dustEmitter.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	dustEmitter.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
 	dustEmitter.Enabled = false
 	dustEmitter.Lifetime = NumberRange.new(0.6, 1.1)
 	dustEmitter.Speed = NumberRange.new(6, 12)
@@ -216,7 +344,9 @@ local function ensureBurstHost()
 	dustEmitter.Parent = burstHost
 	sparkEmitter = Instance.new("ParticleEmitter")
 	sparkEmitter.Name = "Spark"
-	sparkEmitter.Texture = SPARK_TEXTURE
+	sparkEmitter.Texture = TP_TEX.blob
+	sparkEmitter.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	sparkEmitter.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
 	sparkEmitter.Enabled = false
 	sparkEmitter.LightEmission = 1
 	sparkEmitter.Lifetime = NumberRange.new(0.4, 0.8)
@@ -356,6 +486,7 @@ local function destroyPersistent(entry)
 	entry.eyeLight = nil
 	entry.decayEmitter = nil
 	entry.hoverRing = nil
+	entry.hoverEmitters = nil
 	entry.persistentBuilt = false
 end
 
@@ -432,7 +563,9 @@ local function buildPersistent(entry)
 		attachment.Parent = entry.hrp
 		local emitter = Instance.new("ParticleEmitter")
 		emitter.Name = "Decay"
-		emitter.Texture = SMOKE_TEXTURE
+		emitter.Texture = TP_TEX.decay
+		emitter.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+		emitter.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
 		emitter.Enabled = false
 		emitter.Rate = 28
 		emitter.Lifetime = NumberRange.new(1.2, 2)
@@ -454,9 +587,23 @@ local function buildPersistent(entry)
 		table.insert(entry.persistent, attachment)
 	end
 	if cfg.HoverRing then
-		local diameter = 5 * scale
-		entry.hoverRing = newFxPart("VillainFxHoverRing", Enum.PartType.Cylinder, Vector3.new(0.12, diameter, diameter), CFrame.new(0, -500, 0) * FLAT, cfg.Color, 1)
-		table.insert(entry.persistent, entry.hoverRing)
+		-- Frieza's hover: soft energy waves rippling on the floor under him and a few rising pixel stars (particles on an
+		-- invisible host kept under the villain; no Neon ring part)
+		local host = newFxPart("VillainFxHover", Enum.PartType.Block, Vector3.new(2, 0.1, 2) * scale, CFrame.new(0, -500, 0), WHITE, 1)
+		local waves = tpEmitter(host, {
+			tex = "wave", flat = true, count = 0, life = { 0.9, 0.9 }, light = 1, brightness = 1.5, zOffset = 0.05,
+			size = { { 0, 1.2 * scale }, { 1, 3.4 * scale } }, transparency = { { 0, 0.35 }, { 0.6, 0.7 }, { 1, 1 } },
+		}, cfg.Color, 1, 0)
+		waves.Rate = 2.5
+		local stars = tpEmitter(host, {
+			tex = "pixelStar", count = 0, life = { 0.6, 1 }, size = { { 0, 0.35 }, { 1, 0 } }, speed = { 1, 2.5 }, spread = 25,
+			light = 1, mix = 0.35,
+		}, cfg.Color, scale, 0)
+		stars.Rate = 7
+		waves.Enabled, stars.Enabled = false, false
+		entry.hoverRing = host
+		entry.hoverEmitters = { waves, stars }
+		table.insert(entry.persistent, host)
 	end
 end
 
@@ -500,13 +647,12 @@ function setPersistentAwake(entry, awake, moving, now)
 		local hovering = awake and entry.guard:GetAttribute("Hovering") == true
 		if hovering then
 			local position = entry.hrp.Position
-			local pulse = 1 + 0.08 * math.sin(now * 6)
-			local diameter = 5 * entry.scale * pulse
-			entry.hoverRing.Size = Vector3.new(0.12, diameter, diameter)
-			entry.hoverRing.CFrame = CFrame.new(position.X, floorY(entry) + 0.08, position.Z) * FLAT
-			entry.hoverRing.Transparency = 0.55
-		else
-			entry.hoverRing.Transparency = 1
+			entry.hoverRing.CFrame = CFrame.new(position.X, floorY(entry) + 0.08, position.Z)
+		end
+		for _, emitter in ipairs(entry.hoverEmitters or {}) do
+			if emitter.Enabled ~= hovering then
+				emitter.Enabled = hovering
+			end
 		end
 	end
 end
@@ -545,13 +691,9 @@ end
 local function crumblePatch(entry)
 	local position = entry.hrp.Position
 	local spot = Vector3.new(position.X, floorY(entry) + 0.05, position.Z) - entry.hrp.CFrame.LookVector * (0.6 * entry.scale)
-	local diameter = 2.6 * entry.scale
-	local patch = newFxPart("VillainFxDecayPatch", Enum.PartType.Cylinder, Vector3.new(0.1, diameter, diameter), CFrame.new(spot) * FLAT, Color3.fromRGB(58, 48, 52), 0.2, Enum.Material.Slate)
-	TweenService:Create(patch, TweenInfo.new(2.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Transparency = 1,
-		Size = Vector3.new(0.1, diameter * 0.6, diameter * 0.6),
-	}):Play()
-	Debris:AddItem(patch, 2.3)
+	-- a grey decay ripple and crumbling pixel smoke on the floor (particles; no ground part)
+	pulseDisc(spot, Color3.fromRGB(120, 108, 112), 2.4 * entry.scale, 1.4 * entry.scale, 1.6, 0.35)
+	emitAt("Dust", spot, 3, Color3.fromRGB(70, 60, 64), entry.scale * 0.6)
 end
 
 local function targetRootFor(userId)
@@ -568,24 +710,98 @@ end
 -- One-shot events (ChaseFx)
 ---------------------------------------------------------------------------------------------------
 
+-- Spawn / Vanish: a themed teleport burst where the villain leaves (smaller) and where it arrives.
 local function playSpawn(entry, arrival, departure)
-	local scale = entry.scale
-	local color = entry.color
 	local camera = Workspace.CurrentCamera
 	local cameraPosition = camera and camera.CFrame.Position or arrival
 	if departure and (departure - cameraPosition).Magnitude <= FX_RANGE then
-		local ground = Vector3.new(departure.X, departure.Y - 3 * scale, departure.Z)
-		pulseDisc(ground, color, 2 * scale, 9 * scale, 0.5, 0.3)
-		emitAt("Dust", ground, 10, color, scale)
+		teleportBurst(entry, departure, 0.6)
 	end
 	if arrival and (arrival - cameraPosition).Magnitude <= FX_RANGE then
-		local ground = Vector3.new(arrival.X, arrival.Y - 3 * scale, arrival.Z)
-		flashColumn(ground, color, 14 * scale, 5 * scale, 0.55)
-		pulseDisc(ground, color, 3 * scale, 18 * scale, 0.6, 0.2)
-		pulseDisc(ground, WHITE, 1 * scale, 9 * scale, 0.35, 0.3)
-		emitAt("Dust", ground, 18, color, scale)
-		emitAt("Spark", ground + Vector3.new(0, 2 * scale, 0), 24, color, scale)
+		teleportBurst(entry, arrival, 1)
 	end
+end
+
+-- Punch (owner 2026-09-27: "the villains need a hitting animation"): the catch swing, procedural on the villain's own
+-- R15 joints (Motor6D.C0 offsets on top of whatever the Animator plays, restored afterwards): wind-up with the fist
+-- pulled back and the waist turned away, a straight right punch with the waist snapping through, then recovery;
+-- the left arm guards. Local to each client, broadcast by the server as ChaseFx "Punch".
+local PUNCH_TIME = 0.5
+local function jointAngles(x, y, z)
+	return CFrame.Angles(math.rad(x), 0, 0) * CFrame.Angles(0, math.rad(y), 0) * CFrame.Angles(0, 0, math.rad(z))
+end
+-- phase keyframes (t, {joint = {x, y, z}}), eased between
+local PUNCH_KEYS = {
+	{ 0, {} },
+	{ 0.22, { RightShoulder = { 35, 0, 18 }, RightElbow = { 105, 0, 0 }, Waist = { 0, -28, 0 }, LeftShoulder = { 45, 0, -10 }, LeftElbow = { 110, 0, 0 } } },
+	{ 0.4, { RightShoulder = { 96, 0, 4 }, RightElbow = { 6, 0, 0 }, Waist = { 0, 24, 0 }, LeftShoulder = { 50, 0, -12 }, LeftElbow = { 115, 0, 0 } } },
+	{ 0.6, { RightShoulder = { 92, 0, 4 }, RightElbow = { 10, 0, 0 }, Waist = { 0, 20, 0 }, LeftShoulder = { 48, 0, -12 }, LeftElbow = { 112, 0, 0 } } },
+	{ 1, {} },
+}
+local PUNCH_JOINTS = { "RightShoulder", "RightElbow", "Waist", "LeftShoulder", "LeftElbow" }
+
+local function punchPose(t)
+	local a, b = PUNCH_KEYS[1], PUNCH_KEYS[#PUNCH_KEYS]
+	for i = 1, #PUNCH_KEYS - 1 do
+		if t >= PUNCH_KEYS[i][1] and t <= PUNCH_KEYS[i + 1][1] then
+			a, b = PUNCH_KEYS[i], PUNCH_KEYS[i + 1]
+			break
+		end
+	end
+	local span = math.max(b[1] - a[1], 1e-3)
+	local alpha = math.clamp((t - a[1]) / span, 0, 1)
+	alpha = alpha * alpha * (3 - 2 * alpha) -- smoothstep
+	local pose = {}
+	for _, joint in ipairs(PUNCH_JOINTS) do
+		local from = a[2][joint] or { 0, 0, 0 }
+		local to = b[2][joint] or { 0, 0, 0 }
+		pose[joint] = jointAngles(from[1] + (to[1] - from[1]) * alpha, from[2] + (to[2] - from[2]) * alpha, from[3] + (to[3] - from[3]) * alpha)
+	end
+	return pose
+end
+
+local function playPunch(entry)
+	local motors = entry.punchMotors
+	if motors == nil then
+		motors = {}
+		for _, d in ipairs(entry.guard:GetDescendants()) do
+			if d:IsA("Motor6D") and table.find(PUNCH_JOINTS, d.Name) then
+				-- the joint's rest C0, shared with the AreaEggs villain-carry pose (attribute VfxBaseC0)
+				local base = d:GetAttribute("VfxBaseC0")
+				if typeof(base) ~= "CFrame" then
+					base = d.C0
+					d:SetAttribute("VfxBaseC0", base)
+				end
+				motors[d.Name] = { motor = d, base = base }
+			end
+		end
+		entry.punchMotors = motors
+	end
+	if next(motors) == nil then
+		return
+	end
+	entry.punchToken = (entry.punchToken or 0) + 1
+	local token = entry.punchToken
+	local started = os.clock()
+	addTransient(PUNCH_TIME, function(now)
+		if entry.punchToken ~= token then
+			return false -- a newer punch took over (it restores nothing: same base)
+		end
+		local pose = punchPose(math.clamp((now - started) / PUNCH_TIME, 0, 1))
+		for name, info in pairs(motors) do
+			if info.motor.Parent then
+				info.motor.C0 = info.base * (pose[name] or CFrame.identity)
+			end
+		end
+	end, function()
+		if entry.punchToken == token then
+			for _, info in pairs(motors) do
+				if info.motor.Parent then
+					info.motor.C0 = info.base
+				end
+			end
+		end
+	end)
 end
 
 local function playSurge(entry, userId, seconds)
@@ -740,6 +956,15 @@ local function onChaseFx(entry)
 	local myRoot = getMyRoot()
 	if kind == "Spawn" or kind == "Vanish" then
 		playSpawn(entry, parsePosition(fields[5]), parsePosition(fields[6]))
+		return
+	end
+	if kind == "Punch" then
+		-- a villain with authored clips hits with its own Attack clip (Game.VillainClipPlayer); the C0 swing is the fallback
+		local camera = Workspace.CurrentCamera
+		if entry.guard:GetAttribute("ClientClips") ~= true
+			and (camera == nil or (entry.hrp.Position - camera.CFrame.Position).Magnitude <= FX_RANGE) then
+			playPunch(entry)
+		end
 		return
 	end
 	local camera = Workspace.CurrentCamera

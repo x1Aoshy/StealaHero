@@ -1091,7 +1091,7 @@ Windows.Index = function(W, gui)
 	end
 	-- ClaimRewardPanel switches ClaimButton.TextButton between UIGradient (claimable) and GreyGradient (nothing to claim)
 	skinAction(W, at(page, "IndexRewardsFrame/ClaimButton"), "claim_green", {
-		stateGradients = { UIGradient = "claim_green", GreyGradient = "equip_grey" },
+		stateGradients = { UIGradient = "claim_green", GreyGradient = "claimed_muted" },
 	})
 	-- ClaimAllButton.TextButton.UIGradient.Enabled is script state (Index:626-628): keep that gradient instance
 	skinAction(W, at(page, "ClaimAllButton"), "claim_green")

@@ -38,6 +38,23 @@
 -- white flash, pop) and shakes both cameras through the base game's Network["ReplicateEffects: ShakeOnce"]
 -- (Game.CameraShake). Reach and fling force come from each bat's Directory.Gears BatControllerData.
 --
+-- Hero weapons (owner 2026-09-27, "MISSION: replace the bat system with Hero Gadgets"). The melee tools named in
+-- ReplicatedStorage.Library.Modules.HeroWeapons.BY_TOOL are hero weapons (scripts/steps/post_hero_weapons.luau built
+-- them: Bat = Cap's shield, Forest = Power Pole, Desert = web shooter, Lake = batarang, Jungle = Bakugo's gauntlet,
+-- Snow / Cosmic = Mjolnir, Volcano = Gum-Gum fist). Their click broadcasts the same "Swing" with Weapon = <id>, and
+-- the hit is resolved at the attack clip's Impact keyframe (HeroWeapons.Timing) by the weapon's Kind (line thrust,
+-- blast cone, ground slam, the Power Pole's full-turn sweep, and the AIMED throws: Cap's shield flies out on a curve
+-- and comes back, the batarang explodes where it lands, the web shoots straight - the client sends its aim point with
+-- the click, the server clamps it and flies the projectile itself, see "Aimed throws"). A landed hit applies the weapon's 2.5 s
+-- state (Webbed, Electrocuted, CleanKnockback, Dazed, SmokeStun, ExplosionBlast, SpinTornado) INSTEAD of the ragdoll:
+-- WalkSpeed / jump / AutoRotate are held here (saved and restored like the trap freeze), character attributes
+-- `HeroDebuff` = <effect> and `BatFlung` are set, and { Action = "Debuff", Victim, Weapon, Effect, Token, Duration,
+-- Direction, Push, Slide } goes to every client (StarterPlayerScripts.BranchControllers.HeroWeaponController draws
+-- the state; the victim's own client does the knockback slide / spin). A carrier still drops the egg first and always
+-- takes the state; a short immunity follows every state. The admin panel's training dummies (HeroWeapons.DUMMY_TAG)
+-- are hit like players (the server moves them itself). The villain catch keeps the ragdoll (GearRagdollRequest); the
+-- classic bats not in BY_TOOL keep the swing and ragdoll below.
+--
 -- Carrier rules (owner 2026-09-24, Gekko TO DO 3). AreaEggService mirrors an egg carry on the player as the
 -- attribute `CarryingEgg`. A carrier cannot swing or hold any tool: every server-known Tool is put back in the
 -- Backpack when the carry starts and whenever one is equipped during it (the client backpack refuses too). Others
@@ -117,6 +134,20 @@ local MELEE_GEAR = {
 local MELEE_RANGE = 12 -- studs from the swinger's root to the victim's root at the contact moment
 local MELEE_MAX_HEIGHT = 8 -- the victim's root is at most this far above / below the swinger's
 local MELEE_MIN_DOT = 0.25 -- the victim must be roughly in front of the swing (~75 degrees either side)
+-- Lag-compensated swings (owner 2026-09-27: "the hitbox between players must be super accurate, no lag"): the swinger's
+-- screen showed the other player one round trip + the interpolation buffer late, so the hit is judged against the victim
+-- REWOUND to what the swinger saw (BranchServices.LagCompensationService.SeenBy); the victim must also still be within
+-- reach + MELEE_SEEN_SLACK now (a stale position never lands a hit on someone who is far away by now).
+local MELEE_SEEN_SLACK = 6
+local LagComp = nil
+do
+	local services = ServerScriptService:FindFirstChild("BranchServices")
+	local module = services and services:FindFirstChild("LagCompensationService")
+	if module then
+		local ok, result = pcall(require, module)
+		LagComp = if ok and type(result) == "table" then result else nil
+	end
+end
 local MELEE_COOLDOWN = 0.7
 local MELEE_COOLDOWN_SLACK = 0.1 -- two clicks MELEE_COOLDOWN apart can arrive a little closer (network jitter)
 local MELEE_FORCE = 35
@@ -291,6 +322,44 @@ do
 	end
 end
 
+-- Hero weapons (owner 2026-09-27): the shared weapon table and the owner's weapon kit. Without them every melee tool
+-- simply keeps the classic bat swing and ragdoll.
+local HeroWeapons, WeaponKit = nil, nil
+do
+	local library = ReplicatedStorage:FindFirstChild("Library")
+	local modules = library and library:FindFirstChild("Modules")
+	for name, assign in pairs({
+		HeroWeapons = function(module)
+			HeroWeapons = module
+		end,
+		HeroWeaponTools = function(module)
+			WeaponKit = module
+		end,
+	}) do
+		local module = modules and modules:FindFirstChild(name)
+		if module and module:IsA("ModuleScript") then
+			local ok, result = pcall(require, module)
+			if ok and type(result) == "table" then
+				assign(result)
+			else
+				log("Library.Modules." .. name .. " failed to load: " .. tostring(result))
+			end
+		else
+			log("Library.Modules." .. name .. " is missing - melee tools keep the classic bat.")
+		end
+	end
+end
+local DEBUFF_ATTRIBUTE = "HeroDebuff" -- HeroWeapons.DEBUFF_ATTRIBUTE: the victim's active effect
+
+-- The hero weapon of a melee tool, or nil (a classic bat, or the weapon table is missing).
+local function heroWeaponOf(tool)
+	if HeroWeapons == nil then
+		return nil
+	end
+	local ok, weapon = pcall(HeroWeapons.Of, tool)
+	return if ok then weapon else nil
+end
+
 local meleeConfigCache = {}
 local function meleeConfigFor(toolName)
 	local cached = meleeConfigCache[toolName]
@@ -328,6 +397,43 @@ local function characterOf(player)
 	return character, humanoid, root
 end
 
+-- Hero weapon victims: every player's character, plus the admin panel's training dummies (a Model tagged
+-- HeroWeapons.DUMMY_TAG with a live Humanoid). A `victim` below is the Player, or the dummy Model itself.
+local function targetCharacter(victim)
+	if typeof(victim) ~= "Instance" then
+		return nil
+	end
+	if victim:IsA("Player") then
+		return characterOf(victim)
+	end
+	if victim:IsA("Model") and victim:IsDescendantOf(Workspace) and HeroWeapons
+		and CollectionService:HasTag(victim, HeroWeapons.DUMMY_TAG) then
+		local humanoid = victim:FindFirstChildOfClass("Humanoid")
+		local root = victim:FindFirstChild("HumanoidRootPart")
+		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then
+			return victim, humanoid, root
+		end
+	end
+	return nil
+end
+
+local function weaponVictims(player)
+	local out = {}
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other ~= player then
+			table.insert(out, other)
+		end
+	end
+	if HeroWeapons then
+		for _, dummy in ipairs(CollectionService:GetTagged(HeroWeapons.DUMMY_TAG)) do
+			if dummy:IsA("Model") and dummy:IsDescendantOf(Workspace) then
+				table.insert(out, dummy)
+			end
+		end
+	end
+	return out
+end
+
 local function isOnGameplaySide(position)
 	local objects = Workspace:FindFirstChild("__OBJECTS")
 	local areas = objects and objects:FindFirstChild("Areas")
@@ -343,8 +449,11 @@ end
 ----------------------------------------------------------------------------------------------------
 
 local ragdolls = setmetatable({}, { __mode = "k" }) -- [character] = { token, motors, humanoid, died }
-local ragdollImmuneUntil = setmetatable({}, { __mode = "k" }) -- [character] = os.clock() deadline
+local ragdollImmuneUntil = setmetatable({}, { __mode = "k" }) -- [character] = os.clock() deadline (debuffs too)
 local ragdollSerial = 0
+local debuffs = setmetatable({}, { __mode = "k" }) -- [character] = hero weapon debuff state (see below)
+local dummyCalmAt = setmetatable({}, { __mode = "k" }) -- [training dummy] = os.clock() when it may be put back
+local endDebuff -- (victim, character, token?) defined with the hero weapons below
 
 local function jointSpecFor(motorName)
 	for _, spec in ipairs(JOINT_SPECS) do
@@ -360,8 +469,31 @@ local function tagRagdollPart(instance, motorName)
 	return instance
 end
 
+-- Real body parts only (direct children of the character the Humanoid knows as R15 limbs, or the R6 limb names):
+-- an aura / trail / accessory welded into the character is never a ragdoll limb (owner 2026-09-27: "with an aura or
+-- a trail equipped the ragdoll goes stiff").
+local R6_BODY = { Torso = true, Head = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true }
+local R15_BODY = {
+	HumanoidRootPart = true, LowerTorso = true, UpperTorso = true, Head = true,
+	LeftUpperArm = true, LeftLowerArm = true, LeftHand = true, RightUpperArm = true, RightLowerArm = true, RightHand = true,
+	LeftUpperLeg = true, LeftLowerLeg = true, LeftFoot = true, RightUpperLeg = true, RightLowerLeg = true, RightFoot = true,
+}
+local function isBodyPart(character, humanoid, part)
+	if not (part and part:IsA("BasePart")) or part.Parent ~= character then
+		return false
+	end
+	if R6_BODY[part.Name] or R15_BODY[part.Name] then
+		return true
+	end
+	if typeof(humanoid) ~= "Instance" or not humanoid:IsA("Humanoid") then
+		return false
+	end
+	local ok, kind = pcall(humanoid.GetBodyPartR15, humanoid, part)
+	return ok and kind ~= nil and kind ~= Enum.BodyPartR15.Unknown
+end
+
 -- Swap every limb Motor6D of `character` for a limited BallSocketConstraint; returns the motors it disabled.
-local function buildRagdollJoints(character, root)
+local function buildRagdollJoints(character, root, humanoid)
 	local disabled = {}
 	for _, motor in ipairs(character:GetDescendants()) do
 		if motor:IsA("Motor6D") and motor.Enabled then
@@ -370,7 +502,7 @@ local function buildRagdollJoints(character, root)
 			local inTool = motor:FindFirstAncestorOfClass("Tool") ~= nil
 				or (part1 ~= nil and part1:FindFirstAncestorOfClass("Tool") ~= nil)
 			if part0 and part1 and not isRootJoint and not inTool and motor.Name ~= "Neck"
-				and part0:IsDescendantOf(character) and part1:IsDescendantOf(character) then
+				and isBodyPart(character, humanoid, part0) and isBodyPart(character, humanoid, part1) then
 				local spec = jointSpecFor(motor.Name)
 				local axisFrame = JOINT_AXIS_FRAMES[spec[2]] or CFrame.identity
 
@@ -488,13 +620,16 @@ local function ragdollVictim(victim, direction, options)
 	if not isOnGameplaySide(root.Position) then
 		return false -- the safe zone protects
 	end
+	if debuffs[character] ~= nil and endDebuff then
+		endDebuff(victim, character, nil) -- a villain catch takes over from a hero weapon state
+	end
 
 	local duration = math.clamp(tonumber(options.Duration) or RAGDOLL_DURATION, RAGDOLL_MIN_DURATION, RAGDOLL_MAX_DURATION)
 	local force = math.clamp(tonumber(options.Force) or MELEE_FORCE, 1, 100)
 
 	ragdollSerial += 1
 	local token = ragdollSerial
-	local ok, motors = pcall(buildRagdollJoints, character, root)
+	local ok, motors = pcall(buildRagdollJoints, character, root, humanoid)
 	if not ok then
 		log("ragdoll joints failed for " .. tostring(victim) .. ": " .. tostring(motors))
 		motors = {}
@@ -530,9 +665,32 @@ local lastSwingAt = setmetatable({}, { __mode = "k" }) -- [player] = os.clock() 
 local swingSerial = 0
 
 -- The swinger's own state, checked when the swing starts and again at the contact moment.
+-- Owner 2026-09-27: "the weapons can be used while ragdolled - make that not happen": a body that is down (the
+-- ragdoll, PlatformStand, or a Humanoid state the owning client reports as fallen / physics / getting up) cannot
+-- attack either.
+local DOWN_STATES = {
+	[Enum.HumanoidStateType.FallingDown] = true,
+	[Enum.HumanoidStateType.Ragdoll] = true,
+	[Enum.HumanoidStateType.Physics] = true,
+	[Enum.HumanoidStateType.PlatformStanding] = true,
+	[Enum.HumanoidStateType.GettingUp] = true,
+	[Enum.HumanoidStateType.Dead] = true,
+}
+local function isDown(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return true
+	end
+	if humanoid.PlatformStand then
+		return true
+	end
+	local ok, state = pcall(humanoid.GetState, humanoid)
+	return ok and DOWN_STATES[state] == true
+end
+
 local function canSwing(player, character)
 	return character:GetAttribute("IsTrapped") ~= true and character:GetAttribute("Ragdolled") ~= true
-		and not isCarrying(player)
+		and character:GetAttribute(DEBUFF_ATTRIBUTE) == nil and not isCarrying(player) and not isDown(character)
 end
 
 local function fireBatFx(payload)
@@ -569,7 +727,8 @@ local function isHittable(other, otherCharacter, otherRoot)
 	if isCarrying(other) then
 		return true -- a carrier always loses the egg
 	end
-	return otherCharacter:GetAttribute("IsTrapped") ~= true and (ragdollImmuneUntil[otherCharacter] or 0) <= os.clock()
+	return otherCharacter:GetAttribute("IsTrapped") ~= true and debuffs[otherCharacter] == nil
+		and (ragdollImmuneUntil[otherCharacter] or 0) <= os.clock()
 end
 
 -- The nearest other living, hittable player in reach and in front of `root`; also returns the knockback heading:
@@ -582,9 +741,12 @@ local function findSwingVictim(player, root, range)
 		if other ~= player then
 			local otherCharacter, _, otherRoot = characterOf(other)
 			if otherCharacter and isHittable(other, otherCharacter, otherRoot) then
-				local delta = otherRoot.Position - root.Position
+				local seen = if LagComp then LagComp.SeenBy(otherRoot, player) else otherRoot.Position
+				local delta = seen - root.Position
 				local distance = delta.Magnitude
-				if distance <= range and distance < bestDistance and math.abs(delta.Y) <= MELEE_MAX_HEIGHT then
+				local nowDistance = (otherRoot.Position - root.Position).Magnitude
+				if distance <= range and distance < bestDistance and math.abs(delta.Y) <= MELEE_MAX_HEIGHT
+					and nowDistance <= range + MELEE_SEEN_SLACK then
 					local away = flatUnit(delta, flatForward)
 					if away:Dot(flatForward) >= MELEE_MIN_DOT then
 						bestVictim, bestDistance, bestAway = other, distance, away
@@ -653,7 +815,797 @@ local function resolveSwingContact(player, tool, character, startedAt)
 	end
 end
 
+----------------------------------------------------------------------------------------------------
+-- Hero weapons (owner 2026-09-27, "MISSION: replace the bat system with Hero Gadgets"): the attack clip's Impact
+-- keyframe resolves the hit, and a landed hit applies a 2.5 s themed state instead of the ragdoll
+----------------------------------------------------------------------------------------------------
+
+local speedServiceModule = nil
+local function speedService()
+	if speedServiceModule == nil then
+		speedServiceModule = false
+		local controllers = ServerScriptService:FindFirstChild("Controllers")
+		local module = controllers and controllers:FindFirstChild("SpeedService")
+		if module and module:IsA("ModuleScript") then
+			local ok, result = pcall(require, module)
+			speedServiceModule = if ok and type(result) == "table" then result else false
+		end
+	end
+	return speedServiceModule or nil
+end
+
+-- Training dummies ragdoll for real (owner 2026-09-27, round 11: "the dummy's R15 ragdoll still does not work, its
+-- legs stay anchored"): a hit used to slide / spin the dummy's root while its Humanoid kept balancing, so the body slid
+-- on planted legs. No client owns a dummy, so the server does what GearRagdollController does for a player's own body:
+-- limb sockets (buildRagdollJoints), the Physics state with PlatformStand (the Humanoid stops balancing), the limbs
+-- collide (not the root box), every part server-owned and thrown along the hit with a tumble. The state's end puts the
+-- joints back and the dummy keeper eases it up on its spot.
+local DUMMY_FLING_MIN, DUMMY_FLING_MAX = 16, 46 -- studs/s along the hit (from the weapon's Push)
+local DUMMY_FLING_UP = 18
+local DUMMY_TUMBLE = 5 -- rad/s tipping the head along the flight
+local dummyRagdolls = setmetatable({}, { __mode = "k" }) -- [dummy] = { motors, collisions }
+local settleDummy -- (model, root) defined with the dummy keeper below
+
+local function ragdollDummy(model, humanoid, root, direction, push)
+	if dummyRagdolls[model] ~= nil then
+		return
+	end
+	local ok, motors = pcall(buildRagdollJoints, model, root, humanoid)
+	if not ok then
+		log("training dummy ragdoll joints failed: " .. tostring(motors))
+		motors = {}
+	end
+	local state = { motors = motors, collisions = {} }
+	dummyRagdolls[model] = state
+	model:SetAttribute("DummyRagdolled", true)
+	pcall(humanoid.SetStateEnabled, humanoid, Enum.HumanoidStateType.Physics, true)
+	humanoid.PlatformStand = true
+	pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Physics)
+	local heading = if typeof(direction) == "Vector3" then Vector3.new(direction.X, 0, direction.Z) else Vector3.zero
+	heading = if heading.Magnitude > 0.01 then heading.Unit else -root.CFrame.LookVector
+	local speed = math.clamp((tonumber(push) or 0) * 0.9, DUMMY_FLING_MIN, DUMMY_FLING_MAX)
+	local velocity = heading * speed + Vector3.new(0, DUMMY_FLING_UP, 0)
+	local spin = Vector3.yAxis:Cross(heading) * DUMMY_TUMBLE
+	for _, part in ipairs(model:GetDescendants()) do
+		if isBodyPart(model, humanoid, part) then
+			local wanted = part ~= root
+			if part.CanCollide ~= wanted then
+				state.collisions[part] = part.CanCollide
+				part.CanCollide = wanted
+			end
+			-- every limb is its own assembly now: keep them all on the server (never a nearby player's client)
+			pcall(part.SetNetworkOwner, part, nil)
+			part.AssemblyLinearVelocity = velocity
+			part.AssemblyAngularVelocity = spin
+		end
+	end
+end
+
+local function endDummyRagdoll(model)
+	local state = dummyRagdolls[model]
+	if state == nil then
+		return
+	end
+	dummyRagdolls[model] = nil
+	local ok, err = pcall(clearRagdollJoints, model, state.motors)
+	if not ok then
+		log("training dummy ragdoll restore failed: " .. tostring(err))
+	end
+	for part, canCollide in pairs(state.collisions) do
+		if part.Parent then
+			part.CanCollide = canCollide
+		end
+	end
+	model:SetAttribute("DummyRagdolled", nil)
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		pcall(root.SetNetworkOwner, root, nil)
+	end
+	if humanoid and humanoid.Parent and humanoid.Health > 0 then
+		-- no engine GettingUp (it made the dummy flail on the floor): settleDummy eases it upright right away
+		humanoid.PlatformStand = false
+		pcall(humanoid.SetStateEnabled, humanoid, Enum.HumanoidStateType.Physics, false)
+	end
+end
+
+-- Gives the victim their movement back (once). A trapped victim's movement belongs to the trap and is never touched.
+local function restoreMovement(victim, state)
+	if not state.moved or state.restored then
+		return
+	end
+	state.restored = true
+	local humanoid = state.humanoid
+	if humanoid.Parent == nil or humanoid.Health <= 0 then
+		return
+	end
+	if state.walkSpeed > 0 then
+		humanoid.WalkSpeed = state.walkSpeed
+	else
+		humanoid.WalkSpeed = 16
+		local speed = speedService()
+		if speed and type(speed.Refresh) == "function" and victim:IsA("Player") then
+			pcall(speed.Refresh, victim)
+		end
+	end
+	humanoid.JumpPower = if state.jumpPower > 0 then state.jumpPower else 50
+	humanoid.JumpHeight = if state.jumpHeight > 0 then state.jumpHeight else 7.2
+	humanoid.AutoRotate = state.autoRotate
+end
+
+local debuffSerial = 0
+
+endDebuff = function(victim, character, token)
+	local state = debuffs[character]
+	if not state or (token ~= nil and state.token ~= token) then
+		return
+	end
+	debuffs[character] = nil
+	if state.died then
+		state.died:Disconnect()
+	end
+	restoreMovement(victim, state)
+	if character.Parent then
+		character:SetAttribute(DEBUFF_ATTRIBUTE, nil)
+		if ragdolls[character] == nil then
+			character:SetAttribute("BatFlung", false)
+		end
+		ragdollImmuneUntil[character] = os.clock() + (HeroWeapons and HeroWeapons.IMMUNITY or 1.2)
+	end
+	fireBatFx({ Action = "DebuffEnd", Victim = victim, Token = state.token })
+	if not victim:IsA("Player") then
+		endDummyRagdoll(character)
+		dummyCalmAt[character] = os.clock() + 0.5 -- the keeper's fallback if the ease below cannot run
+		local root = character:FindFirstChild("HumanoidRootPart")
+		if settleDummy and root and root:IsA("BasePart") then
+			task.spawn(function()
+				local ok, err = pcall(settleDummy, character, root)
+				if not ok then
+					log("training dummy get-up failed: " .. tostring(err))
+				end
+			end)
+		end
+	end
+end
+
+-- `victim` enters `weapon`'s state (HeroWeapons.EFFECTS[weapon.Effect]) for its duration. Movement is server-side
+-- (WalkSpeed / jump / AutoRotate saved and restored like the trap freeze); the slide / spin itself is the victim's
+-- own client (it owns the character's physics), everything visible is drawn by every client from the broadcast.
+-- `direction` is the flat unit knockback heading. options.IgnoreImmunity: a carrier who just lost the egg.
+-- A training dummy has no client to move it: the server ragdolls it itself (ragdollDummy above).
+local function applyDebuff(victim, weapon, direction, options)
+	options = type(options) == "table" and options or {}
+	local character, humanoid, root = targetCharacter(victim)
+	if not character or ragdolls[character] ~= nil then
+		return false -- a villain catch owns the body
+	end
+	if not isOnGameplaySide(root.Position) then
+		return false -- the safe zone protects
+	end
+	local ignoreImmunity = options.IgnoreImmunity == true
+	if not ignoreImmunity and (ragdollImmuneUntil[character] or 0) > os.clock() then
+		return false
+	end
+	if debuffs[character] ~= nil then
+		if not ignoreImmunity then
+			return false
+		end
+		endDebuff(victim, character, nil)
+	end
+	local effectName = weapon.Effect
+	local effect = HeroWeapons.EFFECTS[effectName] or {}
+	local duration = tonumber(effect.Duration) or HeroWeapons.EFFECT_DURATION
+
+	debuffSerial += 1
+	local token = debuffSerial
+	local state = { token = token, effect = effectName, humanoid = humanoid, moved = false, restored = false }
+	if character:GetAttribute("IsTrapped") ~= true then
+		state.moved = true
+		state.walkSpeed, state.jumpPower, state.jumpHeight = humanoid.WalkSpeed, humanoid.JumpPower, humanoid.JumpHeight
+		state.autoRotate = humanoid.AutoRotate
+		if type(effect.WalkSpeed) == "number" then
+			humanoid.WalkSpeed = math.min(humanoid.WalkSpeed, effect.WalkSpeed)
+		end
+		if effect.NoJump then
+			humanoid.JumpPower = 0
+			humanoid.JumpHeight = 0
+		end
+		if effect.NoAutoRotate then
+			humanoid.AutoRotate = false
+		end
+	end
+	debuffs[character] = state
+	character:SetAttribute(DEBUFF_ATTRIBUTE, effectName)
+	character:SetAttribute("BatFlung", true) -- AreaEggService: no grabbing an egg while stunned
+	state.died = humanoid.Died:Connect(function()
+		endDebuff(victim, character, token)
+	end)
+
+	local slide = tonumber(effect.Slide)
+	if state.moved and slide and slide > 0 then
+		task.delay(slide, function()
+			if debuffs[character] ~= state or state.restored or humanoid.Parent == nil then
+				return
+			end
+			if effect.ReleaseAfterSlide then
+				restoreMovement(victim, state) -- CleanKnockback: slid back, now run back
+			elseif type(effect.SlowAfterSlide) == "number" and state.walkSpeed > 0 then
+				humanoid.WalkSpeed = math.min(state.walkSpeed, effect.SlowAfterSlide)
+			end
+		end)
+	end
+	fireBatFx({
+		Action = "Debuff",
+		Victim = victim,
+		Weapon = weapon.Id,
+		Effect = effectName,
+		Token = token,
+		Duration = duration,
+		Direction = direction,
+		Push = weapon.Push,
+		Slide = slide,
+	})
+	if not victim:IsA("Player") then
+		ragdollDummy(character, humanoid, root, direction, weapon.Push)
+	end
+	task.delay(duration, endDebuff, victim, character, token)
+	return true
+end
+
+-- A landed hero weapon hit: a carrier drops the egg first, then the state, the feedback. Returns true when it did
+-- anything.
+local function landWeaponHit(attacker, attackerCFrame, victim, weapon, direction)
+	local dropped = false
+	local isPlayer = victim:IsA("Player")
+	if isPlayer and isCarrying(victim) then
+		dropped = dropCarriedEggOf(victim, attacker, attackerCFrame, "BatHit")
+	end
+	local debuffed = applyDebuff(victim, weapon, direction, { IgnoreImmunity = dropped })
+	if not (debuffed or dropped) then
+		return false
+	end
+	local _, _, victimRoot = targetCharacter(victim)
+	fireBatFx({
+		Action = "Hit",
+		Attacker = attacker,
+		Victim = victim,
+		Weapon = weapon.Id,
+		Effect = weapon.Effect,
+		Position = if victimRoot then victimRoot.Position else attackerCFrame.Position + direction * 3,
+		Direction = direction,
+		Dropped = dropped,
+	})
+	shakeCamera(attacker, 1.8, 8, 0.2)
+	if isPlayer then
+		shakeCamera(victim, 3.5, 10, 0.4)
+	end
+	if dropped then
+		notify(victim, weapon.DisplayName .. "! You dropped the egg!", NOTICE_BAD)
+		notify(attacker, "You knocked the egg loose!", NOTICE_GOOD)
+	end
+	return true
+end
+
+-- Hittable players `weapon` reaches from `root`, nearest first, at most `maxTargets`. `centre` (optional) makes it a
+-- radius around that point (Slam); otherwise the target must be in front (minDot) and, for a weapon with a Width,
+-- within that many studs of the attack line. Positions are what the attacker saw (lag compensation), and the victim
+-- must still be near now. Also returns the attacker's flat forward.
+local function weaponTargets(player, root, weapon, range, minDot, maxTargets, centre)
+	local flatForward = flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1))
+	local origin = centre or root.Position
+	local found = {}
+	for _, other in ipairs(weaponVictims(player)) do
+		do
+			local otherCharacter, _, otherRoot = targetCharacter(other)
+			if otherCharacter and isHittable(other, otherCharacter, otherRoot) then
+				local seen = if LagComp then LagComp.SeenBy(otherRoot, player) else otherRoot.Position
+				local distance = (seen - origin).Magnitude
+				local nowDistance = (otherRoot.Position - origin).Magnitude
+				if distance <= range and math.abs(seen.Y - root.Position.Y) <= MELEE_MAX_HEIGHT
+					and nowDistance <= range + MELEE_SEEN_SLACK then
+					local away = flatUnit(seen - root.Position, flatForward)
+					local inside = centre ~= nil or away:Dot(flatForward) >= minDot
+					if inside and centre == nil and type(weapon.Width) == "number" then
+						-- the attack line starts at the arm's shoulder (LineOffset studs to the right of the middle)
+						local lineOrigin = root.Position + flatUnit(root.CFrame.RightVector, Vector3.new(1, 0, 0))
+							* (tonumber(weapon.LineOffset) or 0)
+						local offset = seen - lineOrigin
+						local along = offset:Dot(flatForward)
+						local lateral = (Vector3.new(offset.X, 0, offset.Z) - flatForward * along).Magnitude
+						inside = along > 0 and lateral <= weapon.Width
+					end
+					if inside then
+						table.insert(found, { player = other, distance = distance, away = away })
+					end
+				end
+			end
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.distance < b.distance
+	end)
+	for index = #found, math.max(maxTargets, 0) + 1, -1 do
+		found[index] = nil
+	end
+	return found, flatForward
+end
+
+-- Aimed throws (owner 2026-09-27: "the shield must fly out of our hands with a bit of curve, a good hitbox from the
+-- model; the batarangs do the same and explode where they land; batarang, shield and web must be aimable, they are
+-- shots"). The client sends its aim point with the click (HeroWeapons.AIM_REMOTE); at the Impact keyframe the server
+-- clamps it (HeroWeapons.AimEnd: range, pitch, the first wall), broadcasts the path ({ Action = "Launch", Id, Origin,
+-- End, Side, Curve, OutTime, Returns, BackTime }: every client draws HeroWeapons.PathPoint) and flies it itself,
+-- testing every hittable victim against each Heartbeat's segment (the victim where the thrower saw them, lag
+-- compensated). Boomerang: every rival it passes, out and back, at most MaxTargets; Grenade: explodes on the first
+-- rival it touches, a wall or the end (every rival within BlastRadius); Shot: the first rival. An early end is
+-- broadcast as { Action = "ProjectileEnd", Id, Position, Reason = "Hit" | "Explode" | "Miss" }.
+local AIM_FRESH = 1.5 -- an aim point older than this (seconds) is ignored: the throw goes straight ahead
+local BODY_RADIUS = 1.6 -- a character's half width + a little: added to the projectile's own radius
+local aims = setmetatable({}, { __mode = "k" }) -- [player] = { tool, point, at }
+local projectiles = {} -- the flights in the air
+local projectileSerial = 0
+
+local aimRemote = network:FindFirstChild(HeroWeapons and HeroWeapons.AIM_REMOTE or "Gear: WeaponAim")
+if not (aimRemote and aimRemote:IsA("RemoteEvent")) then
+	aimRemote = Instance.new("RemoteEvent")
+	aimRemote.Name = HeroWeapons and HeroWeapons.AIM_REMOTE or "Gear: WeaponAim"
+	aimRemote.Parent = network
+end
+aimRemote.OnServerEvent:Connect(function(player, tool, point, seq)
+	if typeof(tool) ~= "Instance" or not tool:IsA("Tool") or typeof(point) ~= "Vector3" then
+		return
+	end
+	if type(seq) ~= "number" or seq ~= seq or seq < 0 or seq > 2 ^ 31 then
+		seq = nil -- the client's throw number, echoed in Launch so it adopts its own predicted flight
+	end
+	if point.X ~= point.X or point.Y ~= point.Y or point.Z ~= point.Z then
+		return -- NaN
+	end
+	local character, _, root = characterOf(player)
+	if not character or tool.Parent ~= character or (point - root.Position).Magnitude > 600 then
+		return
+	end
+	local weapon = heroWeaponOf(tool)
+	if weapon and weapon.Aimed then
+		aims[player] = { tool = tool, point = point, at = os.clock(), seq = seq and math.floor(seq) }
+	end
+end)
+
+-- The fresh aim point of `tool` (and the client's throw number), consumed by this throw.
+local function aimOf(player, tool, root)
+	local aim = aims[player]
+	if aim and aim.tool == tool and os.clock() - aim.at <= AIM_FRESH then
+		aims[player] = nil
+		return aim.point, aim.seq
+	end
+	return root.Position + flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1)) * 30, nil
+end
+
+-- Workspace raycast that only stops at collidable world geometry (never a character, a dummy or an effect).
+local function wallRaycaster(player)
+	local exclude = {}
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then
+			table.insert(exclude, other.Character)
+		end
+	end
+	for _, victim in ipairs(weaponVictims(player)) do
+		if victim:IsA("Model") then
+			table.insert(exclude, victim)
+		end
+	end
+	for _, name in ipairs({ "HeroWeaponFx", TRAP_FOLDER }) do
+		local folder = Workspace:FindFirstChild(name)
+		if folder then
+			table.insert(exclude, folder)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = exclude
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	return function(origin, vector)
+		local result = Workspace:Raycast(origin, vector, params)
+		return if result then result.Position else nil
+	end
+end
+
+-- Whether nothing collidable stands between two points (a blast does not reach behind a wall).
+local function clearLine(raycast, from, to)
+	return raycast(from, to - from) == nil
+end
+
+local function segmentDistance(point, a, b)
+	local ab = b - a
+	local lengthSquared = ab:Dot(ab)
+	local t = if lengthSquared > 1e-8 then math.clamp((point - a):Dot(ab) / lengthSquared, 0, 1) else 0
+	return (point - (a + ab * t)).Magnitude
+end
+
+-- Where the thrower saw `victim` (lag compensated), if the victim is still near there now.
+local function seenPosition(flight, victim)
+	local character, _, root = targetCharacter(victim)
+	if not character or not isHittable(victim, character, root) then
+		return nil
+	end
+	local seen = if LagComp and victim:IsA("Player") then LagComp.SeenBy(root, flight.player) else root.Position
+	if (root.Position - seen).Magnitude > MELEE_SEEN_SLACK then
+		seen = root.Position -- they moved on long since: judge where they are
+	end
+	return seen
+end
+
+local function endFlight(flight, position, reason)
+	fireBatFx({
+		Action = "ProjectileEnd",
+		Id = flight.id,
+		Attacker = flight.player,
+		Weapon = flight.weapon.Id,
+		Position = position,
+		Reason = reason,
+	})
+end
+
+local function explodeGrenade(flight, position)
+	endFlight(flight, position, "Explode")
+	local weapon = flight.weapon
+	local radius = tonumber(weapon.BlastRadius) or 8
+	local found = {}
+	for _, victim in ipairs(weaponVictims(flight.player)) do
+		local seen = seenPosition(flight, victim)
+		if seen and (seen - position).Magnitude <= radius and clearLine(flight.raycast, position, seen) then
+			table.insert(found, { victim = victim, distance = (seen - position).Magnitude, away = flatUnit(seen - position, flight.forward) })
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.distance < b.distance
+	end)
+	for index = 1, math.min(#found, tonumber(weapon.MaxTargets) or 4) do
+		landWeaponHit(flight.player, CFrame.new(position), found[index].victim, weapon, found[index].away)
+	end
+end
+
+-- One Heartbeat of a flight. Returns true when it is over.
+local function stepFlight(flight, now)
+	if flight.player.Parent == nil then
+		return true
+	end
+	local weapon, path = flight.weapon, flight.path
+	local home = nil
+	if path.Returns then
+		local _, _, root = characterOf(flight.player)
+		home = if root then HeroWeapons.ReturnHome(root.CFrame) else path.Origin
+	end
+	local t = now - flight.started
+	local position, finished = HeroWeapons.PathPoint(path, t, home)
+	-- the curve and the way back are checked against walls every step, not only the aimed line
+	local wall = flight.raycast(flight.last, position - flight.last)
+	if wall then
+		local direction = position - flight.last
+		direction = if direction.Magnitude > 1e-3 then direction.Unit else flight.forward
+		local stop = wall - direction * 0.5
+		if weapon.Kind == "Grenade" then
+			explodeGrenade(flight, stop)
+			return true
+		elseif weapon.Kind == "Shot" then
+			endFlight(flight, stop, "Miss")
+			return true
+		elseif path.Returns and t < path.OutTime then
+			-- the shield bounces off and comes back from there
+			path.End = stop
+			path.BackTime = HeroWeapons.Travel(weapon, (stop - path.Origin).Magnitude, weapon.ReturnSpeed)
+			path.OutTime = t
+			fireBatFx({ Action = "ProjectileTurn", Id = flight.id, Attacker = flight.player, Weapon = weapon.Id,
+				Position = stop, At = t, BackTime = path.BackTime })
+			position = stop
+		end
+	end
+	local reach = flight.hitRadius + BODY_RADIUS
+	if flight.hits < flight.maxHits then
+		for _, victim in ipairs(weaponVictims(flight.player)) do
+			if not flight.hit[victim] then
+				local seen = seenPosition(flight, victim)
+				if seen and segmentDistance(seen, flight.last, position) <= reach then
+					flight.hit[victim] = true
+					local heading = flatUnit(position - flight.last, flight.forward)
+					if weapon.Kind == "Grenade" then
+						explodeGrenade(flight, position)
+						return true
+					end
+					if landWeaponHit(flight.player, CFrame.new(flight.last), victim, weapon, heading) then
+						flight.hits += 1
+					end
+					if weapon.Kind == "Shot" then
+						endFlight(flight, position, "Hit")
+						return true
+					end
+					if flight.hits >= flight.maxHits then
+						break
+					end
+				end
+			end
+		end
+	end
+	flight.last = position
+	if finished then
+		if weapon.Kind == "Grenade" then
+			explodeGrenade(flight, path.End)
+		elseif weapon.Kind == "Shot" then
+			endFlight(flight, path.End, "Miss")
+		end
+		return true
+	end
+	return false
+end
+
+RunService.Heartbeat:Connect(function()
+	if #projectiles == 0 then
+		return
+	end
+	local now = os.clock()
+	for index = #projectiles, 1, -1 do
+		local flight = projectiles[index]
+		local ok, done = pcall(stepFlight, flight, now)
+		if not ok then
+			log(flight.weapon.Id .. " flight failed: " .. tostring(done))
+			done = true
+		end
+		if done then
+			table.remove(projectiles, index)
+		end
+	end
+end)
+
+-- The model's own radius (the build stamps HeroModelRadius on the Tool), never smaller than the weapon's HitRadius.
+local function modelRadius(tool, weapon)
+	local stamped = tool:GetAttribute("HeroModelRadius")
+	local configured = tonumber(weapon.HitRadius) or 1.2
+	return if type(stamped) == "number" then math.clamp(stamped, configured, configured * 1.6) else configured
+end
+
+local function launchAimed(player, tool, root, weapon)
+	local aim, seq = aimOf(player, tool, root)
+	local origin = HeroWeapons.ThrowOrigin(root.CFrame, aim)
+	local raycast = wallRaycaster(player)
+	local finish = HeroWeapons.AimEnd(weapon, origin, aim, raycast)
+	local distance = (finish - origin).Magnitude
+	local returns = weapon.Kind == "Boomerang"
+	projectileSerial += 1
+	local path = {
+		Origin = origin,
+		End = finish,
+		Side = if returns then 1 else -1, -- the shield bows right (and comes back on the left), the batarang left
+		Curve = if weapon.Kind == "Shot" then 0 else (tonumber(weapon.Curve) or 0),
+		OutTime = HeroWeapons.Travel(weapon, distance),
+		Returns = returns,
+		BackTime = if returns then HeroWeapons.Travel(weapon, distance, weapon.ReturnSpeed) else nil,
+	}
+	fireBatFx({
+		Action = "Launch",
+		Attacker = player,
+		Weapon = weapon.Id,
+		Id = projectileSerial,
+		Seq = seq,
+		Origin = path.Origin,
+		End = path.End,
+		Side = path.Side,
+		Curve = path.Curve,
+		OutTime = path.OutTime,
+		Returns = path.Returns,
+		BackTime = path.BackTime,
+	})
+	table.insert(projectiles, {
+		id = projectileSerial,
+		player = player,
+		weapon = weapon,
+		path = path,
+		started = os.clock(),
+		last = origin,
+		hit = {},
+		hits = 0,
+		maxHits = if weapon.Kind == "Boomerang" then (tonumber(weapon.MaxTargets) or 3) else 1,
+		hitRadius = modelRadius(tool, weapon),
+		forward = flatUnit(finish - origin, Vector3.new(0, 0, -1)),
+		raycast = raycast,
+	})
+end
+
+-- Training dummies (the admin panel's HeroWeaponDummy models, owner 2026-09-27: "the dummy bugs, it stays weird"):
+-- no client moves them, so the server keeps them on their feet between hits (no trip / physics states: only
+-- ragdollDummy turns Physics on while it lies limp) and eases them back upright on their spot a moment after every
+-- state or lucky shove. A ragdolled, stunned or settling dummy is left alone.
+local dummyHomes = setmetatable({}, { __mode = "k" }) -- [model] = its root's upright CFrame where it was placed
+local DUMMY_TRIP_STATES = { Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll,
+	Enum.HumanoidStateType.Physics, Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.PlatformStanding }
+
+local function watchDummy(model)
+	if not model:IsA("Model") or dummyHomes[model] ~= nil then
+		return
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if not (humanoid and root and root:IsA("BasePart")) then
+		return
+	end
+	for _, state in ipairs(DUMMY_TRIP_STATES) do
+		pcall(humanoid.SetStateEnabled, humanoid, state, false)
+	end
+	local _, yaw = root.CFrame:ToOrientation()
+	dummyHomes[model] = CFrame.new(root.Position) * CFrame.fromOrientation(0, yaw, 0)
+end
+
+local DUMMY_SETTLE_SECONDS = 0.45
+local settling = setmetatable({}, { __mode = "k" }) -- [dummy] = true while it eases back up
+
+-- Eases the dummy from where it lies back up onto its spot (the root carries the whole rig: its joints are back on).
+-- Round 11 (owner 2026-09-27: "the dummy still does not recover well from the ragdoll"): the root is anchored for the
+-- ease, so neither the Humanoid's balance nor a leftover tumble fights it, and every part stops dead at the end.
+settleDummy = function(model, root)
+	local home = dummyHomes[model]
+	if not home or settling[model] then
+		return
+	end
+	settling[model] = true
+	local function still()
+		return root.Parent ~= nil and debuffs[model] == nil and dummyRagdolls[model] == nil
+	end
+	local function stopParts()
+		for _, part in ipairs(model:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.AssemblyLinearVelocity = Vector3.zero
+				part.AssemblyAngularVelocity = Vector3.zero
+			end
+		end
+	end
+	root.Anchored = true
+	stopParts()
+	local from = root.CFrame
+	local startedAt = os.clock()
+	while still() do
+		local alpha = math.clamp((os.clock() - startedAt) / DUMMY_SETTLE_SECONDS, 0, 1)
+		local eased = 1 - (1 - alpha) * (1 - alpha)
+		model:PivotTo(from:Lerp(home, eased) * root.CFrame:ToObjectSpace(model:GetPivot()))
+		if alpha >= 1 then
+			break
+		end
+		RunService.Heartbeat:Wait()
+	end
+	stopParts()
+	if root.Parent then
+		root.Anchored = false
+		pcall(root.SetNetworkOwner, root, nil)
+	end
+	settling[model] = nil
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid and still() then
+		pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Running)
+	end
+end
+
+if HeroWeapons then
+	CollectionService:GetInstanceAddedSignal(HeroWeapons.DUMMY_TAG):Connect(function(model)
+		task.defer(watchDummy, model) -- after the panel placed and parented it
+	end)
+	for _, model in ipairs(CollectionService:GetTagged(HeroWeapons.DUMMY_TAG)) do
+		watchDummy(model)
+	end
+	task.spawn(function()
+		while true do
+			task.wait(0.3)
+			local now = os.clock()
+			for model, home in pairs(dummyHomes) do
+				local root = model.Parent and model:FindFirstChild("HumanoidRootPart")
+				if not root then
+					dummyHomes[model] = nil
+				elseif debuffs[model] == nil and dummyRagdolls[model] == nil and not settling[model]
+					and now >= (dummyCalmAt[model] or 0) then
+					local tilted = root.CFrame.UpVector.Y < 0.95
+					local away = (root.Position - home.Position).Magnitude > 0.75
+					if tilted or away then
+						task.spawn(function()
+							local ok, err = pcall(settleDummy, model, root)
+							if not ok then
+								settling[model] = nil
+								log("training dummy reset failed: " .. tostring(err))
+							end
+						end)
+					end
+				end
+			end
+		end
+	end)
+end
+
+-- The Impact keyframe of the attack clip: pick the victims by the weapon's kind.
+local function resolveWeaponContact(player, tool, character, startedAt, weapon, impact)
+	if player.Parent == nil or os.clock() - startedAt < impact - 0.02 then
+		return
+	end
+	local current, _, root = characterOf(player)
+	if current ~= character or tool.Parent ~= character or not canSwing(player, character) then
+		return -- died, respawned, put the weapon away, got stunned or grabbed an egg during the wind-up
+	end
+	if not isOnGameplaySide(root.Position) then
+		return
+	end
+	local kind = weapon.Kind
+	local maxTargets = tonumber(weapon.MaxTargets) or 1
+	if weapon.Aimed then
+		launchAimed(player, tool, root, weapon)
+	elseif kind == "Slam" then
+		local forward = flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1))
+		local centre = root.Position + forward * (tonumber(weapon.Reach) or 3)
+		local targets = weaponTargets(player, root, weapon, tonumber(weapon.Radius) or 10, -1, maxTargets, centre)
+		for _, target in ipairs(targets) do
+			landWeaponHit(player, root.CFrame, target.player, weapon, target.away)
+		end
+	elseif kind == "Spin" then
+		-- the extended pole sweeps a full turn: everyone within its length, flung along the sweep
+		local targets = weaponTargets(player, root, weapon, tonumber(weapon.Radius) or 12, -1, maxTargets, root.Position)
+		for _, target in ipairs(targets) do
+			local away = target.away
+			local tangent = Vector3.new(-away.Z, 0, away.X)
+			landWeaponHit(player, root.CFrame, target.player, weapon, flatUnit(away + tangent * 0.6, away))
+		end
+	else -- Thrust (the punch / pole axis) and Blast (away from the attacker)
+		local targets, forward = weaponTargets(player, root, weapon, weapon.Range, weapon.MinDot,
+			if kind == "Blast" then maxTargets else 1)
+		for _, target in ipairs(targets) do
+			local heading = if kind == "Thrust" then forward else target.away
+			landWeaponHit(player, root.CFrame, target.player, weapon, heading)
+		end
+	end
+end
+
+local function onHeroWeaponActivated(player, tool, weapon)
+	local now = os.clock()
+	local cooldown = tonumber(weapon.Cooldown) or MELEE_COOLDOWN
+	if now - (lastSwingAt[player] or -math.huge) < cooldown - MELEE_COOLDOWN_SLACK then
+		return
+	end
+	local character, _, root = characterOf(player)
+	if not character or tool.Parent ~= character or not canSwing(player, character) then
+		return
+	end
+	if not isOnGameplaySide(root.Position) then
+		return
+	end
+	lastSwingAt[player] = now
+
+	tool:SetAttribute("CooldownActive", true)
+	tool:SetAttribute("CooldownDuration", cooldown)
+	task.delay(cooldown, function()
+		if tool.Parent then
+			tool:SetAttribute("CooldownActive", false)
+			tool:SetAttribute("CooldownDuration", 0)
+		end
+	end)
+
+	local impact, length = HeroWeapons.Timing(weapon.Id)
+	swingSerial += 1
+	fireBatFx({
+		Action = "Swing",
+		Attacker = player,
+		Id = swingSerial,
+		Weapon = weapon.Id,
+		WindUp = impact,
+		Duration = length,
+	})
+	task.delay(impact, function()
+		local ok, err = pcall(resolveWeaponContact, player, tool, character, now, weapon, impact)
+		if not ok then
+			log(tool.Name .. " (" .. weapon.Id .. ") contact failed: " .. tostring(err))
+		end
+	end)
+end
+
 local function onMeleeActivated(player, tool)
+	local weapon = heroWeaponOf(tool)
+	if weapon then
+		onHeroWeaponActivated(player, tool, weapon)
+		return
+	end
 	local now = os.clock()
 	if now - (lastSwingAt[player] or -math.huge) < MELEE_COOLDOWN - MELEE_COOLDOWN_SLACK then
 		return
@@ -755,6 +1707,15 @@ local function freezeVictim(trap, victim, freezeSeconds)
 	end
 
 	local walkSpeed, jumpPower, jumpHeight = humanoid.WalkSpeed, humanoid.JumpPower, humanoid.JumpHeight
+	-- A hero weapon state still slowing the victim (Dazed / SmokeStun, or pushed onto the trap by a knockback): the
+	-- trap takes the movement over with the victim's real values, and the state no longer restores anything (review:
+	-- it used to free the victim mid-freeze, and the trap then gave back the slowed speed for good).
+	local debuff = debuffs[character]
+	if debuff and debuff.moved and not debuff.restored then
+		walkSpeed, jumpPower, jumpHeight = debuff.walkSpeed, debuff.jumpPower, debuff.jumpHeight
+		humanoid.AutoRotate = debuff.autoRotate
+		debuff.restored = true
+	end
 	character:SetAttribute("IsTrapped", true)
 	humanoid.WalkSpeed = 0
 	humanoid.JumpPower = 0
@@ -827,14 +1788,22 @@ local function placeTrap(player, tool, spec)
 	end
 	lastPlacedAt[player] = now
 
+	-- Owner 2026-09-27: "the traps don't work". Every part of the clone is anchored, and it is moved before it has a
+	-- parent, so its WeldConstraint never dragged the touch Hitbox along: every placed trap's Hitbox stayed where the
+	-- template sits (in the lobby, freezing people there) while the visible trap on the stage caught nobody. Each
+	-- child now keeps its offset from the trap and is moved with it explicitly; the (useless) welds are removed.
 	local trap = template:Clone() -- whole subtree in one Clone, never child by child
+	local pivot = trap.CFrame
+	local offsets = {}
 	for _, descendant in ipairs(trap:GetDescendants()) do
 		if descendant:IsA("BasePart") then
+			offsets[descendant] = pivot:ToObjectSpace(descendant.CFrame)
 			descendant.Anchored = true
 			descendant.CanCollide = false
 			descendant.CanTouch = true
-		elseif descendant:IsA("LuaSourceContainer") or descendant:IsA("Sound") then
-			descendant:Destroy()
+		elseif descendant:IsA("LuaSourceContainer") or descendant:IsA("Sound") or descendant:IsA("WeldConstraint")
+			or descendant:IsA("JointInstance") then
+			descendant:Destroy() -- everything is anchored: a weld would only mislead
 		end
 	end
 	trap.Anchored = true
@@ -845,6 +1814,11 @@ local function placeTrap(player, tool, spec)
 	local position = groundBelow(root, character)
 	local _, yaw = root.CFrame:ToOrientation()
 	trap.CFrame = CFrame.new(position + Vector3.new(0, trap.Size.Y / 2, 0)) * CFrame.Angles(0, yaw, 0)
+	for part, offset in pairs(offsets) do
+		if part.Parent then
+			part.CFrame = trap.CFrame * offset
+		end
+	end
 
 	trap:SetAttribute("Owner", player.Name)
 	trap:SetAttribute("TrapActive", false)
@@ -875,8 +1849,16 @@ local function placeTrap(player, tool, spec)
 		end
 		local victimCharacter = hit and hit.Parent
 		local victim = victimCharacter and Players:GetPlayerFromCharacter(victimCharacter)
+		if not victim and hit then
+			-- an accessory / tool part touched it first: its character is further up
+			victimCharacter = hit:FindFirstAncestorOfClass("Model")
+			victim = victimCharacter and Players:GetPlayerFromCharacter(victimCharacter)
+		end
 		if not victim or victim == player then
 			return
+		end
+		if not isOnGameplaySide(hitbox.Position) then
+			return -- a trap never freezes anyone in the safe zone
 		end
 		trap:SetAttribute("TrapActive", true)
 		if freezeVictim(trap, victim, spec.freeze) then
@@ -919,6 +1901,19 @@ local function hookTool(player, tool)
 	tool.ManualActivationOnly = false
 	if trapSpec then
 		setTrapUses(tool, activeTrapCount(player))
+	elseif WeaponKit and heroWeaponOf(tool) then
+		-- the owner's kit grips the weapon in the R15 right hand once the engine made the RightGrip
+		tool.Equipped:Connect(function()
+			task.spawn(function()
+				local character = player.Character
+				if character and tool.Parent == character then
+					local ok, err = pcall(WeaponKit.Attach, tool, character)
+					if not ok then
+						log(tool.Name .. " grip failed: " .. tostring(err))
+					end
+				end
+			end)
+		end)
 	end
 	tool.Activated:Connect(function()
 		if player.Parent == nil then
@@ -1274,6 +2269,11 @@ local function areaIndexProgress(profile, area)
 end
 
 local function batDisplayName(batName)
+	local weaponId = HeroWeapons and HeroWeapons.IdOfToolName(batName)
+	local weapon = weaponId and HeroWeapons.Get(weaponId)
+	if weapon then
+		return weapon.DisplayName -- the stage bats are hero weapons now
+	end
 	local ok, name = pcall(function()
 		local entry = gearDirectory and gearDirectory[batName]
 		return entry and entry.DisplayName
@@ -1351,7 +2351,7 @@ local function onEquipAreaBat(player, sectionId, action)
 		if current == batName then
 			database.Set(player, { [EQUIPPED_BAT_FIELD] = "" })
 			swapKitBat(player)
-			notify(player, displayName .. " unequipped: back to the Bat.", NOTICE_GOOD)
+			notify(player, displayName .. " unequipped: back to the " .. batDisplayName(DEFAULT_BAT) .. ".", NOTICE_GOOD)
 			current = ""
 		end
 		return true, nil, current
@@ -1565,6 +2565,10 @@ releaseRequest.OnInvoke = function(player)
 	local release = trapReleases[character]
 	if release then
 		pcall(release)
+		lifted = true
+	end
+	if debuffs[character] ~= nil then
+		pcall(endDebuff, player, character, nil)
 		lifted = true
 	end
 	return lifted

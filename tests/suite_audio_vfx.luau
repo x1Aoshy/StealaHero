@@ -11,6 +11,7 @@ local WHITELIST = {
 	[127039883737564] = "winner!",
 	[136993031050456] = "SuccessSfx",
 	[80736831159506] = "UpgradeBought",
+	[142376088] = "Taco Rain music", -- owner request 2026-09-27 (scripts/steps/audio.luau OWNER_AUDIO; one Sound)
 }
 
 local offenders, audible = {}, 0
