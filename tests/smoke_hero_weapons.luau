@@ -146,6 +146,25 @@ do
 		T.check(math.abs(rubber.Size.X - restLength) < 1e-3 and (fistWeld.C0.Position - restFist).Magnitude < 1e-3,
 			"SetGomuTime(tool, 0) must reset the fist")
 	end
+	-- the Power Pole's Handle is a cylinder (it runs along its own X): the stretch must follow the pole, not the
+	-- Handle's Y (review: the shaft got fat and the tip flew up the forearm)
+	local pole = shopItems and shopItems:FindFirstChild("Forest Bat")
+	if T.check(type(Kit) == "table" and pole ~= nil, "Forest Bat (Power Pole) missing") then
+		pole = pole:Clone()
+		local shaft, tip = pole:FindFirstChild("Shaft"), pole:FindFirstChild("TipCap")
+		local shaftWeld, tipWeld = shaft:FindFirstChild("HeroWeaponWeld"), tip:FindFirstChild("HeroWeaponWeld")
+		local restSize, restShaft, restTip = shaft.Size, shaftWeld.C0.Position, tipWeld.C0.Position
+		local dir = restShaft.Unit
+		Kit.SetPoleTime(pole, 0.25) -- fully out: stretch 2.3
+		local length = tip:GetAttribute("StretchLength")
+		T.check(math.abs(shaft.Size.X - restSize.X * 2.3) < 1e-3 and math.abs(shaft.Size.Y - restSize.Y) < 1e-3,
+			"SetPoleTime must lengthen the shaft, not fatten it")
+		T.check(((tipWeld.C0.Position - restTip) - dir * (1.3 * length)).Magnitude < 1e-3,
+			"SetPoleTime must carry the tip out along the pole, to the shaft's new end")
+		Kit.SetPoleTime(pole, 0)
+		T.check((tipWeld.C0.Position - restTip).Magnitude < 1e-3 and math.abs(shaft.Size.X - restSize.X) < 1e-3,
+			"SetPoleTime(tool, 0) must pull the pole back in")
+	end
 end
 
 -- 4. server + client wiring
@@ -174,6 +193,8 @@ T.check(H.has(src(H.path(sss, "StageHazardService")), "GetAttribute(\"HeroDebuff
 	"StageHazardService must leave a debuffed player's WalkSpeed to GearService")
 
 -- 5. owner's reports
+T.check(H.has(gearSrc, "local debuff = debuffs[character]") and H.has(gearSrc, "if debuffs[character] ~= state or state.restored or"),
+	"a trap freezing a debuffed player must take the movement over from the state")
 T.check(H.has(gearSrc, "offsets[descendant] = pivot:ToObjectSpace(descendant.CFrame)") and H.has(gearSrc, "part.CFrame = trap.CFrame * offset"),
 	"a placed trap must move its Hitbox with it (it stayed in the lobby: traps never caught anyone)")
 local trapTemplate = H.path(rs, "Assets/ToolEffects/PlayerTrap")

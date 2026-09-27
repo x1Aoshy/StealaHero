@@ -864,7 +864,7 @@ local function applyDebuff(victim, weapon, direction, options)
 	local slide = tonumber(effect.Slide)
 	if state.moved and slide and slide > 0 then
 		task.delay(slide, function()
-			if debuffs[character] ~= state or humanoid.Parent == nil then
+			if debuffs[character] ~= state or state.restored or humanoid.Parent == nil then
 				return
 			end
 			if effect.ReleaseAfterSlide then
@@ -1193,6 +1193,15 @@ local function freezeVictim(trap, victim, freezeSeconds)
 	end
 
 	local walkSpeed, jumpPower, jumpHeight = humanoid.WalkSpeed, humanoid.JumpPower, humanoid.JumpHeight
+	-- A hero weapon state still slowing the victim (Dazed / SmokeStun, or pushed onto the trap by a knockback): the
+	-- trap takes the movement over with the victim's real values, and the state no longer restores anything (review:
+	-- it used to free the victim mid-freeze, and the trap then gave back the slowed speed for good).
+	local debuff = debuffs[character]
+	if debuff and debuff.moved and not debuff.restored then
+		walkSpeed, jumpPower, jumpHeight = debuff.walkSpeed, debuff.jumpPower, debuff.jumpHeight
+		humanoid.AutoRotate = debuff.autoRotate
+		debuff.restored = true
+	end
 	character:SetAttribute("IsTrapped", true)
 	humanoid.WalkSpeed = 0
 	humanoid.JumpPower = 0

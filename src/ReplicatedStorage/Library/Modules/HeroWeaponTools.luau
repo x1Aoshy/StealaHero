@@ -13,9 +13,10 @@
 -- right; Attach only re-asserts it. Changes to the owner's version:
 --   * Attach accepts the RightGrip whatever its class (the engine makes a Weld, the original asserted Motor6D) and
 --     never throws;
---   * the stretch works on any part shape: the part axis that runs along the Handle's +Y is the one scaled (a
---     Roblox cylinder runs along its X), and a Fist / Tip rides the stretch by its StretchLength attribute (default
---     1.35, the original constant);
+--   * the stretch works on any part shape and Handle orientation: it runs from the Handle to the first Rubber / Extend
+--     part (the Handle's +Y for the owner's fist), the part axis along it is the one scaled (a Roblox cylinder runs
+--     along its X), and a Fist / Tip rides the stretch by its StretchLength attribute (default 1.35, the original
+--     constant);
 --   * grips for the two weapons the original kit did not list (Batarang, BakugoGauntlet).
 
 local Kit = {}
@@ -133,9 +134,9 @@ function Kit.Sections(tool: Tool): { [string]: { BasePart } }
 	return sections
 end
 
--- The part axis ("X" / "Y" / "Z") that runs along the Handle's +Y, from a weld C0 (part in Handle space).
-local function axisAlongHandleY(c0: CFrame): string
-	local v = c0:VectorToObjectSpace(Vector3.yAxis)
+-- The part axis ("X" / "Y" / "Z") that runs along `dir` (Handle space), from a weld C0 (part in Handle space).
+local function axisAlong(c0: CFrame, dir: Vector3): string
+	local v = c0:VectorToObjectSpace(dir)
 	local ax, ay, az = math.abs(v.X), math.abs(v.Y), math.abs(v.Z)
 	if ax >= ay and ax >= az then
 		return "X"
@@ -145,6 +146,12 @@ local function axisAlongHandleY(c0: CFrame): string
 	return "Z"
 end
 
+local function isStretchSection(section)
+	return section == "Rubber" or section == "Extend" or section == "Fist" or section == "Tip"
+end
+
+-- The stretch direction (Handle space) runs from the Handle to the first Rubber / Extend part: the Handle's +Y for
+-- the owner's Gum-Gum fist, the pole's axis for the Power Pole (a cylinder Handle runs along its own X).
 local caches = setmetatable({}, { __mode = "k" })
 local function stretchCache(tool: Tool)
 	local cache = caches[tool]
@@ -152,11 +159,23 @@ local function stretchCache(tool: Tool)
 		return cache
 	end
 	cache = {}
+	local dir = nil
+	for _, part in tool:GetChildren() do
+		local section = part:IsA("BasePart") and part:GetAttribute("HeroSection")
+		if section == "Rubber" or section == "Extend" then
+			local weld = part:FindFirstChild(Kit.WELD_NAME)
+			if weld and weld:IsA("Weld") and weld.C0.Position.Magnitude > 1e-3 then
+				dir = weld.C0.Position.Unit
+				break
+			end
+		end
+	end
+	dir = dir or Vector3.yAxis
 	for _, part in tool:GetChildren() do
 		if part:IsA("BasePart") and part.Name ~= "Handle" then
 			local weld = part:FindFirstChild(Kit.WELD_NAME)
 			local section = part:GetAttribute("HeroSection")
-			if weld and weld:IsA("Weld") and (section == "Rubber" or section == "Extend" or section == "Fist" or section == "Tip") then
+			if weld and weld:IsA("Weld") and isStretchSection(section) then
 				local length = part:GetAttribute("StretchLength")
 				table.insert(cache, {
 					part = part,
@@ -164,7 +183,8 @@ local function stretchCache(tool: Tool)
 					size = part.Size,
 					c0 = weld.C0,
 					section = section,
-					axis = axisAlongHandleY(weld.C0),
+					dir = dir,
+					axis = axisAlong(weld.C0, dir),
 					length = if type(length) == "number" then length else Kit.DEFAULT_STRETCH_LENGTH,
 				})
 			end
@@ -174,13 +194,14 @@ local function stretchCache(tool: Tool)
 	return cache
 end
 
--- Client visual: stretch 1 = rest. Rubber / Extend parts grow along the Handle's +Y from their base; Fist / Tip parts
--- move with the end of the stretched section.
+-- Client visual: stretch 1 = rest. Rubber / Extend parts grow along the stretch direction from their base; Fist / Tip
+-- parts move with the end of the stretched section (by StretchLength per unit of stretch).
 function Kit.SetStretch(tool: Tool, stretch: number)
 	for _, state in stretchCache(tool) do
 		if not state.part.Parent then
 			continue
 		end
+		local dir = state.dir
 		if state.section == "Rubber" or state.section == "Extend" then
 			local s = state.size
 			state.part.Size = Vector3.new(
@@ -189,9 +210,9 @@ function Kit.SetStretch(tool: Tool, stretch: number)
 				if state.axis == "Z" then s.Z * stretch else s.Z
 			)
 			local p = state.c0.Position
-			state.weld.C0 = CFrame.new(p.X, p.Y * stretch, p.Z) * state.c0.Rotation
+			state.weld.C0 = CFrame.new(p + dir * (p:Dot(dir) * (stretch - 1))) * state.c0.Rotation
 		else
-			state.weld.C0 = CFrame.new(0, (stretch - 1) * state.length, 0) * state.c0
+			state.weld.C0 = CFrame.new(dir * ((stretch - 1) * state.length)) * state.c0
 		end
 	end
 end
