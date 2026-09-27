@@ -1,0 +1,17 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMHBWVycm9yEVVua25vd24gVHlwZSAnJSonBmZvcm1hdAdfX2luZGV4DHNldG1ldGF0YWJsZQV0YWJsZQZmcmVlemUAAgYCAAAABwAAAQMDBAIJpAIBAAAAAEBvAwIAUgUBALwDA40DAAAAnwMDAp8CAgGCAAEABAMBBAAAAEADAgMDAAMAARgAAAAAAAAAAAEEAAAAAAUAAAECABOjAAAA/wAAAAAAAAD/AwEAAAAAAMAEAAAwBANuAQAAAJ49AAQDAAAAUgIAAKQBAwAAACBAnwEDAaQBBgAAFECAUgIAAJ8BAgGCAAIABwYAAwQDBQQAACBAAwYDBwQAFECAAQABAAEYAAAAAQABAAAAAAD/AAAFAAAAAQEAAAAAAcMg8Iyp9czJLEXNFCDlcfOzOOf48eSajQ==
+
+-- decompilation:
+local t1 = {}
+
+setmetatable(t1, {
+	__index = function(_, p2) -- line: 3
+		error(`Unknown Type '{ p2 }'`)
+	end
+})
+table.freeze(t1)
+
+return t1
+

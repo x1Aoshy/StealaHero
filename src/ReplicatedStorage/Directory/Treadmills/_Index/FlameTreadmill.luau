@@ -1,0 +1,19 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMPB3JlcXVpcmUGc2NyaXB0BlBhcmVudAtCdWlsZENvbmZpZwZSYXJpdHkFUHJpY2UJUHJvZHVjdElkBEljb24bcmJ4YXNzZXRpZDovLzgxNTI1NDU2NzYyMTI5D1NwZWVkTXVsdGlwbGllcg1EaXNwbGF5SW5TaG9wC0Rpc3BsYXlOYW1lD0ZsYW1lIFRyZWFkbWlsbAhSYXJpdGllcwRSYXJlAAEFAAABAgAjowAAAKQAAQAAAABApAEDAAAAIEBNAQEkBAAAAE0BASQEAAAATQEB4QUAAACfAAICpAEBAAAAAECkAgMAAAAgQE0CAiQEAAAATQICJAQAAABNAgIkBAAAAE0CAvIGAAAAnwECAlICAADiAxMATQQB6BQAAABNBASnFQAAADAEA/IGAAAAnwICAIICAAAWAwEEAAAAQAMCBAAAIEADAwMEAwUDBgIAAAAAgIQOQQMHAgAAoNKX6OpBAwgDCQMKAgAAAAAAAChAAwsBAQMMAw0IBwcIAAAACQoAAAALDAAAAAb/////DQ4AAAAPEAAAABESAAAAAw4DDwABAAEYAAMAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAIABAAAAAAA/AABAAAAAAB3hFVFzHJ0uoPnWUWGZHUrB5xCMUVAP0Q=
+
+-- decompilation:
+local BuildConfig = require(script.Parent.Parent.BuildConfig)
+local Rarity = require(script.Parent.Parent.Parent.Rarity)
+
+return BuildConfig({
+	Price = 12000000.0, -- ECON 2026-09-24 (money /125): was 1500000000.0; BALANCE 2026-09-23 (owner approved): was 250000.0
+	ProductId = 3611606677.0,
+	Icon = "rbxassetid://81525456762129",
+	SpeedMultiplier = 12.0, -- BALANCE 2026-09-23 (owner approved): the MODDED x3 reverted (was 36.0)
+	DisplayInShop = true,
+	DisplayName = "Flame Treadmill",
+	Rarity = Rarity.Rarities.Rare
+})
+

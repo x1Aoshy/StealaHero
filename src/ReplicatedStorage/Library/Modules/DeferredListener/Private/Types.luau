@@ -1,0 +1,22 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMTBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlB0xpYnJhcnkHTW9kdWxlcwhQYWNrYWdlcwdQcm9taXNlBVRyb3ZlAXQJRnVuY3Rpb25zHlRhYmxlSW5qZWN0QXV0b1JlbW92YWxCZWhhdmlvcglpbnRlcmZhY2UKcmVtb3ZlRnJvbQ1pbmRleE92ZXJyaWRlBXRhYmxlCG9wdGlvbmFsA2FueRZTb2Z0QXV0b1JlbW92ZVByb3RvY29sAAEKAAABAgBFowAAAKQAAQAAAABAbwICALwAABYDAAAAnwADAqQBBQAAAEBATQIAagYAAABNAgLoBwAAAE0CAuYIAAAATQICcgkAAACfAQICpAIFAAAAQEBNAwBqBgAAAE0DA+gHAAAATQMD5ggAAABNAwObCgAAAJ8CAgKkAwUAAABAQE0EAGoGAAAATQQE6AcAAABNBATmCAAAAE0EBJULAAAAnwMCAqQEBQAAAEBATQUAagYAAABNBQVTDAAAAE0FBT8NAAAAnwQCAv8FAQAAAAAATQYDLw4AAADiBxEATQgDSxIAAAAwCAeWDwAAAE0IAxETAAAATQkDzhQAAACfCAICMAgHYhAAAACfBgICMAYFSBUAAACCBQIAFgMBBAAAAEADAgMDAwQEAABAQAMFAwYDBwMIAwkDCgMLAwwDDQMOAw8FAg8QAxADEQMSAxMAAQABGAABAAAAAAADAAAAAAAAAAAAAAEAAAAAAAAAAAAAAQAAAAAAAAAAAAABAAAAAAAAAAB7AAIAAAEAAAABAAAAAAAA/gAABQEAAAAAAEoCQQa8hdRBIPe2R3ytrHQ6GlZyeMYrBw==
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+require(ReplicatedStorage.Library.Modules.Packages.Promise)
+require(ReplicatedStorage.Library.Modules.Packages.Trove)
+
+local t = require(ReplicatedStorage.Library.Modules.Packages.t)
+
+require(ReplicatedStorage.Library.Functions.TableInjectAutoRemovalBehavior)
+
+return {
+	SoftAutoRemoveProtocol = t.interface({
+		removeFrom = t.table,
+		indexOverride = t.optional(t.any)
+	})
+}
+

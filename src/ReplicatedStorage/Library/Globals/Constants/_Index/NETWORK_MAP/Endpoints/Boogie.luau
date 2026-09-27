@@ -1,0 +1,15 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMMDlJFUVVFU1RfQk9PR0lFGUJvb2dpZUJvbWI6IFJlcXVlc3RCb29naWUMQVBQTFlfRUZGRUNUF0Jvb2dpZUJvbWI6IEFwcGx5RWZmZWN0DVJFTU9WRV9FRkZFQ1QYQm9vZ2llQm9tYjogUmVtb3ZlRWZmZWN0CFBMQVlfVkZYE0Jvb2dpZUJvbWI6IFBsYXlWZngIUExBWV9TRlgTQm9vZ2llQm9tYjogU3RvcFZmeBBUUklHR0VSX0NPT0xET1dOG0Jvb2dpZUJvbWI6IFRyaWdnZXJDb29sZG93bgABAQAAAQIAA6MAAADiAAwAggACAA0DAQMCAwMDBAMFAwYDBwMIAwkDCgMLAwwIBgABAAAAAgMAAAAEBQAAAAYHAAAACAkAAAAKCwAAAAABAAEYAAAAAQAAAAAAXAY+5FGYNQtfYGejn6IXICweKZBuwlTl
+
+-- decompilation:
+return {
+	REQUEST_BOOGIE = "BoogieBomb: RequestBoogie",
+	APPLY_EFFECT = "BoogieBomb: ApplyEffect",
+	REMOVE_EFFECT = "BoogieBomb: RemoveEffect",
+	PLAY_VFX = "BoogieBomb: PlayVfx",
+	PLAY_SFX = "BoogieBomb: StopVfx",
+	TRIGGER_COOLDOWN = "BoogieBomb: TriggerCooldown"
+}
+

@@ -1,0 +1,12 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMDBUxJTUlUCkhBUkRfTElNSVQLTUFYX1BPV0RFUlMAAQIAAAECAA2jAAAA/wADAAAAAACMAfoAMAEARgAAAACMAfoAMAEAgwEAAACMAXgAMAEADwIAAACCAAIAAwMBAwIDAwABAAEYAAAAAQAAAQAAAQAAAQEAAAAAAA==
+
+-- decompilation:
+return {
+	LIMIT = 250.0,
+	HARD_LIMIT = 250.0,
+	MAX_POWDERS = 120.0
+}
+

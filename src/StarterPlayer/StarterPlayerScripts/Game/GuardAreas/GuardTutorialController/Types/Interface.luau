@@ -1,0 +1,14 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMMBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlB0xpYnJhcnkGQ2xpZW50Ikd1YXJkVHV0b3JpYWxQcmVzZW50YXRpb25Db21wb25lbnQFVHlwZXMNR3VhcmRUdXRvcmlhbAZzY3JpcHQGUGFyZW50EE1pbGVzdG9uZUFkYXB0ZXIAAQUAAAECACajAAAApAABAAAAAEBvAgIAvAAAFgMAAACfAAMCpAEFAAAAQEBNAgBqBgAAAE0CAk0HAAAATQIC5QgAAACfAQICpAIFAAAAQEBNAwBqBgAAAE0DA+8JAAAATQMDAAoAAACfAgICpAMFAAAAQECkBAwAAACwQE0EBCQNAAAATQQEJA0AAABNBAS9DgAAAJ8DAgLGBAAAggQCAA8DAQQAAABAAwIDAwMEBAAAQEADBQMGAwcDCAMJAwoEAACwQAMLAwwAAQABGAADAAAAAAADAAAAAAAAAAABAAAAAAAAAAABAAAAAAAAAAAAABEAAQAAAAAAKRvUk/8bh0HFibfjlYoNPVkDw+cb376S
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+require(ReplicatedStorage.Library.Client.GuardTutorialPresentationComponent)
+require(ReplicatedStorage.Library.Types.GuardTutorial)
+require(script.Parent.Parent.MilestoneAdapter)
+
+return nil
+

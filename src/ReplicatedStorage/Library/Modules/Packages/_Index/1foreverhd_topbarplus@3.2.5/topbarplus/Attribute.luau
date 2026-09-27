@@ -1,0 +1,24 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMSBGdhbWUKUnVuU2VydmljZQpHZXRTZXJ2aWNlB3JlcXVpcmUGc2NyaXB0BlBhcmVudAdWRVJTSU9ODWdldEFwcFZlcnNpb24QZ2V0TGF0ZXN0VmVyc2lvbgppc1VwVG9EYXRlCElzU3R1ZGlvBXByaW50M/CfjY0gUnVubmluZyBUb3BiYXJQbHVzICUqIGJ5IEBGb3JldmVySEQgJiBIRCBBZG1pbgZmb3JtYXQEd2Fybl9BIG5ldyB2ZXJzaW9uIG9mIFRvcGJhclBsdXMgKCUqKSBpcyBhdmFpbGFibGU6IGh0dHBzOi8vZGV2Zm9ydW0ucm9ibG94LmNvbS90L3RvcGJhcnBsdXMvMTAxNzQ4NQR0YXNrBWRlZmVyAAIJAAAAAAAvpAABAAAAAEBvAgIAvAAAFgMAAACfAAMCpAEFAAAAQECkAgcAAABgQE0CAiQIAAAATQICSwkAAACfAQICTQIBlwoAAACfAgECTQMBMwsAAACfAwECTQUBSgwAAACfBQECVgQFALwFAAoNAAAAnwUCAisFCACkBQ8AAADgQG8GEABSCAIAvAYGjREAAACfBgMCnwUCAQ4ECACkBRMAAAAgQW8GFABSCAMAvAYGjREAAACfBgMCnwUCAYIAAQAVAwEEAAAAQAMCAwMDBAQAAEBAAwUEAABgQAMGAwcDCAMJAwoDCwMMBAAA4EADDQMOAw8EAAAgQQMQABUAARgAAAAAAAABAAAAAAAAAAABAAABAAABAAAAAQAAAAEAAAAAAAAAAgEAAQAAAAD/BBYAAAAAAgAAAQIACKMAAACkAAIAAAQAgMABAwCfAAIB/wAAAAAAAACCAAIABAMRAxIEAAQAgAYAAQABAAEYABQAAAAQAAABAAAAAAFmnkKrIYmtjIlGNP0Y3S5hFoZV31RaKKo=
+
+-- decompilation:
+task.defer(function() -- line: 21
+	local RunService = game:GetService("RunService")
+	local VERSION = require(script.Parent.VERSION)
+	local v3 = VERSION.getAppVersion()
+	local v4 = VERSION.getLatestVersion()
+	local v5 = VERSION.isUpToDate()
+
+	if not RunService:IsStudio() then
+		print(`🍍 Running TopbarPlus { v3 } by @ForeverHD & HD Admin`)
+	end
+
+	if not v5 then
+		warn(`A new version of TopbarPlus ({ v4 }) is available: https://devforum.roblox.com/t/topbarplus/1017485`)
+	end
+end)
+
+return {}
+

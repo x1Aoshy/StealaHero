@@ -1,0 +1,14 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMPBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlBnNjcmlwdAZQYXJlbnQGU2NoZW1hCURpcmVjdG9yeQZSYXJpdHkFVHlwZXMJSW50ZXJmYWNlB0xpYnJhcnkHTW9kdWxlcwhQYWNrYWdlcw1JbnN0YW5jZUNhY2hlAAEFAAABAgAnowAAAKQAAQAAAABAbwICALwAABYDAAAAnwADAqQBBQAAAEBApAIHAAAAYEBNAgIkCAAAAE0CAv4JAAAAnwECAqQCBQAAAEBATQMAkQoAAABNAwPyCwAAAE0DA+8MAAAATQMDDw0AAACfAgICpAMFAAAAQEBNBABqDgAAAE0EBOgPAAAATQQE5hAAAABNBAQKEQAAAJ8DAgKCAQIAEgMBBAAAAEADAgMDAwQEAABAQAMFBAAAYEADBgMHAwgDCQMKAwsDDAMNAw4DDwABAAEYAAMAAAAAAAMAAAAAAAAAAAEAAAAAAAAAAAAAAQAAAAAAAAAAAAAdAQAAAAAAGyuyFDhRkcZa8BOMP9iz92szpWAp79gV
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Schema = require(script.Parent.Schema)
+
+require(ReplicatedStorage.Directory.Rarity.Types.Interface)
+require(ReplicatedStorage.Library.Modules.Packages.InstanceCache)
+
+return Schema
+

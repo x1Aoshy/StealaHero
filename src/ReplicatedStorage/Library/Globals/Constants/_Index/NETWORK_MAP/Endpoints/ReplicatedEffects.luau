@@ -1,0 +1,13 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMIEFJFUExJQ0FURV9EQU1BR0UhUmVwbGljYXRlRWZmZWN0czogUmVwbGljYXRlRGFtYWdlEVNIQUtFX0ZST01fUFJFU0VUKlJlcGxpY2F0ZUVmZmVjdHM6IFJlcGxpY2F0ZVNoYWtlRnJvbVByZXNldB5BUFBMWV9NQVJJT19EQU1BR0VfSU5URVJBQ1RJT049UmVwbGljYXRlRWZmZWN0czogQXBwbHlNYXJpb0RhbWFnZUludGVyYWN0aW9uRnJvbVBzZXVkb09iamVjdApTSEFLRV9PTkNFG1JlcGxpY2F0ZUVmZmVjdHM6IFNoYWtlT25jZQABAQAAAQIAA6MAAADiAAgAggACAAkDAQMCAwMDBAMFAwYDBwMICAQAAQAAAAIDAAAABAUAAAAGBwAAAAABAAEYAAAAAQAAAAAABmg+F6di0Ct01+Il6DFm2nZwKWM0rFQW
+
+-- decompilation:
+return {
+	REPLICATE_DAMAGE = "ReplicateEffects: ReplicateDamage",
+	SHAKE_FROM_PRESET = "ReplicateEffects: ReplicateShakeFromPreset",
+	APPLY_MARIO_DAMAGE_INTERACTION = "ReplicateEffects: ApplyMarioDamageInteractionFromPseudoObject",
+	SHAKE_ONCE = "ReplicateEffects: ShakeOnce"
+}
+

@@ -1,0 +1,22 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMaBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlBnNjcmlwdAZQYXJlbnQHUHJpdmF0ZQtCYXNlQ29uZmlncwdTeXN0ZW1zDEZvcm1hdFJhcml0eQdEZWZhdWx0BE5hbWUGQXNzZXRzAlVJBlJhcml0eQtEaXNwbGF5TmFtZQxSYXJpdHlOdW1iZXISRGVmYXVsdFJhcml0eVZhbHVlBzEgaW4gNDAISXRlbVNsb3QIR3JhZGllbnQFQ29sb3IHTWVzc2FnZQhBbm5vdW5jZQZDb2xvcjMHZnJvbVJHQgABCQAAAQIAPqMAAACkAAEAAAAAQG8CAgC8AAAWAwAAAJ8AAwKkAQUAAABAQKQCBwAAAGBATQICJAgAAABNAgIkCAAAAE0CAgwJAAAATQICOgoAAABNAgImCwAAAE0CAjgMAAAATQICOg0AAACfAQICpAIHAAAAYEBNAgK6DgAAAE0EAIEPAAAATQQEXBAAAABNBATyEQAAAIcDBALiBB0AMAIEVxIAAABNBQOJFwAAADAFBIkXAAAATQUDPRgAAAAwBQQ9GAAAAKQFIAAAfOCBjAYZAIwH2ACMCPoAnwUEAjAFBKQZAAAAUgUBAG8GFgCfBQICMAUE+BoAAACCBAIAIQMBBAAAAEADAgMDAwQEAABAQAMFBAAAYEADBgMHAwgDCQMKAwsDDAMNAw4DDwMQAxECAAAAAAAAAEADEgMTAxQDFQMWAxcDGAEACAgS/////xMUAAAAFRYAAAAX/////xj/////Gf////8a/////xscAAAAAxkDGgQAfOCBAAEAARgAAQAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAMAAAACAAAAAAAAAwEABAAAAAEAAAABAAAAAAAAAAIAAAAAAAEAAAAAAISn9fSif4O4KdjYfpL+Ptj0v+KAtmOf9Q==
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Default = require(script.Parent.Parent.Private.BaseConfigs.Systems.FormatRarity.Default)
+local scriptName = script.Name
+local v4 = ReplicatedStorage.Assets.UI.Rarity[scriptName]
+
+return {
+	RarityNumber = 2.0,
+	DefaultRarityValue = "1 in 40",
+	Announce = false,
+	DisplayName = scriptName,
+	ItemSlot = v4.ItemSlot,
+	Gradient = v4.Gradient,
+	Color = Color3.fromRGB(25.0, 216.0, 250.0),
+	Message = Default("1 in 40")
+}
+

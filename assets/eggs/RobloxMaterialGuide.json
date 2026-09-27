@@ -1,0 +1,282 @@
+{
+  "HE_coal": {
+    "srgb_hex": "101626",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_coal_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_black": {
+    "srgb_hex": "070B12",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_black_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_graphite": {
+    "srgb_hex": "303C50",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_graphite_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_steel": {
+    "srgb_hex": "657A91",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_steel_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_silver": {
+    "srgb_hex": "C7D7E3",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_silver_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_white": {
+    "srgb_hex": "F2F5F8",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_white_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_pearl": {
+    "srgb_hex": "FFF5E8",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_pearl_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_skin": {
+    "srgb_hex": "F4BB8D",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_skin_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_skinshade": {
+    "srgb_hex": "C67E58",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_skinshade_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_brown": {
+    "srgb_hex": "603729",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_brown_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_auburn": {
+    "srgb_hex": "A22F20",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_auburn_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_red": {
+    "srgb_hex": "D82236",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_red_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_scarlet": {
+    "srgb_hex": "F34342",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_scarlet_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_wine": {
+    "srgb_hex": "70172E",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_wine_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_orange": {
+    "srgb_hex": "F98626",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_orange_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_gold": {
+    "srgb_hex": "EEB534",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_gold_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_yellow": {
+    "srgb_hex": "FFDC55",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_yellow_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_straw": {
+    "srgb_hex": "F1CC61",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_straw_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_strawshade": {
+    "srgb_hex": "C49032",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_strawshade_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_blue": {
+    "srgb_hex": "205ED1",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_blue_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_navy": {
+    "srgb_hex": "142C69",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_navy_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_teal": {
+    "srgb_hex": "179B8C",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_teal_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_cyan": {
+    "srgb_hex": "54DCEF",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_cyan_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_green": {
+    "srgb_hex": "36A755",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_green_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_jade": {
+    "srgb_hex": "238743",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_jade_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_darkgreen": {
+    "srgb_hex": "104838",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_darkgreen_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_lime": {
+    "srgb_hex": "96DB51",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_lime_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_purple": {
+    "srgb_hex": "713CA6",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_purple_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_lavender": {
+    "srgb_hex": "B89DDF",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_lavender_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_pink": {
+    "srgb_hex": "F286B3",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_pink_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_magenta": {
+    "srgb_hex": "D62D7E",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_magenta_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_bone": {
+    "srgb_hex": "DFD5BF",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_bone_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_stone": {
+    "srgb_hex": "75808F",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_stone_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_tan": {
+    "srgb_hex": "B68952",
+    "roblox_material": "SmoothPlastic",
+    "color_map": "textures/HE_tan_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_glowcyan": {
+    "srgb_hex": "7FEFFF",
+    "roblox_material": "Neon",
+    "color_map": "textures/HE_glowcyan_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_glowgreen": {
+    "srgb_hex": "6AFFA1",
+    "roblox_material": "Neon",
+    "color_map": "textures/HE_glowgreen_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_glowred": {
+    "srgb_hex": "FF382B",
+    "roblox_material": "Neon",
+    "color_map": "textures/HE_glowred_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_glowgold": {
+    "srgb_hex": "FFECA3",
+    "roblox_material": "Neon",
+    "color_map": "textures/HE_glowgold_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_gemblue": {
+    "srgb_hex": "238BFF",
+    "roblox_material": "Neon",
+    "color_map": "textures/HE_gemblue_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  },
+  "HE_gempurple": {
+    "srgb_hex": "C26FFF",
+    "roblox_material": "Neon",
+    "color_map": "textures/HE_gempurple_Stud.png",
+    "normal_map": "textures/Stud_Normal.png",
+    "roughness_map": "textures/Stud_Roughness.png"
+  }
+}

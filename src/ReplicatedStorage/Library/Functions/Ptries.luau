@@ -1,0 +1,14 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMDBG1hdGgFY2xhbXAGYXNzZXJ0AAIGAgAAAAAVjAQAAIwFAQA0LgAEBAUAAFIDAACkAgIAAAQAgJ8CBAKMBQEA1AUCAAEAAACpBAABqQQBALsBBAKkAwQAAAAwQJ8DAgH1BQUCsgQFAfUDBQSCAwIABgMBAwIEAAQAgAMDBAAAMEACAAAAAAAA8D8AAQABGAAAAAAAAAAAAQAAAAAAAAAAAQAAAAIAAAAAAQAAAQIAA6MAAADAAAAAggACAAEGAAEAAQABGAAAAAEAAAAAAQ==
+
+-- decompilation:
+return function(p1, p2) -- line: 1
+	local v3 = math.clamp(p1, 0.0, 1.0)
+
+	assert(p2 >= 1.0)
+
+	return 1.0 - (1.0 - v3) ^ p2
+end
+

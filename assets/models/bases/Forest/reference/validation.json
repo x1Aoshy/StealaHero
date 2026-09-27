@@ -1,0 +1,41 @@
+{
+  "current_stage_obstacles": true,
+  "studio_play_test": false,
+  "obstacle_files": [
+    "scripts/tools/blender/base_themes/plot_obstacles.json",
+    "assets/models/bases/Volcano/reference/current-stage-obstacles.json"
+  ],
+  "variants": {
+    "Std": {
+      "triangles": 7322,
+      "objects": 8,
+      "custom_normals": true,
+      "degenerate_triangles": 0,
+      "problems": [],
+      "plot_problems": [],
+      "plots": {
+        "1": "fits",
+        "4": "fits",
+        "5": "fits"
+      },
+      "floating_pieces": 0,
+      "coplanar_faces": 0
+    },
+    "Deep": {
+      "triangles": 7456,
+      "objects": 8,
+      "custom_normals": true,
+      "degenerate_triangles": 0,
+      "problems": [],
+      "plot_problems": [],
+      "plots": {
+        "2": "fits",
+        "3": "fits",
+        "6": "fits"
+      },
+      "floating_pieces": 0,
+      "coplanar_faces": 0
+    }
+  },
+  "ok": true
+}

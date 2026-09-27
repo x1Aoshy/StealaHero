@@ -1,0 +1,8 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMIB3JlcXVpcmUGc2NyaXB0CFByb2R1Y3RzEUZpbmRGaXJzdEFuY2VzdG9yCEludGVybmFsGENyZWF0ZVN0ZWFsUHJvZHVjdENvbmZpZwROYW1lBk15dGhpYwABBQAAAQIAF6MAAACkAAEAAAAAQKQBAwAAACBAbwMEALwBAXwFAAAAnwEDAk0BAaUGAAAATQEBJAcAAACfAAICUgEAAKQCAwAAACBATQICuggAAABvAwkAbwQKAJ8BBACCAQAACwMBBAAAAEADAgQAACBAAwMDBAMFAwYDBwMIAgAAwOiX6OpBAAEAARgAAwAAAAAAAAAAAAAAAAcAAAAAAAAAAAEAAAAAAF1dKlYMMuSykwpI13FmriQtRT0ib5lAVw==
+
+-- decompilation:
+return require(script:FindFirstAncestor("Products").Internal.CreateStealProductConfig)(script.Name, "Mythic", 3611606854.0)
+

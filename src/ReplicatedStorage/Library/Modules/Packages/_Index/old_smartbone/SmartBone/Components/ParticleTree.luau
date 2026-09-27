@@ -1,0 +1,32 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMaCldpbmRPZmZzZXQEUm9vdAhSb290UGFydBBSb290V29ybGRUb0xvY2FsD0JvbmVUb3RhbExlbmd0aBJEaXN0YW5jZUZyb21DYW1lcmEJUGFydGljbGVzC0xvY2FsQ0ZyYW1lDExvY2FsR3Jhdml0eQVGb3JjZQtSZXN0R3Jhdml0eQpPYmplY3RNb3ZlFk9iamVjdFByZXZpb3VzUG9zaXRpb24KTmV4dE51bWJlcgRCb25lA0lzQQtXb3JsZENGcmFtZQZDRnJhbWUNVG9PYmplY3RTcGFjZRFQb2ludFRvV29ybGRTcGFjZQRVbml0CU1hZ25pdHVkZQxzZXRtZXRhdGFibGUDbmV3BlJhbmRvbQdfX2luZGV4AAIJAwIAAAgFAAAFAwcHCDriBBAA+wUAAIwHAABvCBEAvAUFhRIAAACfBQQCMAUE+AAAAABvCBMAvAYA/hQAAACfBgMCDgYCAFIFAAArBQEAxgUAADAFBHQBAAAAMAEERgIAAABNBQDrFQAAAE0HAIUWAAAAvAUFRhcAAACfBQMCMAUEKQMAAAD/BQAAAAAAADAFBK4IAAAATQUA6xUAAAAwBQQtCQAAAE0GAIUWAAAAUggCALwGBjgYAAAAnwYDAk0GBgcZAAAATQcCqhoAAAAJBQYHMAUEegoAAAD7BQEAnj0EAwUAAACkAxwAAACwQZ8DAwKCAwIAHQMBAwIDAwMEAwUCAAAAAAAAAAADBgIAAAAAAABZQAMHAwgDCQMKBwAAAAAAAAAAAAAAAAAAAAADCwMMAw0IDQD/////Af////8C/////wP/////BAUAAAAGBwAAAAj/////Cf////8K/////wsMAAAADQwAAAAODAAAAA8MAAAAAgAAAACAhC5BAw4DDwMQAxEDEgMTAxQDFQMWAxcEAACwQQAHGAEYAAEAAAAAAAAAAQAAAAAAAAAAAAEAAQAAAAAAAAAAAwAAAAIAAAABAAAAAAAAAAAAAAAABQAA8QAAAAgAAAAAAwAAAQIAD6MAAACkAAIAAAQAgG8BAwCfAAIC/wECAAAAAAAwAQFuBAAAAMACBQASAAAAEgABADACAe8BAAAAggECAAYDGQMYBAAEAIACKODEF/JBDUMDGgYAAQABAAEYAAEAAAACAAEAAgAAAAATAQAAAAABVkZvlgAaP61FFJlNnUSZ2iZeeOJkggWX
+
+-- decompilation:
+local random = Random.new(1029410295159813.0)
+local t1 = {}
+
+t1.__index = t1
+
+function t1.new(p1, p2, vector3: Vector3) -- line: 7
+	-- upvalues: random (copy), t1 (copy)
+	return (setmetatable({
+		BoneTotalLength = 0.0,
+		DistanceFromCamera = 100.0,
+		Force = Vector3.new(0.0, 0.0, 0.0),
+		RestGravity = Vector3.new(0.0, 0.0, 0.0),
+		ObjectMove = Vector3.new(0.0, 0.0, 0.0),
+		ObjectPreviousPosition = Vector3.new(0.0, 0.0, 0.0),
+		WindOffset = random:NextNumber(0.0, 1000000.0),
+		Root = p1:IsA("Bone") and p1 or nil,
+		RootPart = p2,
+		RootWorldToLocal = p1.WorldCFrame:ToObjectSpace(p1.CFrame),
+		Particles = {},
+		LocalCFrame = p1.WorldCFrame,
+		LocalGravity = p1.CFrame:PointToWorldSpace(vector3).Unit * vector3.Magnitude
+	}, t1))
+end
+
+return t1
+

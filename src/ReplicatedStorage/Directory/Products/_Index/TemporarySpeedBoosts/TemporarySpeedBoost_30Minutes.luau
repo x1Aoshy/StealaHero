@@ -1,0 +1,8 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMHB3JlcXVpcmUGc2NyaXB0CFByb2R1Y3RzEUZpbmRGaXJzdEFuY2VzdG9yCEludGVybmFsJkNyZWF0ZVRlbXBvcmFyeVNwZWVkQm9vc3RQcm9kdWN0Q29uZmlnBE5hbWUAAQUAAAECABejAAAApAABAAAAAECkAQMAAAAgQG8DBAC8AQF8BQAAAJ8BAwJNAQGlBgAAAE0BAfsHAAAAnwACAlIBAACkAgMAAAAgQE0CAroIAAAAbwMJAIwECAefAQQAggEAAAoDAQQAAABAAwIEAAAgQAMDAwQDBQMGAwcCAAAA58ji6kEAAQABGAAEAAAAAAAAAAAAAAAAAgAAAAAAAAAAAQAAAAAAbZKPn6We9ebhMNCLcKfJQB2KmOtfVuWe
+
+-- decompilation:
+return require(script:FindFirstAncestor("Products").Internal.CreateTemporarySpeedBoostProductConfig)(script.Name, 3608561464.0, 1800.0)
+

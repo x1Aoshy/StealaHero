@@ -1,0 +1,20 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMLBmJ1ZmZlcgZyZWFkdTgEcmVhZAdyZXF1aXJlBnNjcmlwdAZQYXJlbnQFdHlwZXMHcHJvY2VzcwxidWZmZXJXcml0ZXIHd3JpdGV1OAV3cml0ZQADBQIAAAAHBAAABQIJAgmeQgAFAQAAAFIDAABSBAEApAICAAAEAICfAgMCjAMBAIICAwADAwEDAgQABACAAAkDARgAAAAAAAAAAAAKAAAAAAEAAQAAAAL7AAAAggACAAAADgABGAAADwAAAAAFAAABAgAkowAAAKQAAQAAAABApAEDAAAAIEBNAQEkBAAAAE0BASQEAAAATQEBDwUAAACfAAICpAEBAAAAAECkAgMAAAAgQE0CAiQEAAAATQICJAQAAABNAgLrBgAAAE0CAt4HAAAAnwECAk0CATUIAAAA4gMLADACA9IJAAAAwAQMADAEA3kKAAAAwAQNABIAAwCCBAIADgMEBAAAAEADBQQAACBAAwYDBwMIAwkDCgMLAwMFAgkKBgAGAQIAAQEAARgAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAgACAQACAAAFAAABAAAAAALN77oGV1BH/q1jolsP8Md4vfetcv8r0Ac=
+
+-- decompilation:
+require(script.Parent.Parent.types)
+
+local t1 = {
+	write = require(script.Parent.Parent.process.bufferWriter).writeu8,
+	read = function(p1: buffer, n1: number) -- line: 9
+		return buffer.readu8(p1, n1), 1.0
+	end
+}
+
+return function() -- line: 14
+	-- upvalues: t1 (copy)
+	return t1
+end
+

@@ -1,0 +1,118 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQN6BGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlB0xpYnJhcnkHTW9kdWxlcwhQYWNrYWdlcwF0BVR5cGVzCUFzc2V0SXRlbQ1HdWFyZFR1dG9yaWFsBEVnZ3MLRnVzZU1hY2hpbmUGbnVtYmVyBU1vbmV5ClNwZWVkUG93ZXIDbWFwBnN0cmluZxdTZXJpYWxpemVkQXNzZXRJdGVtRGF0YQlJbnZlbnRvcnkFYXJyYXkORXF1aXBwZWRBc3NldHMQU2NoZW1hVmFsaWRhdGlvbghQcm9ncmVzcxVHdWFyZFR1dG9yaWFsUHJvZ3Jlc3MKTGFzdExvZ291dBNQZW5kaW5nT2ZmbGluZU1vbmV5HFBlbmRpbmdPZmZsaW5lQW5jaG9yTG9nb3V0QXQHYm9vbGVhbgpHYW1lcGFzc2VzCFByb2R1Y3RzDENsYWltZWRDb2RlcxdDbGFpbWVkTGlrZU1pbGVzdG9uZUlkcxdTdGFydGVyUGFja09mZmVyRXhwaXJlcxdTdGFydGVyUGFja09mZmVyUGVuZGluZxhTdGFydGVyUGFja09mZmVyRmluaXNoZWQFSW5kZXgHUmViaXJ0aAhvcHRpb25hbBJCaWdnZXN0QXNzZXRXZWlnaHQQQXV0b1NlbGxSYXJpdGllcwlpbnRlcmZhY2UDU0ZYBU11c2ljB1RyYWRpbmcDQUZLDUhpZGVPdGhlclBldHMNRGlzYWJsZVZpZGVvcwhTZXR0aW5ncw1Ta2luSW52ZW50b3J5E0x1Y2t5QmxvY2tJbnZlbnRvcnkZTGF0ZXN0VHJlYWRtaWxsTWVkaWFJbmRleBJDbGFpbWVkR3JvdXBSZXdhcmQaRGlzbWlzc2VkR3JvdXBSZXdhcmRQcm9tcHQSRnJlZUdpZnRzU3RhcnRlZEF0DUZyZWVHaWZ0c1RpbWUYRnJlZUdpZnRzQWN0aXZlU3RhcnRlZEF0EEZyZWVHaWZ0c0NsYWltZWQLRnVzaW9uU2xvdHMMRnVzaW9uTG9ja2VkDEZ1c2lvbkVuZHNBdA5GdXNpb25EdXJhdGlvbgxGdXNpb25SZXdhcmQOVklQRnVzaW9uU2xvdHMPVklQRnVzaW9uTG9ja2VkD1ZJUEZ1c2lvbkVuZHNBdBFWSVBGdXNpb25EdXJhdGlvbg9WSVBGdXNpb25SZXdhcmQSUHJpdmF0ZUZ1c2lvblNsb3RzE1ByaXZhdGVGdXNpb25Mb2NrZWQTUHJpdmF0ZUZ1c2lvbkVuZHNBdBVQcml2YXRlRnVzaW9uRHVyYXRpb24TUHJpdmF0ZUZ1c2lvblJld2FyZA9WSVBPZmZlckV4cGlyZXMPVklQT2ZmZXJTdGFydGVkG01vbmV0aXphdGlvblJvYnV4U3BlbnRUb3RhbBBCYXNlVXBncmFkZUxldmVsDlRyYWlsSW52ZW50b3J5DUVxdWlwcGVkVHJhaWwRVmlzaXRlZEd1YXJkQXJlYXMdU3RhcnRlclBhY2tPZmZlclBhdXNlZFNlY29uZHMfU3RhcnRlclBhY2tPZmZlclBsYXl0aW1lU2Vjb25kcwRTZWVkDEN1cnJlbnRJbmRleBBBbGdvcml0aG1WZXJzaW9uD0hhc1N3YXBwZWRSaWdodBpSZWxlYXNlVHJhY2tpbmdJbml0aWFsaXplZBZGdWxsRmVlZFJlbGVhc2VWZXJzaW9uF0NvbXBsZXRlZFJlbGVhc2VWZXJzaW9uFVBlbmRpbmdSZWxlYXNlVmVyc2lvbhZQZW5kaW5nQ3VycmVudE1lZGlhS2V5FFNlZW5QZW5kaW5nTWVkaWFLZXlzF1RyZWFkbWlsbE1lZGlhRmVlZFN0YXRlFUZyZWVHaWZ0c0xhc3RSZXNldERheRNTcGVlZEJvb3N0VGllckluZGV4E0Jlc3RSb2xsRGVub21pbmF0b3IWSW5kZXhDbGFpbWVkQ2F0ZWdvcmllcxNMaWtlZFRyZWFkbWlsbE1lZGlhD0xpa2VkQ29tbWVudElkcxdDb21tZW50ZWRUcmVhZG1pbGxNZWRpYRRCZXN0R3VhcmRSdW5EaXN0YW5jZQxFZ2dJbnZlbnRvcnkMVmlzaXRlZEdlYXJzDUdlYXJJbnZlbnRvcnkMR2VhckF1dG9CdXlzC1BlcmlvZEluZGV4BVNsb3RzFEN1cnJlbnRBcmVhRWdnQ2xhaW1zI1RlbXBvcmFyeVNwZWVkQm9vc3RSZW1haW5pbmdTZWNvbmRzIlRlbXBvcmFyeVNwZWVkQm9vc3RBY3RpdmVTdGFydGVkQXQVVHJlYWRtaWxsVXBncmFkZUxldmVsEUhhc1BsYWNlZEZpcnN0RWdnFkd1YXJkU3BlZWRXYXJuaW5n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
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local t = require(ReplicatedStorage.Library.Modules.Packages.t)
+local AssetItem = require(ReplicatedStorage.Library.Types.AssetItem)
+local GuardTutorial = require(ReplicatedStorage.Library.Types.GuardTutorial)
+local Eggs = require(ReplicatedStorage.Library.Types.Eggs)
+local FuseMachine = require(ReplicatedStorage.Library.Types.FuseMachine)
+
+return {
+	Money = t.number,
+	SpeedPower = t.number,
+	Inventory = t.map(t.string, AssetItem.SerializedAssetItemData),
+	EquippedAssets = t.array(t.string),
+	GuardTutorialProgress = GuardTutorial.SchemaValidation.Progress,
+	LastLogout = t.number,
+	PendingOfflineMoney = t.number,
+	PendingOfflineAnchorLogoutAt = t.number,
+	Gamepasses = t.map(t.string, t.boolean),
+	Products = t.map(t.string, t.boolean),
+	ClaimedCodes = t.array(t.string),
+	ClaimedLikeMilestoneIds = t.map(t.string, t.boolean),
+	StarterPackOfferExpires = t.number,
+	StarterPackOfferPending = t.boolean,
+	StarterPackOfferFinished = t.boolean,
+	Index = t.map(t.string, t.boolean),
+	Rebirth = t.number,
+	BiggestAssetWeight = t.optional(t.number),
+	AutoSellRarities = t.map(t.string, t.boolean),
+	Settings = t.interface({
+		SFX = t.boolean,
+		Music = t.boolean,
+		Trading = t.optional(t.boolean),
+		AFK = t.optional(t.boolean),
+		HideOtherPets = t.optional(t.boolean),
+		DisableVideos = t.optional(t.boolean)
+	}),
+	SkinInventory = t.optional(t.map(t.string, t.number)),
+	OfflineClaimableAmount = t.optional(t.number),
+	LastSeenAt = t.optional(t.number),
+	LuckyBlockInventory = t.map(t.string, t.string),
+	LatestTreadmillMediaIndex = t.number,
+	ClaimedGroupReward = t.boolean,
+	DismissedGroupRewardPrompt = t.boolean,
+	FreeGiftsStartedAt = t.number,
+	FreeGiftsTime = t.number,
+	FreeGiftsActiveStartedAt = t.number,
+	FreeGiftsClaimed = t.map(t.string, t.boolean),
+	FusionSlots = t.array(t.string),
+	FusionLocked = t.boolean,
+	FusionEndsAt = t.optional(t.number),
+	FusionDuration = t.number,
+	FusionReward = t.optional(AssetItem.SerializedAssetItemData),
+	VIPFusionSlots = t.array(t.string),
+	VIPFusionLocked = t.boolean,
+	VIPFusionEndsAt = t.optional(t.number),
+	VIPFusionDuration = t.number,
+	VIPFusionReward = t.optional(AssetItem.SerializedAssetItemData),
+	PrivateFusionSlots = t.array(t.string),
+	PrivateFusionLocked = t.boolean,
+	PrivateFusionEndsAt = t.optional(t.number),
+	PrivateFusionDuration = t.number,
+	PrivateFusionReward = t.optional(AssetItem.SerializedAssetItemData),
+	VIPOfferExpires = t.number,
+	VIPOfferStarted = t.boolean,
+	MonetizationRobuxSpentTotal = t.number,
+	BaseUpgradeLevel = t.number,
+	TrailInventory = t.map(t.string, t.boolean),
+	EquippedTrail = t.optional(t.string),
+	VisitedGuardAreas = t.map(t.string, t.boolean),
+	StarterPackOfferPausedSeconds = t.optional(t.number),
+	StarterPackOfferPlaytimeSeconds = t.optional(t.number),
+	TreadmillMediaFeedState = t.interface({
+		Seed = t.number,
+		CurrentIndex = t.number,
+		AlgorithmVersion = t.number,
+		HasSwappedRight = t.optional(t.boolean),
+		ReleaseTrackingInitialized = t.boolean,
+		FullFeedReleaseVersion = t.number,
+		CompletedReleaseVersion = t.number,
+		PendingReleaseVersion = t.number,
+		PendingCurrentMediaKey = t.optional(t.string),
+		SeenPendingMediaKeys = t.map(t.string, t.boolean)
+	}),
+	FreeGiftsLastResetDay = t.number,
+	SpeedBoostTierIndex = t.number,
+	BestRollDenominator = t.number,
+	IndexClaimedCategories = t.map(t.string, t.boolean),
+	LikedTreadmillMedia = t.map(t.string, t.boolean),
+	LikedCommentIds = t.map(t.string, t.number),
+	CommentedTreadmillMedia = t.map(t.string, t.number),
+	BestGuardRunDistance = t.number,
+	EggInventory = Eggs.SchemaValidation.EggInventory,
+	VisitedGears = t.map(t.string, t.boolean),
+	GearInventory = t.map(t.string, t.number),
+	GearAutoBuys = t.map(t.string, t.boolean),
+	CurrentAreaEggClaims = t.interface({
+		PeriodIndex = t.number,
+		Slots = t.map(t.string, t.boolean)
+	}),
+	TemporarySpeedBoostRemainingSeconds = t.number,
+	TemporarySpeedBoostActiveStartedAt = t.number,
+	TreadmillUpgradeLevel = t.number,
+	HasPlacedFirstEgg = t.boolean,
+	GuardSpeedWarningsSeen = t.map(t.string, t.boolean),
+	PetPenCapacityGuidance = t.interface({
+		Triggered = t.boolean,
+		PetsTabAcknowledged = t.boolean,
+		EquipBestAcknowledged = t.boolean
+	}),
+	FusionEggReward = t.union(t.literal(false), FuseMachine.PendingEggReward),
+	FusionInfoAcknowledged = t.boolean
+}
+

@@ -1,0 +1,23 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMWBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlB0xpYnJhcnkHTW9kdWxlcwhQYWNrYWdlcwF0CWludGVyZmFjZQ9DbGFpbWFibGVBbW91bnQOUmVzZXJ2ZWRBbW91bnQLVG90YWxBbW91bnQbSXNNdWx0aXBsaWVyUHVyY2hhc2VQZW5kaW5nBm51bWJlcgdib29sZWFuE09mZmxpbmVDbGFpbVN1bW1hcnkKQmFzZUFtb3VudA1Bd2FyZGVkQW1vdW50DENsYWltZWRCeVVpZANtYXAGc3RyaW5nE09mZmxpbmVSZWRlZW1SZXN1bHQAAQgAAAECAEKjAAAApAABAAAAAEBvAgIAvAAAFgMAAACfAAMCpAEFAAAAQEBNAgBqBgAAAE0CAugHAAAATQIC5ggAAABNAgKVCQAAAJ8BAgL/AgIAAAAAAE0DAS8KAAAA4gQPAE0FAWAQAAAAMAUEeQsAAABNBQFgEAAAADAFBKkMAAAATQUBYBAAAAAwBQQ9DQAAAE0FAT4RAAAAMAUEkw4AAACfAwICMAMC3BIAAABNAwEvCgAAAOIEFgBNBQFgEAAAADAFBHMTAAAATQUBYBAAAAAwBQTvFAAAAE0FAZAXAAAATQYBQRgAAABNBwFgEAAAAJ8FAwIwBQQGFQAAAJ8DAgIwAwLcGQAAAIICAgAaAwEEAAAAQAMCAwMDBAQAAEBAAwUDBgMHAwgDCQMKAwsDDAMNBQQLDA0OAw4DDwMQAxEDEgMTBQMTFBUDFAMVAxYAAQABGAADAAAAAAADAAAAAAAAAAAAABEAAgAAAQAAAAEAAAABAAAAAQAAAPwAAAcAAAEAAAABAAAAAQAAAAAAAAAA/QAABwEAAAAAAGHhEi3b3QcXukbev52pPxMR+QVZUyV4LA==
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local t = require(ReplicatedStorage.Library.Modules.Packages.t)
+
+return {
+	OfflineClaimSummary = t.interface({
+		ClaimableAmount = t.number,
+		ReservedAmount = t.number,
+		TotalAmount = t.number,
+		IsMultiplierPurchasePending = t.boolean
+	}),
+	OfflineRedeemResult = t.interface({
+		BaseAmount = t.number,
+		AwardedAmount = t.number,
+		ClaimedByUid = t.map(t.string, t.number)
+	})
+}
+

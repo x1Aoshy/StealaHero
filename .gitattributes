@@ -1,0 +1,2 @@
+# keep every file byte-for-byte (the build and tests compare sources exactly; .rbxl/.rbxm/.fbx are binary)
+* -text

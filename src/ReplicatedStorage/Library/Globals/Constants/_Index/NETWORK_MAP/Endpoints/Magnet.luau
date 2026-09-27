@@ -1,0 +1,14 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMKDFJFUVVFU1RfUFVMTBNNYWduZXQ6IFJlcXVlc3RQdWxsDVBMQVlfQkVBTV9WRlgTTWFnbmV0OiBQbGF5QmVhbVZmeA1TVE9QX0JFQU1fVkZYE01hZ25ldDogU3RvcEJlYW1WZngPUExBWV9UQVJHRVRfVkZYFU1hZ25ldDogUGxheVRhcmdldFZmeA9TVE9QX1RBUkdFVF9WRlgVTWFnbmV0OiBTdG9wVGFyZ2V0VmZ4AAEBAAABAgADowAAAOIACgCCAAIACwMBAwIDAwMEAwUDBgMHAwgDCQMKCAUAAQAAAAIDAAAABAUAAAAGBwAAAAgJAAAAAAEAARgAAAABAAAAAABS/cmGiCwBk73EZeDkcy+8IuXe8mA5o4c=
+
+-- decompilation:
+return {
+	REQUEST_PULL = "Magnet: RequestPull",
+	PLAY_BEAM_VFX = "Magnet: PlayBeamVfx",
+	STOP_BEAM_VFX = "Magnet: StopBeamVfx",
+	PLAY_TARGET_VFX = "Magnet: PlayTargetVfx",
+	STOP_TARGET_VFX = "Magnet: StopTargetVfx"
+}
+

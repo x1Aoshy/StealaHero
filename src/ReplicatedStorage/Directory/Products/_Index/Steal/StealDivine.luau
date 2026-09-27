@@ -1,0 +1,8 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMIB3JlcXVpcmUGc2NyaXB0CFByb2R1Y3RzEUZpbmRGaXJzdEFuY2VzdG9yCEludGVybmFsGENyZWF0ZVN0ZWFsUHJvZHVjdENvbmZpZwROYW1lBkRpdmluZQABBQAAAQIAF6MAAACkAAEAAAAAQKQBAwAAACBAbwMEALwBAXwFAAAAnwEDAk0BAaUGAAAATQEBJAcAAACfAAICUgEAAKQCAwAAACBATQICuggAAABvAwkAbwQKAJ8BBACCAQAACwMBBAAAAEADAgQAACBAAwMDBAMFAwYDBwMIAgAAAOyX6OpBAAEAARgAAwAAAAAAAAAAAAAAAAcAAAAAAAAAAAEAAAAAAMojCeVKEiLVIuWE/fzClqm6Ox6R+Odj5A==
+
+-- decompilation:
+return require(script:FindFirstAncestor("Products").Internal.CreateStealProductConfig)(script.Name, "Divine", 3611606880.0)
+

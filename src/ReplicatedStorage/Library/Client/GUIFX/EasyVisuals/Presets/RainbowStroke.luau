@@ -1,0 +1,23 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMMBlN0cm9rZQNuZXcIR3JhZGllbnQISW5zdGFuY2UJVGVtcGxhdGVzB1JhaW5ib3cFQ29sb3IOU2V0T2Zmc2V0U3BlZWQHRWZmZWN0cwdyZXF1aXJlBnNjcmlwdAZQYXJlbnQAAgkDAQAACAUAAAUDBwICJ/sDAABNAwOlAAAAAE0DA+8BAAAAUgQAAFIFAgCfAwMC+wQAAE0EBD0CAAAATQQE7wEAAABNBQP0AwAAAPsGAABNBgZLBAAAAE0GBnQFAAAATQYGpAYAAACMBwAAnwQEAjkHAQCMCAEAvAUEWgcAAACfBQQB4gUJAP8GAAACAAAAUgcEAFIIAwDFBgcDAQAAADAGBZcIAAAAggUCAAoDAQMCAwMDBAMFAwYDBwMIAwkFAQgAAwABGAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAQEAAAAAAAAAAAQAAAAAAgAAAQIADaMAAACkAAEAAAAAQKQBAwAAACBATQEBJAQAAABNAQEkBAAAAJ8AAgLAAQUAEgAAAIIBAgAGAwoEAAAAQAMLBAAAIEADDAYAAQABAAEYAAAAAAAAAAAAAAIAAAEAAAAAAeW/oyz3So4YV4r1gpvIhYmVp7RY13vJLQ==
+
+-- decompilation:
+local Parent = require(script.Parent.Parent)
+
+return function(p1, n1: number, n2: number) -- line: 3
+	-- upvalues: Parent (copy)
+	local v5 = Parent.Stroke.new(p1, n2)
+	local v6 = Parent.Gradient.new(v5.Instance, Parent.Templates.Rainbow.Color, 0.0)
+
+	v6:SetOffsetSpeed(-n1, 1.0)
+
+	return {
+		Effects = {
+			v6,
+			v5
+		}
+	}
+end
+

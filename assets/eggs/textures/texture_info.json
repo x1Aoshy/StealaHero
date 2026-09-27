@@ -1,0 +1,10 @@
+{
+  "tile_pixels": 256,
+  "tile_size_studs": 0.3,
+  "height_amplitude_studs": 0.025,
+  "normal_convention": "OpenGL tangent-space +Y",
+  "albedo_color_space": "sRGB",
+  "normal_roughness_color_space": "Non-Color",
+  "geometry_studs": false,
+  "style": "Rounded square inset with beveled lip, based on user gameplay reference"
+}

@@ -1,0 +1,13 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMIB3JlcXVpcmUGc2NyaXB0BlBhcmVudA9CbG9vZE5pZ2h0RXZlbnQLUmVmcmVzaFRpbWUNUmVmcmVzaE9mZnNldBZTUEVDSUFMX0VWRU5UX0lOVEVSVkFMFFNQRUNJQUxfRVZFTlRfT0ZGU0VUAAEDAAABAgAUowAAAKQAAQAAAABApAEDAAAAIEBNAQEkBAAAAE0BAUEFAAAAnwACAuIBCABNAgBECQAAADACAb4GAAAATQIAIgoAAAAwAgE/BwAAAIIBAgALAwEEAAAAQAMCBAAAIEADAwMEAwUDBgUCBgcDBwMIAAEAARgAAgAAAAAAAAAABgEAAAABAAAAAAEAAAAAAKxsuYdOIbadsaSmvGEzC7DcdK7znqjThg==
+
+-- decompilation:
+local BloodNightEvent = require(script.Parent.BloodNightEvent)
+
+return {
+	RefreshTime = BloodNightEvent.SPECIAL_EVENT_INTERVAL,
+	RefreshOffset = BloodNightEvent.SPECIAL_EVENT_OFFSET
+}
+

@@ -1,0 +1,15 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMKBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlB0xpYnJhcnkFVHlwZXMJQXNzZXRJdGVtDUd1YXJkVHV0b3JpYWwERWdncwtGdXNlTWFjaGluZQABBgAAAQIALqMAAACkAAEAAAAAQG8CAgC8AAAWAwAAAJ8AAwKkAQUAAABAQE0CAGoGAAAATQIC7wcAAABNAgLmCAAAAJ8BAgKkAgUAAABAQE0DAGoGAAAATQMD7wcAAABNAwMACQAAAJ8CAgKkAwUAAABAQE0EAGoGAAAATQQE7wcAAABNBARPCgAAAJ8DAgKkBAUAAABAQE0FAGoGAAAATQUF7wcAAABNBQWsCwAAAJ8EAgL/BQAAAAAAAIIFAgAMAwEEAAAAQAMCAwMDBAQAAEBAAwUDBgMHAwgDCQMKAAEAARgAAwAAAAAAAwAAAAAAAAAAAQAAAAAAAAAAAQAAAAAAAAAAAQAAAAAAAAAAnwAAAQAAAAAADW08LPzHV31nMawyJHtNzX11K1g/qVYt
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+require(ReplicatedStorage.Library.Types.AssetItem)
+require(ReplicatedStorage.Library.Types.GuardTutorial)
+require(ReplicatedStorage.Library.Types.Eggs)
+require(ReplicatedStorage.Library.Types.FuseMachine)
+
+return {}
+

@@ -1,0 +1,3 @@
+# Toolchain for Steal a Hero (install with `rokit install`)
+[tools]
+lune = "lune-org/lune@0.10.5"

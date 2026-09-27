@@ -1,0 +1,2215 @@
+{
+  "all_passed": true,
+  "count": 44,
+  "checks": [
+    {
+      "hero_id": "AgentVenom",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11651,
+      "materials": [
+        {
+          "name": "HE_coal",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "AllMight",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11688,
+      "materials": [
+        {
+          "name": "HE_blue",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Aquaman",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 9124,
+      "materials": [
+        {
+          "name": "HE_darkgreen",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_orange",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Bakugo",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11718,
+      "materials": [
+        {
+          "name": "HE_darkgreen.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_straw",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_orange.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_jade",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Batman",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 10,
+      "embedded_texture_bytes": 13842,
+      "materials": [
+        {
+          "name": "HE_coal.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_strawshade",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "BlackWidow",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 9,
+      "embedded_texture_bytes": 12930,
+      "materials": [
+        {
+          "name": "HE_coal.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_auburn",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowcyan",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Brook",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11367,
+      "materials": [
+        {
+          "name": "HE_coal.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_bone",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_pink",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "CaptainAmerica",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 5,
+      "embedded_texture_bytes": 8159,
+      "materials": [
+        {
+          "name": "HE_blue.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Carnage",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 8539,
+      "materials": [
+        {
+          "name": "HE_wine",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Darkseid",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 9080,
+      "materials": [
+        {
+          "name": "HE_navy",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_stone",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Deku",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11498,
+      "materials": [
+        {
+          "name": "HE_teal",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_darkgreen.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Flash",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 9466,
+      "materials": [
+        {
+          "name": "HE_red.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Frieza",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 5,
+      "embedded_texture_bytes": 8251,
+      "materials": [
+        {
+          "name": "HE_white.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_purple",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Gohan",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 7,
+      "embedded_texture_bytes": 10310,
+      "materials": [
+        {
+          "name": "HE_purple.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skin",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Goku",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11431,
+      "materials": [
+        {
+          "name": "HE_orange.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "GreenLantern",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11405,
+      "materials": [
+        {
+          "name": "HE_coal.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_green",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowgreen",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_jade.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Hawkeye",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11331,
+      "materials": [
+        {
+          "name": "HE_coal.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_purple.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_auburn.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_lavender",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Hawks",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 10,
+      "embedded_texture_bytes": 13936,
+      "materials": [
+        {
+          "name": "HE_brown.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_tan",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_straw.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_wine.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_pearl",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Hulk",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 9060,
+      "materials": [
+        {
+          "name": "HE_purple.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_jade.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_darkgreen.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_green.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "IronMan",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 7,
+      "embedded_texture_bytes": 10638,
+      "materials": [
+        {
+          "name": "HE_red.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowcyan.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_wine.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "JoyBoy",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 5,
+      "embedded_texture_bytes": 8300,
+      "materials": [
+        {
+          "name": "HE_pearl.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Kaido",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 13,
+      "embedded_texture_bytes": 17291,
+      "materials": [
+        {
+          "name": "HE_wine.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_stone.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_bone.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skinshade",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_purple.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Krillin",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 9,
+      "embedded_texture_bytes": 12939,
+      "materials": [
+        {
+          "name": "HE_orange.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skin.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.014",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Luffy",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 14,
+      "embedded_texture_bytes": 19310,
+      "materials": [
+        {
+          "name": "HE_blue.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skin.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_strawshade.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_straw.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_scarlet",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.015",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skinshade.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "MilesMorales",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 4,
+      "embedded_texture_bytes": 6506,
+      "materials": [
+        {
+          "name": "HE_coal.014",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Nami",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 9,
+      "embedded_texture_bytes": 13495,
+      "materials": [
+        {
+          "name": "HE_blue.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skin.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_orange.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.016",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_cyan",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "PeterParker",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 5,
+      "embedded_texture_bytes": 7780,
+      "materials": [
+        {
+          "name": "HE_blue.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.015",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Piccolo",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 9,
+      "embedded_texture_bytes": 13066,
+      "materials": [
+        {
+          "name": "HE_purple.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_green.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_pink.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_wine.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.017",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Sanji",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 9,
+      "embedded_texture_bytes": 12807,
+      "materials": [
+        {
+          "name": "HE_coal.016",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_straw.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_navy.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Shanks",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 11,
+      "embedded_texture_bytes": 15014,
+      "materials": [
+        {
+          "name": "HE_brown.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_pearl.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_auburn.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skin.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.018",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.017",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Shigaraki",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 9300,
+      "materials": [
+        {
+          "name": "HE_coal.018",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_bone.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.014",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "SpiderGwen",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 6,
+      "embedded_texture_bytes": 9245,
+      "materials": [
+        {
+          "name": "HE_coal.019",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_magenta",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_cyan.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "SpiderMan2099",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 4,
+      "embedded_texture_bytes": 6655,
+      "materials": [
+        {
+          "name": "HE_navy.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.015",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Superman",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 7,
+      "embedded_texture_bytes": 10345,
+      "materials": [
+        {
+          "name": "HE_blue.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.019",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.016",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Thanos",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 12,
+      "embedded_texture_bytes": 17032,
+      "materials": [
+        {
+          "name": "HE_navy.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_purple.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.020",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gempurple",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gemblue",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowred",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowgold",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowgreen.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_orange.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Thor",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 11,
+      "embedded_texture_bytes": 15317,
+      "materials": [
+        {
+          "name": "HE_coal.020",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_graphite.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.017",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_straw.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowcyan.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.021",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Todoroki",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11520,
+      "materials": [
+        {
+          "name": "HE_navy.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.018",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.014",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_glowcyan.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.022",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.021",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Trunks",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 11,
+      "embedded_texture_bytes": 15328,
+      "materials": [
+        {
+          "name": "HE_coal.022",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_blue.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_lavender.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_navy.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_steel.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.023",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.015",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Uraraka",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 7,
+      "embedded_texture_bytes": 10313,
+      "materials": [
+        {
+          "name": "HE_pink.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.023",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_brown.008",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.016",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.024",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Usopp",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 9,
+      "embedded_texture_bytes": 12805,
+      "materials": [
+        {
+          "name": "HE_brown.009",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_tan.001",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.010",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_yellow.006",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_cyan.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.025",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_strawshade.002",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Vegeta",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 7,
+      "embedded_texture_bytes": 10399,
+      "materials": [
+        {
+          "name": "HE_blue.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.011",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.017",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.026",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_strawshade.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Venom",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 4,
+      "embedded_texture_bytes": 6600,
+      "materials": [
+        {
+          "name": "HE_black.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.018",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "WonderWoman",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 8,
+      "embedded_texture_bytes": 11740,
+      "materials": [
+        {
+          "name": "HE_blue.014",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_red.019",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.027",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.019",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.012",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "hero_id": "Zoro",
+      "has_finite_uvs": true,
+      "embedded_texture_count": 12,
+      "embedded_texture_bytes": 16282,
+      "materials": [
+        {
+          "name": "HE_darkgreen.004",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_green.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_skin.005",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_gold.028",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_jade.003",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_black.014",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_silver.013",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_white.020",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_purple.007",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        },
+        {
+          "name": "HE_coal.024",
+          "albedo_linked": true,
+          "normal_linked": true,
+          "image_count": 3,
+          "all_images_available": true
+        }
+      ],
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMSBnR5cGVvZghJbnN0YW5jZQVNb2RlbANJc0EEVG9vbCpFeHBlY3RlZCBhcmd1bWVudCAjMSB0byBiZSBhIE1vZGVsIG9yIFRvb2wGYXNzZXJ0BmlwYWlycw5HZXREZXNjZW5kYW50cwhCYXNlUGFydAxUcmFuc3BhcmVuY3kFdGFibGUGaW5zZXJ0CEdldFBpdm90B3JlcXVpcmUGc2NyaXB0BlBhcmVudAtCQkZyb21BcnJheQACCgEBAAAGAwAABQEHQKkCAAC7LAADUgQAAKQDAQAAAABAnwMCAvADCgACAACAbwQDALwCAP4EAAAAnwIDAisCBABvBAUAvAIA/gQAAACfAgMCgQECBAYAAABvAwYApAEIAAAAcECfAQMB/wEAAAAAAACkAgoAAACQQLwDAEcLAAAAnwMCAJ8CAARRAhEAbwkMALwHBv4EAAAAnwcDAg4HDABNBwbZDQAAAIwIAQBgBwgACAAAAJ40AQUGAAAAUggBAFIJBgCkBxAAADzggJ8HAwFuAu7/AgAAgBwCAQANAgcAEQAAgLwCAFISAAAAnwICAlIDAgBvBBMAggMDAPsCAABSAwEAnwICAIICAAAUAwEEAAAAQAMCAwMDBAMFAwYDBwQAAHBAAwgEAACQQAMJAwoDCwMMAw0EADzggAIAAAAAAAAAAAMOBwAAAAAAAAAAAAAAAAAAAAAABwABGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgABAAAAAAAAAQAAAAAAAAAAAAEAAAAAAAD+AAYAAAEAAAEAAAMAAAAIAAAAAAIAAAECAA2jAAAApAABAAAAAECkAQMAAAAgQE0BASQEAAAATQEB9AUAAACfAAICwAEGABIAAACCAQIABwMPBAAAAEADEAQAACBAAxEDEgYAAQABAAEYAAMAAAAAAAAAAAMAAAEAAAAAAQkljgE3y0os5VZMPi7oEJ55PZl1O+HkAA==
+
+-- decompilation:
+local BBFromArray = require(script.Parent.BBFromArray)
+
+return function(p1) -- line: 7
+	-- upvalues: BBFromArray (copy)
+	assert(typeof(p1) == "Instance" and (p1:IsA("Model") or p1:IsA("Tool")), "Expected argument #1 to be a Model or Tool")
+
+	local t1 = {}
+
+	for _, descendant in ipairs(p1:GetDescendants()) do
+		if descendant:IsA("BasePart") and descendant.Transparency < 1.0 then
+			table.insert(t1, descendant)
+		end
+	end
+
+	if #t1 == 0.0 then
+		return p1:GetPivot(), (Vector3.new(0.0, 0.0, 0.0))
+	end
+
+	return BBFromArray(t1)
+end
+

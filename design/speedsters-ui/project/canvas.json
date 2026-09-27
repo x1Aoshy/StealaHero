@@ -1,0 +1,38 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-09-22T13:31:25Z" },
+  "title": "Steal a Hero — Speedsters UI",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 720, "title": "HUD — on your plot" },
+    "HudChase.dc.html": { "x": 1360, "y": 0, "w": 1280, "h": 720, "title": "HUD — escaping with an egg" },
+    "HudPhone.dc.html": { "x": 2720, "y": 0, "w": 844, "h": 390, "title": "HUD — phone" },
+    "Shop.dc.html": { "x": 0, "y": 1140, "w": 1280, "h": 720, "title": "Shop" },
+    "HeroIndex.dc.html": { "x": 1360, "y": 1140, "w": 1280, "h": 720, "title": "Hero Index" },
+    "Eggs.dc.html": { "x": 2720, "y": 1140, "w": 1280, "h": 720, "title": "Growing eggs" },
+    "TreadmillRun.dc.html": { "x": 0, "y": 2280, "w": 1280, "h": 720, "title": "Treadmill — training" },
+    "TreadmillShop.dc.html": { "x": 1360, "y": 2280, "w": 1280, "h": 720, "title": "Treadmill shop" },
+    "HatchReveal.dc.html": { "x": 2720, "y": 2280, "w": 1280, "h": 720, "title": "Hatch reveal + rewards" },
+    "StyleGuide.dc.html": { "x": 0, "y": 3420, "w": 1440, "h": 2000, "title": "Style system" }
+  },
+  "order": [
+    "Main.dc.html",
+    "HudChase.dc.html",
+    "HudPhone.dc.html",
+    "Shop.dc.html",
+    "HeroIndex.dc.html",
+    "Eggs.dc.html",
+    "TreadmillRun.dc.html",
+    "TreadmillShop.dc.html",
+    "HatchReveal.dc.html",
+    "StyleGuide.dc.html"
+  ],
+  "notes": {
+    "hud": { "x": 0, "y": -300, "text": "HUD", "kind": "title1", "maxW": 3564 },
+    "windows": { "x": 0, "y": 840, "text": "Windows", "kind": "title1", "maxW": 4000 },
+    "moments": { "x": 0, "y": 1980, "text": "Treadmill & moments", "kind": "title1", "maxW": 4000 },
+    "system": { "x": 0, "y": 3120, "text": "Style system", "kind": "title1", "maxW": 1440 }
+  },
+  "designSystems": []
+}

@@ -1,0 +1,69 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMTAAZzdHJpbmcEYnl0ZQExATADc3ViQEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXowMTIzNDU2Nzg5Ky8BLgRnc3ViBDAwMDAQJWQlZCVkPyVkPyVkPyVkPwI9PQE9BkVuY29kZQRmaW5kBGNoYXJEW15BQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWmFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MDEyMzQ1Njc4OSsvPV0WJWQlZCVkPyVkPyVkPyVkPyVkPyVkPwZEZWNvZGUABw4BAAAAABxvAQAAuykAA1IDAACkAgMAAAgQgJ8CAgKMBQgAjAMBAIwE//+oAxEAUgYBAIwLAgCyCgsFzwkCCowMAgB4DQUEsgsMDc8KAgsmCAkKjAkAAGAJAwAIAAAAbwcFAGUAAQBvBwYAcwEGB4sD7/+CAQIABwMBAwIDAwQACBCAAgAAAAAAAPA/AwQDBQAHAAEYAAEAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAD/AwgAAAAACQEAAAAAHhwBAACMAgYAYAEDAAIAAABvAQAAggECAIwBAACMBAEAjAIGAIwDAQCoAgwAUgcEAFIIBAC8BQDwAQAAAJ8FBALwBQUAAgAAgIwGAgD1BwMEsgUGB0MBAQWLAvT/bwIEAJUEAQWVBQEFvAIC8AEAAACfAgQAggIAAAYDAQMGAwQCAAAAAAAAGEADBwIAAAAAAADwPwAOAAEYAAAAAAEAAgEAAAABAAAAAAAAAQAAAP4FAAAAAAAADwAAAAALAQAAAAAbbwkAAMAKAQC8BwDMAgAAAJ8HBAJSBQcAbwYDAHMEBQZvBgQAwAcFALwEBMwCAAAAnwQEAlICBAD/BAAAAwAAAG8FBgBvBgcAbwcIAMUEBQQBAAAAHAcAACEGBwqVBQYJhwMEBXMBAgOCAQIACwMIBgADCQMKAwsGAQMBAwwDDQIAAAAAAADwPwIAAAAAAAAIQAIAAQUOARgAAAAAAAAHAAAAAAAAAAsAAAAAAAAAAAAAAAAHAAAAAA4BAAAAACHwAAMAAAAAgG8BAQCCAQIAbwEBAG8DAwBSBQAAvAMDVgQAAACfAwMCeAIDAowFBgCMAwEAjAT//6gDEQBSBgEAjAsCALIKCwXPCQIKjAwCAHgNBQKyCwwNzwoCCyYICQqMCQAAYAkDAAgAAABvBwUAZQABAG8HBgBzAQYHiwPv/4IBAgAHAw0DAQIAAAAAAADwPwMHAw8DBAMFACEAARgAAAEAAgEAAAAAAAEAAAABAAAAAAAAAAAAAAAAAAAA/wMiAAAAAAkBAAAAABwcAQAADQEDAAAAAABvAQEAggECAIwBAACMBAEAjAIIAIwDAQCoAgwAUgcEAFIIBAC8BQDwAgAAAJ8FBALwBQUAAwAAgIwGAgD1BwAEsgUGB0MBAQWLAvT/uyoBA1IDAQCkAgYAABRAgJ8CAgKCAgIABwIAAAAAAAAgQAMBAwYDBAMCAxAEABRAgAAsAAEYAAAAAQACAQAAAAEAAAAAAAABAAAA/gUAAAAAAC0AAAAABQEAAAAAEW8DAABvBAEAvAEAzAIAAACfAQQCUgABAG8DAwDABAQAvAEAzAIAAACfAQQCbwMFAMAEBgC8AQHMAgAAAJ8BBAKCAQIABwMRAwEDCQMIBgMDEgYEAgMEHRMBGAAAAAAAAAMAAAAACwAAAAAAHgAAAAACAAABAgAKowAAAP8AAgAAAAAAwAEAADABAMQBAAAAwAECADABAO4DAAAAggACAAQGAgMOBgUDEwICBQEAARgAAAAEAAAYAAAeAQAAAAAGz6aYbv1V6UJQKlkjU4mlYr++jxr9YvJv
+
+-- decompilation:
+return {
+	Encode = function(p1) -- line: 5
+		return (p1:gsub(".", function(p2) -- line: 7
+			local s1 = ""
+			local byte = string.byte(p2)
+
+			for i = 8.0, 1.0, -1.0 do
+				s1 ..= not (byte % 2.0 ^ i - byte % 2.0 ^ (i - 1.0) > 0.0) and "0" or "1"
+			end
+
+			return s1
+		end) .. "0000"):gsub("%d%d%d?%d?%d?%d?", function(p3) -- line: 14
+			if #p3 < 6.0 then
+				return ""
+			end
+
+			local n1 = 0.0
+
+			for i = 1.0, 6.0 do
+				if p3:sub(i, i) == "1" then
+					n1 += 2.0 ^ (6.0 - i)
+				end
+			end
+
+			return ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"):sub(n1 + 1.0, n1 + 1.0)
+		end) .. ({
+			"",
+			"==",
+			"="
+		})[#p1 % 3.0 + 1.0]
+	end,
+	Decode = function(p4) -- line: 29
+		return (p4:gsub("[^ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=]", ""):gsub(".", function(p5) -- line: 33
+			if p5 == "=" then
+				return ""
+			end
+
+			local s2 = ""
+			local v12 = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"):find(p5) - 1.0
+
+			for i = 6.0, 1.0, -1.0 do
+				s2 ..= not (v12 % 2.0 ^ i - v12 % 2.0 ^ (i - 1.0) > 0.0) and "0" or "1"
+			end
+
+			return s2
+		end):gsub("%d%d%d?%d?%d?%d?%d?%d?", function(p6) -- line: 44
+			if #p6 ~= 8.0 then
+				return ""
+			end
+
+			local n2 = 0.0
+
+			for i = 1.0, 8.0 do
+				if p6:sub(i, i) == "1" then
+					n2 += 2.0 ^ (8.0 - i)
+				end
+			end
+
+			return (string.char(n2))
+		end))
+	end
+}
+

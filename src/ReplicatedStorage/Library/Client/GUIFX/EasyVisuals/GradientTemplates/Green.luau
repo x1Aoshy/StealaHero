@@ -1,0 +1,23 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMLCEluc3RhbmNlA25ldwpVSUdyYWRpZW50DUNvbG9yU2VxdWVuY2UVQ29sb3JTZXF1ZW5jZUtleXBvaW50BkNvbG9yMwdmcm9tUkdCBUNvbG9yDk51bWJlclNlcXVlbmNlFk51bWJlclNlcXVlbmNlS2V5cG9pbnQMVHJhbnNwYXJlbmN5AAILAAAAAABEpAACAAAEAIBvAQMAnwACAqQBBQAABECA/wIAAAMAAACkAwcAAARggIwEAACkBQoAACSAgIwGAACMB/8AjAgAAJ8FBACfAwACpAQHAAAEYIBvBQsApAYKAAAkgICMBwAAjAj/AIwJAACfBgQAnwQAAqQFBwAABGCAjAYBAKQHCgAAJICAjAgAAIwJ/wCMCgAAnwcEAJ8FAADFAgMAAQAAAJ8BAgIwAQCkDAAAAKQBDgAABNCA/wIAAAMAAACkAxAAAATwgIwEAACMBQAAnwMDAqQEEAAABPCAbwURAIwGAQCfBAMCpAUQAAAE8ICMBgEAjAcBAJ8FAwDFAgMAAQAAAJ8BAgIwAQDZEgAAAIIAAgATAwEDAgQABACAAwMDBAQABECAAwUEAARggAMGAwcEACSAgAIAAAAAAADgPwMIAwkEAATQgAMKBAAE8IACZmZmZmZm5j8DCwABAAEYAAAAAAEAAAABAAAAAAAAAAAAAQAAAAAAAAAAAAEAAAAAAAAAAAAAAP0AAAUAAAABAAAAAAEAAAAAAQAAAAAAAP0AAAUCAAAAAAEAAAECAAOjAAAAwAAAAIIAAgABBgABAAEAARgAAAABAAAAAAGli0sB3G1ODWmStnzDSyK21ZNcdZdPIQA=
+
+-- decompilation:
+return function() -- line: 1
+	local UIGradient = Instance.new("UIGradient")
+
+	UIGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0.0, Color3.fromRGB(0.0, 255.0, 0.0)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0.0, 255.0, 0.0)),
+		ColorSequenceKeypoint.new(1.0, Color3.fromRGB(0.0, 255.0, 0.0))
+	})
+	UIGradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0.0, 0.0),
+		NumberSequenceKeypoint.new(0.7, 1.0),
+		NumberSequenceKeypoint.new(1.0, 1.0)
+	})
+
+	return UIGradient
+end
+

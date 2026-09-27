@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Treadmill — training</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&amp;display=swap">
+<style>body{margin:0;background:#0E1726;font-family:"Fredoka One","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif}a{color:#FFD321}a:hover{color:#FFEA00}@keyframes badgeBounce{0%,64%,100%{transform:translateY(0) rotate(10deg)}74%{transform:translateY(-4px) rotate(2deg)}84%{transform:translateY(-4px) rotate(18deg)}92%{transform:translateY(0) rotate(10deg)}}.badge-bounce{animation:badgeBounce 2.4s ease-in-out infinite}@media (prefers-reduced-motion: reduce){.badge-bounce{animation:none}}</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 720px; overflow: hidden; background: #0E1726; font-family: 'Fredoka One', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif">
+
+<!-- ===== GAME BACKDROP: sky + green studs ground ===== -->
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, #1F4A73 0%, #143253 55%, #0C1C30 100%)"></div>
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 220px; bottom: 0; background: linear-gradient(180deg, #76DB1E 0%, #5FB812 100%)"><div style="position: absolute; inset: 0; opacity: 0.35; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size: 22px 22px"></div></div>
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 220px; height: 120px; background: linear-gradient(180deg, rgba(26,65,101,0.6) 0%, rgba(26,65,101,0) 100%)"></div>
+
+<!-- ===== SCENE: third-person camera behind the player ===== -->
+<svg width="1280" height="720" viewBox="0 0 1280 720" aria-hidden="true" style="position: absolute; left: 0; top: 0; display: block">
+<defs>
+<linearGradient id="trBelt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#27354D"></stop><stop offset="1" stop-color="#161F2E"></stop></linearGradient>
+<linearGradient id="trTrail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00E5FF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#00E5FF" stop-opacity="0"></stop></linearGradient>
+<radialGradient id="trAura" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#00E5FF" stop-opacity="0.30"></stop><stop offset="1" stop-color="#00E5FF" stop-opacity="0"></stop></radialGradient>
+<linearGradient id="rnShirt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6384AA"></stop><stop offset="0.62" stop-color="#6384AA"></stop><stop offset="0.62" stop-color="#4C6A8E"></stop><stop offset="1" stop-color="#4C6A8E"></stop></linearGradient>
+<linearGradient id="rnShirtFar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#55749A"></stop><stop offset="0.62" stop-color="#55749A"></stop><stop offset="0.62" stop-color="#405C80"></stop><stop offset="1" stop-color="#405C80"></stop></linearGradient>
+<linearGradient id="rnSkin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#D8DEE6"></stop><stop offset="0.62" stop-color="#D8DEE6"></stop><stop offset="0.62" stop-color="#B5BFCC"></stop><stop offset="1" stop-color="#B5BFCC"></stop></linearGradient>
+<linearGradient id="rnSkinFar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#C3CBD6"></stop><stop offset="0.62" stop-color="#C3CBD6"></stop><stop offset="0.62" stop-color="#A2ADBC"></stop><stop offset="1" stop-color="#A2ADBC"></stop></linearGradient>
+<linearGradient id="rnPants" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#45536B"></stop><stop offset="0.62" stop-color="#45536B"></stop><stop offset="0.62" stop-color="#333F53"></stop><stop offset="1" stop-color="#333F53"></stop></linearGradient>
+<linearGradient id="rnPantsFar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3B485D"></stop><stop offset="0.62" stop-color="#3B485D"></stop><stop offset="0.62" stop-color="#2C3647"></stop><stop offset="1" stop-color="#2C3647"></stop></linearGradient>
+</defs>
+
+<g fill="#FFFFFF" fill-opacity="0.07">
+<rect x="560" y="118" width="110" height="24" rx="12"></rect><rect x="590" y="102" width="56" height="26" rx="13"></rect>
+<rect x="340" y="156" width="104" height="22" rx="11"></rect><rect x="366" y="142" width="52" height="24" rx="12"></rect>
+</g>
+
+<path d="M0 220 V178 H96 V164 H176 V184 H250 V170 H330 V190 H420 V176 H500 V196 H580 V186 H700 V194 H780 V176 H860 V186 H950 V166 H1040 V180 H1130 V160 H1210 V176 H1280 V220 Z" fill="#22507C"></path>
+<path d="M0 220 V198 H60 V190 H140 V202 H230 V194 H320 V206 H440 V200 H540 V210 H740 V202 H850 V194 H930 V204 H1020 V192 H1110 V200 H1200 V190 H1280 V220 Z" fill="#153A5E"></path>
+<path d="M0 220 H1280" stroke="#0B1B2D" stroke-opacity="0.35" stroke-width="2"></path>
+
+<path d="M569.6 236 L-1560 720 M595.2 236 L-760 720 M613.1 236 L-200 720 M627.8 236 L260 720 M652.2 236 L1020 720 M666.9 236 L1480 720 M684.8 236 L2040 720 M710.4 236 L2840 720" fill="none" stroke="#0B1B2D" stroke-opacity="0.10" stroke-width="3"></path>
+<path d="M0 232 H1280 M0 250 H1280 M0 274 H1280 M0 306 H1280 M0 352 H1280 M0 420 H1280 M0 528 H1280 M0 700 H1280" fill="none" stroke="#0B1B2D" stroke-opacity="0.08" stroke-width="2"></path>
+
+<!-- treadmill: shadow, rear face, deck -->
+<polygon points="414,712 890,712 776,428 532,428" fill="#0B1B2D" fill-opacity="0.24"></polygon>
+<rect x="446" y="684" width="34" height="22" rx="5" fill="#0B1B2D"></rect>
+<rect x="800" y="684" width="34" height="22" rx="5" fill="#0B1B2D"></rect>
+<rect x="425" y="646" width="430" height="46" rx="10" fill="#7F92AD" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="445" y="674" width="390" height="6" rx="3" fill="#3E7BD6"></rect>
+<rect x="472" y="646" width="336" height="16" rx="7" fill="#1B2638" stroke="#0B1B2D" stroke-width="2.5"></rect>
+<circle cx="449" cy="661" r="7" fill="#C6D1DE" stroke="#0B1B2D" stroke-width="2.5"></circle>
+<circle cx="831" cy="661" r="7" fill="#C6D1DE" stroke="#0B1B2D" stroke-width="2.5"></circle>
+
+<polygon points="425,650 473,650 562,420 540,420" fill="#B8C7DA" stroke="#0B1B2D" stroke-width="3" stroke-linejoin="round"></polygon>
+<polygon points="807,650 855,650 740,420 718,420" fill="#B8C7DA" stroke="#0B1B2D" stroke-width="3" stroke-linejoin="round"></polygon>
+<path d="M453 640 L546.5 430 M827 640 L733.5 430" fill="none" stroke="#3E7BD6" stroke-width="4" stroke-linecap="round"></path>
+
+<polygon points="473,650 807,650 718,420 562,420" fill="url(#trBelt)" stroke="#0B1B2D" stroke-width="3" stroke-linejoin="round"></polygon>
+<path d="M491 612.4H789 M503 580.8H777 M513 554H767 M522 530.8H758" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="3" stroke-linecap="round"></path>
+<path d="M530 510.7H750 M537 493H743 M543 477.4H737 M548 463.4H732 M553 450.9H727 M557 439.6H723 M561 429.3H719" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="2" stroke-linecap="round"></path>
+<path d="M574 436 L512 640 M706 436 L768 640" fill="none" stroke="#7FF6FF" stroke-opacity="0.22" stroke-width="3" stroke-linecap="round"></path>
+<path d="M499 596 L492 616 M781 596 L788 616 M521 540 L515 556 M759 540 L765 556" fill="none" stroke="#00E5FF" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"></path>
+
+<!-- handrails + posts -->
+<ellipse cx="496" cy="521" rx="10" ry="4" fill="#7F92AD" stroke="#0B1B2D" stroke-width="2.5"></ellipse>
+<ellipse cx="784" cy="521" rx="10" ry="4" fill="#7F92AD" stroke="#0B1B2D" stroke-width="2.5"></ellipse>
+<path d="M496 370 V518 M784 370 V518" fill="none" stroke="#0B1B2D" stroke-width="13" stroke-linecap="round"></path>
+<path d="M496 370 V518 M784 370 V518" fill="none" stroke="#9FB2CC" stroke-width="7" stroke-linecap="round"></path>
+<path d="M526 304 L496 370 M754 304 L784 370" fill="none" stroke="#0B1B2D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M526 304 L496 370 M754 304 L784 370" fill="none" stroke="#C6D1DE" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M517 323.8 L503.5 353.5 M763 323.8 L776.5 353.5" fill="none" stroke="#3E7BD6" stroke-width="8" stroke-linecap="round"></path>
+
+<!-- uprights, motor hood, console -->
+<rect x="538" y="300" width="16" height="118" rx="4" fill="#9FB2CC" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="726" y="300" width="16" height="118" rx="4" fill="#9FB2CC" stroke="#0B1B2D" stroke-width="3"></rect>
+<polygon points="540,424 740,424 730,402 550,402" fill="#B8C7DA" stroke="#0B1B2D" stroke-width="3" stroke-linejoin="round"></polygon>
+<path d="M558 413 H722" fill="none" stroke="#3E7BD6" stroke-width="3" stroke-linecap="round"></path>
+
+<rect x="528" y="250" width="224" height="16" rx="8" fill="#C6D1DE" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="516" y="260" width="248" height="54" rx="12" fill="#9FB2CC"></rect>
+<rect x="519.5" y="298" width="241" height="13" rx="6" fill="#7F92AD"></rect>
+<rect x="516" y="260" width="248" height="54" rx="12" fill="none" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="566" y="268" width="148" height="32" rx="8" fill="#0E2F44" stroke="#0B1B2D" stroke-width="2.5"></rect>
+<path transform="translate(577 272)" d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#4BE6FF" stroke="#0B1B2D" stroke-width="2" stroke-linejoin="round"></path>
+<text x="653" y="285" text-anchor="middle" dominant-baseline="middle" font-family="Fredoka One, Arial Rounded MT Bold, sans-serif" font-size="17" fill="#4BE6FF" stroke="#0B1B2D" stroke-width="3.5" paint-order="stroke fill">×6 SPEED</text>
+<circle cx="541" cy="284" r="8" fill="#FF3B55" stroke="#0B1B2D" stroke-width="2.5"></circle>
+<circle cx="739" cy="284" r="8" fill="#36F800" stroke="#0B1B2D" stroke-width="2.5"></circle>
+
+<!-- runner FX: aura, belt trail, lock ring, shadow -->
+<ellipse cx="640" cy="450" rx="140" ry="165" fill="url(#trAura)"></ellipse>
+<polygon points="604,560 678,560 726,650 556,650" fill="url(#trTrail)"></polygon>
+<ellipse cx="644" cy="576" rx="98" ry="20" fill="none" stroke="#0B1B2D" stroke-opacity="0.5" stroke-width="7"></ellipse>
+<ellipse cx="644" cy="576" rx="98" ry="20" fill="none" stroke="#00E5FF" stroke-width="3" stroke-dasharray="12 9"></ellipse>
+<ellipse cx="648" cy="572" rx="66" ry="12" fill="#0B1B2D" fill-opacity="0.4"></ellipse>
+
+<!-- R15 runner, seen from behind, mid-stride (default run animation) -->
+<g transform="rotate(-14 688 370)">
+<rect x="688" y="400" width="36" height="28" rx="7" fill="url(#rnSkinFar)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="686" y="362" width="40" height="46" rx="8" fill="url(#rnShirtFar)" stroke="#0B1B2D" stroke-width="3"></rect>
+</g>
+
+<rect x="600" y="488" width="38" height="58" rx="6" fill="url(#rnPantsFar)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="596" y="538" width="46" height="22" rx="7" fill="#1E2632" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="601" y="550" width="36" height="5" rx="2.5" fill="#8A96A6"></rect>
+<rect x="598" y="446" width="42" height="48" rx="6" fill="url(#rnPantsFar)" stroke="#0B1B2D" stroke-width="3"></rect>
+
+<g transform="rotate(-5 664 452)">
+<rect x="642" y="446" width="44" height="70" rx="6" fill="url(#rnPants)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="643" y="508" width="44" height="62" rx="6" fill="url(#rnPants)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="637" y="560" width="56" height="30" rx="8" fill="#1E2632" stroke="#0B1B2D" stroke-width="3"></rect>
+<path d="M646 569 H684 M646 577 H684" fill="none" stroke="#4A5566" stroke-width="3" stroke-linecap="round"></path>
+<path d="M648 584.5 H682" fill="none" stroke="#8A96A6" stroke-width="2.5" stroke-linecap="round"></path>
+</g>
+
+<rect x="594" y="434" width="92" height="22" rx="6" fill="url(#rnPants)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="628" y="348" width="24" height="14" rx="4" fill="#A9B3C1" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="592" y="358" width="96" height="82" rx="10" fill="url(#rnShirt)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="595" y="424" width="90" height="13" rx="4" fill="#0B1B2D" fill-opacity="0.16"></rect>
+
+<rect x="612" y="300" width="56" height="56" rx="16" fill="url(#rnSkin)"></rect>
+<path d="M613.5 330 V316 Q613.5 301.5 628 301.5 H652 Q666.5 301.5 666.5 316 V332 Q654 338 640 334 Q626 330 613.5 330 Z" fill="#2A2F3A"></path>
+<rect x="612" y="300" width="56" height="56" rx="16" fill="none" stroke="#0B1B2D" stroke-width="3"></rect>
+
+<g transform="rotate(12 596 370)">
+<rect x="552" y="362" width="42" height="56" rx="8" fill="url(#rnShirt)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="553" y="412" width="40" height="50" rx="8" fill="url(#rnSkin)" stroke="#0B1B2D" stroke-width="3"></rect>
+<rect x="555" y="456" width="36" height="20" rx="7" fill="url(#rnSkin)" stroke="#0B1B2D" stroke-width="3"></rect>
+</g>
+
+<path d="M548 500 L538.6 528.5 M562 548 L555.3 576.2 M730 468 L740.9 498 M716 540 L722.9 569.2" fill="none" stroke="#BFFBFF" stroke-opacity="0.75" stroke-width="3.5" stroke-linecap="round"></path>
+</svg>
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse 75% 70% at 50% 55%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.30) 100%); pointer-events: none"></div>
+
+<!-- ===== TOP-CENTRE: training status pill ===== -->
+<div style="position: absolute; left: 0; right: 0; top: 20px; display: flex; justify-content: center">
+<div role="status" style="display: flex; align-items: center; height: 56px; box-sizing: border-box; background: #132038; border: 3px solid #0B1B2D; border-radius: 999px; overflow: hidden; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 rgba(0,0,0,0.25)">
+<div style="width: 64px; height: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background-color: #00E3F8; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size: 22px 22px, 100% 100%; border-right: 3px solid #0B1B2D; box-shadow: inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 26px 0 18px">
+<span style="color: #00E5FF; font-size: 24px; line-height: 1; letter-spacing: 0.05em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">TRAINING</span>
+<span style="color: #CFE3FF; font-size: 24px; line-height: 1; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">—</span>
+<span style="color: #FFFFFF; font-size: 24px; line-height: 1; letter-spacing: 0.05em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">LOCKED IN</span>
+</div>
+</div>
+</div>
+
+<!-- ===== LEFT: treadmill stats card ===== -->
+<section aria-label="Training stats" style="position: absolute; left: 24px; top: 104px; width: 288px; box-sizing: border-box; background-color: #182644; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size: 22px 22px; border: 3px solid #0B1B2D; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 0 rgba(0,0,0,0.28); display: flex; flex-direction: column">
+<div style="height: 48px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 12px; background-color: #00E3F8; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size: 22px 22px, 100% 100%; border-bottom: 3px solid #0B1B2D; box-shadow: inset 0 -5px 0 rgba(0,0,0,0.14), inset 0 3px 0 rgba(255,255,255,0.35)">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M13 4a2 2 0 1 0 0-.01 M9 20l3-6 3 3v4 M7 10l3-3 4 1 3 3 M11 13l-4 1" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13 4a2 2 0 1 0 0-.01 M9 20l3-6 3 3v4 M7 10l3-3 4 1 3 3 M11 13l-4 1" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<h2 style="margin: 0; flex-grow: 1; color: #FFFFFF; font-size: 22px; font-weight: normal; line-height: 1; letter-spacing: 0.04em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">TREADMILL</h2>
+<span style="flex-shrink: 0; height: 26px; box-sizing: border-box; display: flex; align-items: center; padding: 0 10px; background: #132038; border: 2px solid #0B1B2D; border-radius: 999px; color: #FFFFFF; font-size: 13px; line-height: 1; letter-spacing: 0.04em; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">TIER 1/10</span>
+</div>
+<div style="padding: 12px; display: flex; flex-direction: column; gap: 8px">
+
+<div style="display: flex; align-items: center; gap: 12px; height: 64px; box-sizing: border-box; padding: 0 12px 0 8px; background-color: #324E6F; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size: 22px 22px; border: 2px solid #0B1B2D; border-radius: 12px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.25)">
+<span style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #0B1B2D; border-radius: 10px; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size: 22px 22px, 100% 100%; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.35)"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#FFFFFF" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+<span style="color: #00E5FF; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">×6</span>
+<span style="color: #CFE3FF; font-size: 15px; line-height: 1; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">Treadmill speed</span>
+</span>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; height: 64px; box-sizing: border-box; padding: 0 12px 0 8px; background-color: #324E6F; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size: 22px 22px; border: 2px solid #0B1B2D; border-radius: 12px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.25)">
+<span style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #0B1B2D; border-radius: 10px; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FFE85A 0%, #FFBE00 50%, #DE8000 100%); background-size: 22px 22px, 100% 100%; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.35)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><circle cx="12" cy="12" r="9" fill="#FFEA00" stroke="#0B1B2D" stroke-width="2.4"></circle><path d="M12 7v10 M14.5 9.5c0-1.2-1.1-2-2.5-2s-2.5.8-2.5 2 1 1.7 2.5 2 2.5 1 2.5 2.2-1.1 2-2.5 2-2.5-.8-2.5-2" stroke="#0B1B2D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+<span style="color: #FFD321; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">+60 $/s</span>
+<span style="color: #CFE3FF; font-size: 15px; line-height: 1; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">while running</span>
+</span>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; height: 64px; box-sizing: border-box; padding: 0 12px 0 8px; background-color: #324E6F; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size: 22px 22px; border: 2px solid #0B1B2D; border-radius: 12px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.25)">
+<span style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #0B1B2D; border-radius: 10px; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #4BE6FF 0%, #00AFFF 48%, #005AFF 100%); background-size: 22px 22px, 100% 100%; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.35)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+<span style="color: #FFFFFF; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">×2.1</span>
+<span style="color: #CFE3FF; font-size: 15px; line-height: 1; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">hero income</span>
+</span>
+</div>
+
+<p style="margin: 0; padding: 0 4px; color: #9FB4D1; font-size: 13px; line-height: 18px; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">Earns SpeedPower + $ every second</p>
+</div>
+</section>
+
+<!-- ===== CENTRE-RIGHT: SpeedPower counter + gain popups + milestone ===== -->
+<div aria-hidden="true" style="position: absolute; left: 726px; top: 96px; width: 340px; height: 290px; background: radial-gradient(ellipse at 50% 55%, rgba(11,27,45,0.62) 0%, rgba(11,27,45,0.35) 45%, rgba(11,27,45,0) 70%); pointer-events: none"></div>
+
+<div aria-hidden="true" style="position: absolute; left: 880px; top: 64px; display: flex; align-items: center; gap: 6px; opacity: 0.45">
+<svg width="18" height="18" viewBox="0 0 24 24" style="display: block; flex-shrink: 0; overflow: visible"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#00E5FF" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></svg>
+<span style="color: #00E5FF; font-size: 20px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">+6 SPEED</span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 840px; top: 108px; display: flex; align-items: center; gap: 8px">
+<svg width="26" height="26" viewBox="0 0 24 24" style="display: block; flex-shrink: 0; overflow: visible"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#00E5FF" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></svg>
+<span style="color: #00E5FF; font-size: 28px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D">+6 SPEED</span>
+</div>
+
+<div role="group" aria-label="SpeedPower 1,280" style="position: absolute; left: 792px; top: 152px; width: 208px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+<span style="display: flex; align-items: center; gap: 6px; height: 28px; box-sizing: border-box; padding: 0 12px 0 8px; background: #132038; border: 2px solid #0B1B2D; border-radius: 999px">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#00E5FF" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></svg>
+<span style="color: #CFE3FF; font-size: 14px; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">SPEEDPOWER</span>
+</span>
+<span style="color: #00E5FF; font-size: 72px; line-height: 1; letter-spacing: 0.01em; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D">1,280</span>
+</div>
+
+<div style="position: absolute; left: 792px; top: 272px; width: 208px; box-sizing: border-box; padding: 8px 10px 10px; background: #132038; border: 2px solid #0B1B2D; border-radius: 14px; box-shadow: 0 4px 0 rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 18px">
+<span style="color: #CFE3FF; font-size: 13px; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">NEXT MILESTONE</span>
+<span style="color: #00E5FF; font-size: 15px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">10K</span>
+</div>
+<div role="progressbar" aria-label="SpeedPower to next milestone" aria-valuemin="0" aria-valuemax="10000" aria-valuenow="1280" aria-valuetext="1,280 of 10,000" style="position: relative; height: 26px; box-sizing: border-box; background: #0E1830; border: 2px solid #0B1B2D; border-radius: 999px; overflow: hidden">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; width: 12.8%; min-width: 26px; box-sizing: border-box; background-color: #00E3F8; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size: 22px 22px, 100% 100%; border-right: 2px solid #0B1B2D; border-radius: 999px"></div>
+<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 14px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">1,280 / 10,000</div>
+</div>
+</div>
+
+<!-- ===== RIGHT: next tier upsell card (cyan) ===== -->
+<div style="position: absolute; left: 1024px; top: 104px; width: 232px">
+<section aria-label="Next treadmill tier" style="box-sizing: border-box; background-color: #182644; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size: 22px 22px; border: 3px solid #0B1B2D; border-radius: 16px; overflow: hidden; box-shadow: inset 0 0 0 2px rgba(0,229,255,0.45), 0 6px 0 rgba(0,0,0,0.28); display: flex; flex-direction: column">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; background-color: #00E3F8; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size: 22px 22px, 100% 100%; border-bottom: 3px solid #0B1B2D; box-shadow: inset 0 -5px 0 rgba(0,0,0,0.14), inset 0 3px 0 rgba(255,255,255,0.35)">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M12 19V5 M5 12l7-7 7 7" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 19V5 M5 12l7-7 7 7" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<h2 style="margin: 0; flex-grow: 1; color: #FFFFFF; font-size: 20px; font-weight: normal; line-height: 1; letter-spacing: 0.05em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">NEXT TIER</h2>
+<span style="flex-shrink: 0; height: 24px; box-sizing: border-box; display: flex; align-items: center; padding: 0 9px; background: #132038; border: 2px solid #0B1B2D; border-radius: 999px; color: #FFFFFF; font-size: 13px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">2/10</span>
+</div>
+<div style="padding: 12px; display: flex; flex-direction: column; gap: 10px">
+
+<div style="position: relative; height: 92px; flex-shrink: 0; box-sizing: border-box; border: 2px solid #0B1B2D; border-radius: 12px; overflow: hidden; background: radial-gradient(ellipse 70% 85% at 50% 88%, rgba(0,229,255,0.45) 0%, rgba(0,0,0,0) 72%), linear-gradient(180deg, #1D3050 0%, #132038 100%); display: flex; align-items: center; justify-content: center">
+<svg width="150" height="86" viewBox="0 -3 120 69" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><ellipse cx="58" cy="61" rx="52" ry="4" fill="rgba(0,0,0,0.35)"></ellipse><path d="M94 45 L104 20" fill="none" stroke="#0B1B2D" stroke-width="9" stroke-linecap="round"></path><path d="M94 45 L104 20" fill="none" stroke="#1FD8EA" stroke-width="4" stroke-linecap="round"></path><rect x="14" y="55" width="10" height="7" rx="2" fill="#0B1B2D"></rect><rect x="86" y="55" width="10" height="7" rx="2" fill="#0B1B2D"></rect><rect x="8" y="44" width="96" height="14" rx="7" fill="#1FD8EA" stroke="#0B1B2D" stroke-width="3"></rect><path d="M18 52 H92" fill="none" stroke="#E8FFFF" stroke-width="3" stroke-linecap="round"></path><rect x="14" y="37" width="80" height="11" rx="5.5" fill="#0B2A3A" stroke="#0B1B2D" stroke-width="3"></rect><path d="M24 42.5h8 M42 42.5h8 M60 42.5h8 M78 42.5h6" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round"></path><path d="M102 22 C94 24 86 26 74 30" fill="none" stroke="#0B1B2D" stroke-width="7" stroke-linecap="round"></path><path d="M102 22 C94 24 86 26 74 30" fill="none" stroke="#E8FFFF" stroke-width="3" stroke-linecap="round"></path><g transform="rotate(-8 104 16)"><rect x="92" y="9" width="24" height="14" rx="4" fill="#1FD8EA" stroke="#0B1B2D" stroke-width="3"></rect><rect x="96" y="12.5" width="16" height="7" rx="2" fill="#00FFEE" stroke="#0B1B2D" stroke-width="1.5"></rect></g><g transform="translate(36 6)"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#F2FF7A" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></g><path d="M62 10 L63.12 12.88 L66 14 L63.12 15.12 L62 18 L60.88 15.12 L58 14 L60.88 12.88Z" fill="#FFFFFF" stroke="#0B1B2D" stroke-width="1.8" stroke-linejoin="round"></path></svg>
+</div>
+
+<h3 style="margin: 0; text-align: center; color: #FFFFFF; font-size: 18px; font-weight: normal; line-height: 24px; letter-spacing: 0.02em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">SCI-FI TREADMILL</h3>
+
+<div style="background: #132038; border: 2px solid #0B1B2D; border-radius: 12px; padding: 2px 10px; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 30px">
+<span style="color: #CFE3FF; font-size: 12px; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">SPEED</span>
+<span style="display: flex; align-items: center; gap: 4px">
+<span style="color: #CFE3FF; font-size: 14px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">×6</span>
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M5 12h14 M13 6l6 6-6 6" stroke="#0B1B2D" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M5 12h14 M13 6l6 6-6 6" stroke="#00E5FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="color: #00E5FF; font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">×15</span>
+</span>
+</div>
+<div style="height: 2px; background: rgba(207,227,255,0.12); border-radius: 1px"></div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 30px">
+<span style="color: #CFE3FF; font-size: 12px; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">MONEY</span>
+<span style="display: flex; align-items: center; gap: 4px">
+<span style="color: #CFE3FF; font-size: 14px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">+60/s</span>
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M5 12h14 M13 6l6 6-6 6" stroke="#0B1B2D" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M5 12h14 M13 6l6 6-6 6" stroke="#FFD321" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="color: #FFD321; font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">+150/s</span>
+</span>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 32px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><circle cx="12" cy="12" r="9" fill="#FFD321" stroke="#0B1B2D" stroke-width="2.4"></circle><path d="M12 7v10 M14.5 9.5c0-1.2-1.1-2-2.5-2s-2.5.8-2.5 2 1 1.7 2.5 2 2.5 1 2.5 2.2-1.1 2-2.5 2-2.5-.8-2.5-2" stroke="#0B1B2D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="color: #FFD321; font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D">$15K</span>
+</div>
+
+<button type="button" aria-label="Upgrade to Sci-Fi treadmill for $15K" style="display: block; width: 100%; margin: 0; padding: 3px; box-sizing: border-box; font-family: inherit; border: 3px solid #0B1B2D; border-radius: 14px; background: linear-gradient(180deg, #A8FF80 0%, #06F81A 64%, #1E5909 100%); box-shadow: 0 5px 0 rgba(0,0,0,0.25); cursor: pointer; -webkit-appearance: none; appearance: none">
+<span style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 10px; background-color: #36F800; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #F2FF00 0%, #36F800 49%, #0EA52C 100%); background-size: 22px 22px, 100% 100%; box-shadow: inset 0 -6px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35)">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M12 19V5 M5 12l7-7 7 7" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 19V5 M5 12l7-7 7 7" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="color: #FFFFFF; font-size: 24px; line-height: 1; letter-spacing: 0.04em; white-space: nowrap; text-shadow: 0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D">UPGRADE</span>
+</span>
+</button>
+
+</div>
+</section>
+<div class="badge-bounce" aria-hidden="true" style="position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 2px solid #0B1B2D; background-image: linear-gradient(180deg, #FF5A6E 0%, #FF0037 50%, #A8002A 100%); box-shadow: inset 0 -3px 0 rgba(0,0,0,0.22); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 16px; line-height: 1; transform: rotate(10deg); text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">!</div>
+</div>
+
+<!-- ===== BOTTOM-CENTRE: jump-to-stop hint + mobile STOP button ===== -->
+<div style="position: absolute; left: 0; right: 0; bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px; height: 56px; box-sizing: border-box; padding: 0 10px 0 16px; background: #132038; border: 3px solid #0B1B2D; border-radius: 999px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 rgba(0,0,0,0.25)">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><path d="M12 19V5 M5 12l7-7 7 7" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 19V5 M5 12l7-7 7 7" stroke="#FFD321" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="color: #FFFFFF; font-size: 20px; line-height: 1; letter-spacing: 0.04em; white-space: nowrap; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">JUMP TO STOP</span>
+<kbd style="display: flex; align-items: center; height: 36px; margin: 0; padding: 0 12px; box-sizing: border-box; font-family: inherit; border: 2px solid #0B1B2D; border-radius: 10px; background: linear-gradient(180deg, #FFFFFF 0%, #D6E2F0 100%); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18); color: #0B1B2D; font-size: 15px; line-height: 1; letter-spacing: 0.08em">SPACE</kbd>
+</div>
+<span aria-hidden="true" style="width: 36px; height: 36px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; background: #132038; border: 2px solid #0B1B2D; display: flex; align-items: center; justify-content: center; color: #CFE3FF; font-size: 13px; line-height: 1; text-shadow: 0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D">OR</span>
+<button type="button" aria-label="Stop training" style="display: block; margin: 0; padding: 3px; box-sizing: border-box; font-family: inherit; border: 3px solid #0B1B2D; border-radius: 16px; background: linear-gradient(180deg, #FFA1A3 0%, #FF8688 51%, #FF272B 100%); box-shadow: 0 5px 0 rgba(0,0,0,0.25); cursor: pointer; -webkit-appearance: none; appearance: none">
+<span style="display: flex; align-items: center; justify-content: center; gap: 10px; height: 54px; min-width: 148px; padding: 0 26px; box-sizing: border-box; border-radius: 12px; background-color: #FF0037; background-image: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FF5A6E 0%, #FF0037 50%, #A8002A 100%); background-size: 22px 22px, 100% 100%; box-shadow: inset 0 -6px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35)">
+<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="display: block; flex-shrink: 0; overflow: visible"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="#0B1B2D" stroke="#0B1B2D" stroke-width="5.4" stroke-linejoin="round"></rect><rect x="6" y="6" width="12" height="12" rx="2.5" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"></rect></svg>
+<span style="color: #FFFFFF; font-size: 28px; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; text-shadow: 0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D">STOP</span>
+</span>
+</button>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMGHE9OX0NMSUVOVF9URUxFUE9SVF9DT01QTEVURUQqQ2xpZW50Q2hhcmFjdGVyOiBPbkNsaWVudFRlbGVwb3J0Q29tcGxldGVkGEdFVF9HUk9VTkRFRF9ST09UX0hFSUdIVCZDbGllbnRDaGFyYWN0ZXI6IEdldEdyb3VuZGVkUm9vdEhlaWdodBJHRVRfREVCVUdfU05BUFNIT1QhQ2xpZW50Q2hhcmFjdGVyOiBHZXREZWJ1Z1NuYXBzaG90AAEBAAABAgADowAAAOIABgCCAAIABwMBAwIDAwMEAwUDBggDAAEAAAACAwAAAAQFAAAAAAEAARgAAgABAAAAAACRfBQNYITZ43vjH5ut5+5Z4WQDeaO4fgw=
+
+-- decompilation:
+return {
+	ON_CLIENT_TELEPORT_COMPLETED = "ClientCharacter: OnClientTeleportCompleted",
+	GET_GROUNDED_ROOT_HEIGHT = "ClientCharacter: GetGroundedRootHeight",
+	GET_DEBUG_SNAPSHOT = "ClientCharacter: GetDebugSnapshot"
+}
+

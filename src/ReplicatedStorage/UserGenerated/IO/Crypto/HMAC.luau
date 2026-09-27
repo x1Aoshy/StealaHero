@@ -1,0 +1,70 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- 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
+
+-- decompilation:
+--!native
+require(game.ReplicatedStorage.UserGenerated.IO.Crypto.Hash)
+
+local function Derive(p1, p2: buffer) -- line: 46
+	local BlockSize = p1.BlockSize
+
+	if BlockSize < buffer.len(p2) then
+		p2 = p1.DigestBuffer(p2)
+	end
+
+	local buf = buffer.create(BlockSize)
+
+	buffer.copy(buf, 0.0, p2)
+
+	local buf2 = buffer.create(BlockSize)
+	local buf3 = buffer.create(BlockSize)
+
+	for i = 0.0, BlockSize - 1.0 do
+		local v9 = buffer.readu8(buf, i)
+
+		buffer.writeu8(buf2, i, (bit32.bxor(v9, 92.0)))
+		buffer.writeu8(buf3, i, (bit32.bxor(v9, 54.0)))
+	end
+
+	local function ComputeHmac(p3: buffer) -- line: 69
+		-- upvalues: BlockSize (copy), buf3 (copy), p1 (copy), buf2 (copy)
+		local buf4 = buffer.create(BlockSize + buffer.len(p3))
+
+		buffer.copy(buf4, 0.0, buf3)
+		buffer.copy(buf4, BlockSize, p3)
+
+		local v15 = p1.DigestBuffer(buf4)
+		local buf5 = buffer.create(BlockSize + buffer.len(v15))
+
+		buffer.copy(buf5, 0.0, buf2)
+		buffer.copy(buf5, BlockSize, v15)
+
+		return p1.DigestBuffer(buf5)
+	end
+
+	return {
+		Name = "HMAC-" .. p1.Name,
+		BlockSize = p1.BlockSize,
+		OutputSize = p1.OutputSize,
+		Digest = function(p4) -- line: 89
+			-- upvalues: ComputeHmac (copy)
+			return buffer.tostring(ComputeHmac(buffer.fromstring(p4)))
+		end,
+		DigestBuffer = ComputeHmac,
+		DigestToBuffer = function(p5) -- line: 93
+			-- upvalues: ComputeHmac (copy)
+			return ComputeHmac(buffer.fromstring(p5))
+		end
+	}
+end
+
+return {
+	Derive = Derive,
+	DeriveString = function(p6, s1: string) -- line: 108
+		-- upvalues: Derive (copy)
+		return (Derive(p6, buffer.fromstring(s1)))
+	end
+}
+

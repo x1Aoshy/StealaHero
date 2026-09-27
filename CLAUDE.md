@@ -1,0 +1,84 @@
+# Steal a Hero — project guide for Claude sessions
+
+Roblox game "Steal a Hero" (stages of superhero eggs, a treadmill/speed economy, villains that chase egg carriers).
+The playable place `StealaHero.rbxl` is **compiled offline** with Lune from the base place plus this repo; it is a build
+artifact the owner opens in Roblox Studio.
+
+## Owner and working style
+- The owner writes specs in English but chats in **Spanish**: reply in Spanish, keep code, comments and docs in English.
+- Do not ask design questions: decide and deliver (faithful to the spec, creative, low-poly Roblox toy style that looks
+  "brutal"). Only ask when truly blocked (e.g. which repo, a credential, an upload).
+- Loop per change: quick smoke, then compile. Full suites only for big structural passes or to diagnose.
+- Sessions can drop (usage limits): keep work resumable (notes files, small commits).
+- Other assistants (Gemini/Antigravity, GPT "Astra", other Claude sessions) sometimes edit this repo. Before building
+  or cleaning up, check what changed and who did it; never revert someone else's approved work (Astra's Stark Lab base
+  is owner-approved).
+
+## Setup
+- Lune 0.10.5 (`rokit.toml`): `rokit install` (or install lune 0.10.5 manually).
+- Blender 4.5 is only needed for the base/animation authoring tools under `scripts/tools/blender/`.
+- The owner's `Update2` sources the build uses are snapshotted in `vendor/Update2/` (World1Update3New.rbxl + 3 UI
+  modules); `vendor/sab_vfx.rbxl` holds only the effect subtrees `scripts/steps/vfx.luau` ports (built by
+  `scripts/tools/vendor_sab_vfx.luau`). The owner's local `c:/Users/Aoshy´/Desktop/Update2` is the fallback.
+
+## Build and test
+```
+lune run scripts/build_stealahero.luau                    # writes StealaHero.rbxl
+STEALAHERO_OUT=/tmp/x.rbxl lune run scripts/build_stealahero.luau   # scratch output (use this while iterating)
+STEALAHERO_PLACE=/tmp/x.rbxl lune run tests/run_all_tests.luau smoke   # quick smoke (smoke.luau + tests/smoke_*.luau)
+STEALAHERO_PLACE=/tmp/x.rbxl lune run tests/run_all_tests.luau         # full suites
+```
+Env: `STEALAHERO_LENIENT=1` (a failing step is logged, not fatal), `STEALAHERO_UPDATE2`, `STEALAHERO_SAB_PLACE`,
+`STEALAHERO_BASE_IMPORTS` (synthetic base imports for tests).
+Before overwriting `StealaHero.rbxl`: if the owner saved it from Studio after the last build (mtime/size), back it up
+to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
+`lune run scripts/tools/extract_base_imports.luau StealaHero.rbxl` (the build also does this on its output file).
+
+## Layout
+- `Steal An Egg with treadmill V2.rbxl` — base place (its server scripts are empty stubs: all server features live in
+  `src/ServerScriptService`).
+- `src/` — Rojo-style mirrors of every script; `scripts/build_stealahero.luau` + `scripts/steps/*.luau` (ordered: env /
+  plots / treadmill / stages, heroes, `post_*` in name order, `ui_*` in name order, `ui_99_textwrap` last);
+  `scripts/inject/*.luau` manifests `{ target, class, source, create }` copy src files into the place. To patch a
+  base-place script that is not injected yet: check its src mirror equals the base Source, edit it, add an entry.
+- `tests/` — `plan_data.luau` (stages/heroes roster), `smoke.luau`, `smoke_<feature>.luau`, `suite_*.luau`.
+- `assets/hero_models/*.rbxm` — the owner's hero/villain models (extracted by `scripts/tools/extract_hero_models.luau`
+  from `assets/user_models/StealaHero_user_models_0747.rbxl`), converted to R15 by `scripts/lib/rig_convert.luau`.
+- `assets/models/bases/<Stage>/` — the 6 stage bases (see below). `assets/animations/` — hero animation rig/previews.
+  `assets/eggs/` — hero egg models/textures. `docs/` — plans. `design/`, `audit/` — references and one-off tools.
+
+## Pipelines
+- **Stage bases** (Stark Lab, Hall of Justice, Brooklyn Rooftop, U.A. Hero Arena, Capsule Corp Arena, Sunny Pirate
+  Wharf): `scripts/tools/blender/base_themes/` (common.py API at its top, run.py, themes/<key>.py) -> `<Name>.fbx`
+  (Std 52.5x52.5 + Deep 52.5x63 variants) + `<Name>.json` (layout, palette, geometry fingerprint) + renders. The owner
+  imports the FBX in Studio (Import 3D), runs `assets/models/bases/BaseThemesImport.lua` in the command bar, saves;
+  the extracted `<Name>.rbxm` files are placed on every plot by `scripts/steps/post_zz_base_themes.luau` (zero-margin
+  clearance checks, stale-import guard by geometry fingerprint). A geometry change needs a re-import; a palette-only
+  change does not. NO Neon and no lights in any base (build guard). Spider-Verse window panes flicker at runtime
+  (`BaseWindowLights`). Claude cannot upload meshes: only the owner's Studio import creates the mesh assets.
+- **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
+  hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
+  hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
+  animation ids). Verify with `scripts/tools/verify_hero_anims.luau` and `scripts/tools/sim_hero_clips.luau`.
+
+## Hard rules
+- No asset uploads by Claude, never invent asset ids (reuse ids already in the place/assets). Never use the Speedster
+  Escape logo 92044769924002.
+- Audio whitelist only: 77120543307812, 72264591133889, 127039883737564, 136993031050456, 80736831159506.
+- UI: every window/popup uses the Free Gift / Sell All studded glossy style (`scripts/lib/ui_kit.luau`).
+- Economy: money was scaled down x125 on 2026-09-25 (Black Widow ~4 $/s max); publishing it needs a full server
+  shutdown. Server-authoritative gameplay; validate remotes; keep identifiers other code looks up.
+- Lune 0.10.5 gotchas: Content props via `roblox.Content.fromUri/fromAssetId/none`; write `FontFace =
+  roblox.Font.fromEnum(...)` (`.Font` is lost); UICorner: set the 4 per-corner radii; clone whole subtrees only (per-child
+  clones break Motor6D/Weld refs; moving one instance across deserialized DOMs drops its refs); no
+  PivotTo/GetPivot/ScaleTo/WaitForChild (write `WorldPivotData`); `CFrame.lookAt` is Z-mirrored (use
+  `CFrame.fromMatrix`/`Angles`); `Instance.new(class, parent)` ignores parent; a Lune WeldConstraint needs
+  `CFrame0 = Part0.CFrame:ToObjectSpace(Part1.CFrame)`. Roblox: `TextScaled` needs `TextWrapped`; a second Humanoid
+  nested in a character breaks it.
+
+## Open items (2026-09-26)
+- Pen animation feedback from teammate "Sung" was never shared: ask for it before re-tuning.
+- Sanji's Move still slides a little; the Eggs Hatched leaderboard is partly hidden from the spawn (move 3-5 studs).
+- Test in Studio Play: the 6 imported bases (dev unlock: server command bar
+  `for _, p in game.Players:GetPlayers() do p:SetAttribute("DevUnlockBaseThemes", true) end`), bat equip from the
+  Index, the 4 leaderboards, the new economy, egg pass-through.

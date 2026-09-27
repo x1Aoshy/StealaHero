@@ -1,0 +1,36 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMUD01ha2VGdXp6eUZpbmRlcglUcmFuc2Zvcm0IVmFsaWRhdGUIR2V0TmFtZXMMQXV0b2NvbXBsZXRlBVBhcnNlCXVzZXJJbnB1dAxSZWdpc3RlclR5cGUKdXNlcklucHV0cxBNYWtlTGlzdGFibGVUeXBlB3JlcXVpcmUGc2NyaXB0BlBhcmVudAZTaGFyZWQEVXRpbARFbnVtDVVzZXJJbnB1dFR5cGUMR2V0RW51bUl0ZW1zBXBhaXJzB0tleUNvZGUABgQBAgAAAAn7AQAATQEBPQAAAAD7AgEAnwECAlICAQBSAwAAnwICAIICAAABAwEACgIBGAAAAAAAAgAAAAsAAAAABAEAAAAABxwCAACMAwAAtwMCAAIAAACpAQABqQEBAIIBAgAAABADARgAAAAAAAAAEQAAAAADAQEAAAAG+wEAAE0BAccAAAAAUgIAAJ8BAgCCAQAAAQMEABQFARgAAAAAAAAVAAAAAAIBAAAAAAITAQAAggECAAAAGAYBGAAAGQAAAAAGAQIAAAAPbwMAAPsEAAC8AQDdAQAAAJ8BBAFvAwIA+wQBAE0EBCQDAAAA+wUAAJ8EAgC8AQDdAQAAAJ8BAAGCAAEABAMHAwgDCQMKAB0AARgAAAAAAAEAAAAAAAAAAAEeAAAAAAkAAAEAADWjAAAApAABAAAAAECkAQMAAAAgQE0BASQEAAAATQEBJAQAAABNAQESBQAAAE0BAZ4GAAAAnwACAqQBCQAAIHCAvAEBFgoAAACfAQICpAIMAAAAsECkAw4AADRwgLwDAxYKAAAAnwMCAJ8CAAQXAgMAHAgBAJUHCA9qBgEHbgL8/wIAAADiAhQAwAMVABIAAAASAAEAMAMCIRAAAADAAxYAMAMCdhEAAADAAxcAEgAAADADAqsSAAAAwAMYADADApsTAAAAwAMZABIAAgASAAAAggMCABoDCwQAAABAAwwEAAAgQAMNAw4DDwMQAxEEACBwgAMSAxMEAACwQAMUBAA0cIACAAAAAAAA8D8DAgMDAwUDBgUEEBESEwYABgEGAgYDBgQFAAECAwQBAAEYAAAAAAAAAAAAAAAAAAACAAAAAAIAAAAAAAAAAAEAAP8ABAEAAAAABgAABAAAAAQAAAUAAAABAAAAAAUc8wd6LqXvgW+To+UsGLNibOsQDi43bXs=
+
+-- decompilation:
+local Util = require(script.Parent.Parent.Shared.Util)
+local EnumItems = Enum.UserInputType:GetEnumItems()
+
+for _, v in pairs(Enum.KeyCode:GetEnumItems()) do
+	EnumItems[#EnumItems + 1.0] = v
+end
+
+local t1 = {
+	Transform = function(p1) -- line: 10
+		-- upvalues: Util (copy), EnumItems (copy)
+		return Util.MakeFuzzyFinder(EnumItems)(p1)
+	end,
+	Validate = function(p2) -- line: 16
+		return #p2 > 0.0
+	end,
+	Autocomplete = function(p3) -- line: 20
+		-- upvalues: Util (copy)
+		return Util.GetNames(p3)
+	end,
+	Parse = function(p4) -- line: 24
+		return p4[1.0]
+	end
+}
+
+return function(p5) -- line: 29
+	-- upvalues: t1 (copy), Util (copy)
+	p5:RegisterType("userInput", t1)
+	p5:RegisterType("userInputs", Util.MakeListableType(t1))
+end
+

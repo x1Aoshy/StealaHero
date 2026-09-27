@@ -1,0 +1,19 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMOBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQpSdW5TZXJ2aWNlE1NlcnZlclNjcmlwdFNlcnZpY2UHcmVxdWlyZQ1Vc2VyR2VuZXJhdGVkB0FCVGVzdHMNU2hhcmVkQUJUZXN0cwhJc1NlcnZlcgZTZXJ2ZXINU2VydmVyQUJUZXN0cwZDbGllbnQNQ2xpZW50QUJUZXN0cwABBwAAAQMXAAAFDwABNg8BBzAPAg0qDwMTJA8EHBs3owAAAKQAAQAAAABAbwICALwAABYDAAAAnwADAqQBAQAAAABAbwMEALwBARYDAAAAnwEDAqQCAQAAAABAbwQFALwCAhYDAAAAnwIDAqQDBwAAAGBATQQA4AgAAABNBARYCQAAAE0EBI8KAAAAnwMCAsYEAAC8BQELCwAAAJ8FAgIOBQsApAUHAAAAYEBNBgLgCAAAAE0GBu8MAAAATQYGDg0AAACfBQICUgQFAIIEAgCkBQcAAABgQE0GAOAIAAAATQYGTQ4AAABNBgaXDwAAAJ8FAgJSBAUAggQCABADAQQAAABAAwIDAwMEAwUDBgQAAGBAAwcDCAMJAwoDCwMMAw0DDgABAAEYABMAAAAAAAEAAAAAAAEAAAAAAAIAAAAAAAAAAAICAAAAAQAAAAAAAAAAAAACAAAAAAAAAAAAAwEAAAAAAJPxPg5Shdh3RD/Asd2KIQHj6Sl6oTVUDw==
+
+-- decompilation:
+--!native
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+require(ReplicatedStorage.UserGenerated.ABTests.SharedABTests)
+
+if RunService:IsServer() then
+	return (require(ServerScriptService.UserGenerated.Server.ServerABTests))
+end
+
+return (require(ReplicatedStorage.UserGenerated.Client.ClientABTests))
+

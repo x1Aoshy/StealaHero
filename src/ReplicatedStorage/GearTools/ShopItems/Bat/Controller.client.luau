@@ -1,0 +1,18 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMWBGdhbWURUmVwbGljYXRlZFN0b3JhZ2UKR2V0U2VydmljZQdyZXF1aXJlB0xpYnJhcnkHTW9kdWxlcw1CYXRDb250cm9sbGVyBkNsaWVudAlEaXJlY3RvcnkFR2VhcnMGc2NyaXB0BlBhcmVudAhHZWFyTmFtZQxHZXRBdHRyaWJ1dGUGdHlwZW9mBnN0cmluZyZCYXQgVG9vbCByZXF1aXJlcyBhIEdlYXJOYW1lIGF0dHJpYnV0ZQZhc3NlcnQRQmF0Q29udHJvbGxlckRhdGEdJSogcmVxdWlyZXMgQmF0Q29udHJvbGxlckRhdGEGZm9ybWF0A25ldwABCgAAAQIARaMAAACkAAEAAAAAQG8CAgC8AAAWAwAAAJ8AAwKkAQUAAABAQE0CAGoGAAAATQIC6AcAAABNAgJXCAAAAE0CAk0JAAAAnwECAqQCBQAAAEBATQMAkQoAAABNAwOzCwAAAJ8CAgKkAw0AAADAQE0DAyQOAAAAbwYPALwEAxIQAAAAnwQDArssBANSCAQApAcSAAAAEEGfBwIC8AcCABMAAACpBgABqQYBAIEBBgQUAAAAbwcUAKQFFgAAAFBBnwUDAU0HApEKAAAAhwYHBE0GBhkXAAAAbwcYAFIJBAC8BweNGQAAAJ8HAwKeAQYDBwAAAKQFFgAAAFBBnwUDAk0GAe8aAAAAUgcDAFIIBQCfBgMBggABABsDAQQAAABAAwIDAwMEBAAAQEADBQMGAwcDCAMJAwoDCwQAAMBAAwwDDQMOAw8EAAAQQQMQAxEDEgQAAFBBAxMDFAMVAxYAAQABGAADAAAAAAADAAAAAAAAAAAAAAEAAAAAAAADAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAUAAAAAAQEAAAAAAFo7Dc+0yQxxgwbCMndpaigqIxq7aP9nzg==
+
+-- decompilation:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Client = require(ReplicatedStorage.Library.Modules.BatController.Client)
+local Gears = require(ReplicatedStorage.Directory.Gears)
+local scriptParent = script.Parent
+local GearName = scriptParent:GetAttribute("GearName")
+
+assert(typeof(GearName) == "string", "Bat Tool requires a GearName attribute")
+
+local v6 = assert(Gears.Directory[GearName].BatControllerData, `{ GearName } requires BatControllerData`)
+
+Client.new(scriptParent, v6)
+

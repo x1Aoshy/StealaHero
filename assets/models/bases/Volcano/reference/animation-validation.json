@@ -1,0 +1,10 @@
+{
+  "animated_piece_samples": 95918,
+  "compiled_scripts": 4,
+  "current_stage_obstacles": true,
+  "cycle_seconds": 12,
+  "frames_sampled_per_variant": 241,
+  "note": "Offline validation. Synthetic import meshes validate placement, not uploaded mesh rendering.",
+  "studio_play_test": false,
+  "verified_plot_rigs": 6
+}

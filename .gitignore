@@ -1,0 +1,12 @@
+# scratch builds and validation outputs
+tmp/
+*.rbxl.lock
+*.rbxlx.lock
+# Python / Blender caches and backups
+__pycache__/
+*.pyc
+*.blend1
+assets/models/bases/*/backup-*/
+assets/models/bases/*/backup_orig/
+# local Claude session state
+.claude/

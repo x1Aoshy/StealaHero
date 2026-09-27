@@ -1,0 +1,20 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMHBkNGcmFtZRJQb2ludFRvT2JqZWN0U3BhY2UBWARtYXRoA2FicwRTaXplAVoAAgYCAAAAACZNAgGFAAAAAFIEAAC8AgLGAQAAAJ8CAwJNBAJ5AgAAALsCBAKkAwUAABAwgJ8DAgJNBQEvBwAAAE0FBXkCAAAAPgQFBmAEAwADAAAAqQMAAIIDAgBNBAJ7CAAAALsCBAKkAwUAABAwgJ8DAgJNBQEvBwAAAE0FBXsIAAAAPgQFBmAEAwADAAAAqQMAAIIDAgCpAwEAggMCAAkDAQMCAwMDBAMFBAAQMIACAAAAAAAAAEADBgMHAAEAARgAAAAAAAABAAAAAAAAAAAAAAAAAQABAAAAAAAAAAAAAAAAAQACAAIAAAAAAQAAAQIAA6MAAADAAAAAggACAAEGAAEAAQABGAAAAAEAAAAAAS3tGMR0Esys+zfXoz8rTHVd9Q+wHylyxQ==
+
+-- decompilation:
+return function(p1, p2) -- line: 1
+	local v3 = p2.CFrame:PointToObjectSpace(p1)
+
+	if math.abs(v3.X) > p2.Size.X / 2.0 then
+		return false
+	end
+
+	if math.abs(v3.Z) > p2.Size.Z / 2.0 then
+		return false
+	end
+
+	return true
+end
+

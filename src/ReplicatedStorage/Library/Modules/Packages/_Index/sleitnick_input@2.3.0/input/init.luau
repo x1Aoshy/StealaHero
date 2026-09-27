@@ -1,0 +1,14 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMHDlByZWZlcnJlZElucHV0BU1vdXNlCEtleWJvYXJkBVRvdWNoB0dhbWVwYWQHcmVxdWlyZQZzY3JpcHQAAQMAAAECADCjAAAA4gAFAKQBBwAAAGBApAIJAAAAgEBNAgLwAAAAAJ8BAgIwAQDwAAAAAKQBBwAAAGBApAIJAAAAgEBNAgKdAQAAAJ8BAgIwAQCdAQAAAKQBBwAAAGBApAIJAAAAgEBNAgJjAgAAAJ8BAgIwAQBjAgAAAKQBBwAAAGBApAIJAAAAgEBNAgJxAwAAAJ8BAgIwAQBxAwAAAKQBBwAAAGBApAIJAAAAgEBNAgLdBAAAAJ8BAgIwAQDdBAAAAIIAAgAKAwEDAgMDAwQDBQUFAAECAwQDBgQAAGBAAwcEAACAQAABAAEYABoBAAAAAAAAAAABAAAAAAAAAAABAAAAAAAAAAABAAAAAAAAAAABAAAAAAAAAAAAAQAAAAAAzGmU2YFBfXtXxqJdjcUWDbxxg63+rf7Y
+
+-- decompilation:
+return {
+	PreferredInput = require(script.PreferredInput),
+	Mouse = require(script.Mouse),
+	Keyboard = require(script.Keyboard),
+	Touch = require(script.Touch),
+	Gamepad = require(script.Gamepad)
+}
+

@@ -1,0 +1,14 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMKEFJFUVVFU1RfQUNUSVZBVEUaTWVnYXBob25lOiBSZXF1ZXN0QWN0aXZhdGUIUExBWV9WRlgSTWVnYXBob25lOiBQbGF5VmZ4CFBMQVlfU0ZYEk1lZ2FwaG9uZTogUGxheVNmeBNTVEFSVF9FRkZFQ1RfV0lORE9XHE1lZ2FwaG9uZTogU3RhcnRFZmZlY3RXaW5kb3cSU1RPUF9FRkZFQ1RfV0lORE9XG01lZ2FwaG9uZTogU3RvcEVmZmVjdFdpbmRvdwABAQAAAQIAA6MAAADiAAoAggACAAsDAQMCAwMDBAMFAwYDBwMIAwkDCggFAAEAAAACAwAAAAQFAAAABgcAAAAICQAAAAABAAEYAAAAAQAAAAAA8Uaax76u8MfozTGWYydpu4FejbPDgvDG
+
+-- decompilation:
+return {
+	REQUEST_ACTIVATE = "Megaphone: RequestActivate",
+	PLAY_VFX = "Megaphone: PlayVfx",
+	PLAY_SFX = "Megaphone: PlaySfx",
+	START_EFFECT_WINDOW = "Megaphone: StartEffectWindow",
+	STOP_EFFECT_WINDOW = "Megaphone: StopEffectWindow"
+}
+

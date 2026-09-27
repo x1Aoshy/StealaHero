@@ -1,0 +1,28 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMcB3JlcXVpcmUGc2NyaXB0BlBhcmVudAVUeXBlcwlJbnRlcmZhY2ULQmFzZUNvbmZpZ3MHRGVmYXVsdARJY29uG3JieGFzc2V0aWQ6Ly85ODE0NjE1NzA1MTI4OQtEaXNwbGF5TmFtZQlNb25leUNvc3QOU2hvcERyb3BXZWlnaHQUTWluU2hvcFN0b2NrUXVhbnRpdHkUTWF4U2hvcFN0b2NrUXVhbnRpdHkOVG9vbENvbnRyb2xsZXIETm9uZQtEZXNjcmlwdGlvbjVQbGFjZSB0cmFwcyB0aGF0IGZyZWV6ZSB0aGlldmVzIGZvciA3IHNlY29uZHMgKDMgTWF4KQZSYXJpdHkGQ29tbW9uClBlcnNpc3RlbnQOU2luZ2xlUHVyY2hhc2UUTWF4QWN0aXZlRGVwbG95bWVudHMZQWN0aXZlRGVwbG95bWVudEF0dHJpYnV0ZQ9BY3RpdmVUcmFwQ291bnQETmFtZQdfX2luZGV4DHNldG1ldGF0YWJsZQABBQAAAQIAL6MAAACkAAEAAAAAQKQBAwAAACBATQEBJAQAAABNAQEkBAAAAE0BASQEAAAATQEB7wUAAABNAQEPBgAAAJ8AAgKkAQEAAAAAQKQCAwAAACBATQICJAQAAABNAgIkBAAAAE0CAiQEAAAATQICOgcAAABNAgI6CAAAAJ8BAgLiAyAApAQDAAAAIEBNBAS6IQAAADAEA1cLAAAA4gQjADABBG4iAAAAnj0DAwQAAACkAiUAAABAQp8CAwKCAgIAJgMBBAAAAEADAgQAACBAAwMDBAMFAwYDBwMIAwkDCgMLAgAAAAAAQI9AAwwCAAAAAAAAWUADDQIAAAAAAADwPwMOAgAAAAAAAAhAAw8DEAMRAxIDEwMUAxUBAAMWAxcDGAMZCA0JCgAAAAv/////DA0AAAAODwAAABARAAAAEhMAAAAUFQAAABYXAAAAGBkAAAAaGwAAABwbAAAAHRMAAAAeHwAAAAMaAxsFASIDHAQAAEBCAAEAARgAAwAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAwIAAAAAAA4AAAAA7wAAAAEAAAAAAAsShuoN9/DbHgc4QrmshHV7CpGeOdbs6w==
+
+-- decompilation:
+require(script.Parent.Parent.Parent.Types.Interface)
+
+local Default = require(script.Parent.Parent.Parent.BaseConfigs.Default)
+
+return (setmetatable({
+	Icon = "rbxassetid://98146157051289",
+	MoneyCost = 1000.0,
+	ShopDropWeight = 100.0,
+	MinShopStockQuantity = 1.0,
+	MaxShopStockQuantity = 3.0,
+	ToolController = "None",
+	Description = "Place traps that freeze thieves for 7 seconds (3 Max)",
+	Rarity = "Common",
+	Persistent = false,
+	SinglePurchase = false,
+	MaxActiveDeployments = 3.0,
+	ActiveDeploymentAttribute = "ActiveTrapCount",
+	DisplayName = script.Name
+}, {
+	__index = Default
+}))
+

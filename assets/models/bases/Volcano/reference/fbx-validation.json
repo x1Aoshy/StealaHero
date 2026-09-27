@@ -1,0 +1,14 @@
+{
+  "Std": {
+    "objects": 35,
+    "triangles": 8809,
+    "custom_normals": true,
+    "degenerate_triangles": 0
+  },
+  "Deep": {
+    "objects": 35,
+    "triangles": 8965,
+    "custom_normals": true,
+    "degenerate_triangles": 0
+  }
+}

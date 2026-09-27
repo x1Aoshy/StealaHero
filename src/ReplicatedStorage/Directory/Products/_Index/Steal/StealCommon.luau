@@ -1,0 +1,8 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMIB3JlcXVpcmUGc2NyaXB0CFByb2R1Y3RzEUZpbmRGaXJzdEFuY2VzdG9yCEludGVybmFsGENyZWF0ZVN0ZWFsUHJvZHVjdENvbmZpZwROYW1lBkNvbW1vbgABBQAAAQIAF6MAAACkAAEAAAAAQKQBAwAAACBAbwMEALwBAXwFAAAAnwEDAk0BAaUGAAAATQEBJAcAAACfAAICUgEAAKQCAwAAACBATQICuggAAABvAwkAbwQKAJ8BBACCAQAACwMBBAAAAEADAgQAACBAAwMDBAMFAwYDBwMIAgAAAOWX6OpBAAEAARgAAwAAAAAAAAAAAAAAAAcAAAAAAAAAAAEAAAAAAPwUhlvrcYahF5X9z6/SuICMDJEvztDsWg==
+
+-- decompilation:
+return require(script:FindFirstAncestor("Products").Internal.CreateStealProductConfig)(script.Name, "Common", 3611606824.0)
+

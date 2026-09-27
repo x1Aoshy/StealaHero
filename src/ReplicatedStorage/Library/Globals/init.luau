@@ -1,0 +1,12 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMHBWVycm9yE1Vua25vd24gTW9kdWxlICclKicGZm9ybWF0B19faW5kZXgFdGFibGUGZnJlZXplDHNldG1ldGF0YWJsZQACBgIAAAAHAAABAwMEAgmkAgEAAAAAQG8DAgBSBQEAvAMDjQMAAACfAwMAnwIAAYIAAQAEAwEEAAAAQAMCAwMAAgQBGAAAAAAAAAAAAQMAAAAABQAAAQIAEKMAAACkAAIAAAQAgP8CAAAAAAAA4gMEAMAEBQAwBANuAwAAAJ49AgMDAAAApAEHAAAAYECfAQMCnwACAIIAAAAIAwUDBgQABACAAwQFAQMGAAMHBAAAYEABAAEAARgAAAAAAAABAAAAAP8AAAAAAQAAAAABhbNbkSZjtYrWJQl9WpkKyvWrTOW3dzGQ
+
+-- decompilation:
+return table.freeze((setmetatable({}, {
+	__index = function(_, p2) -- line: 2
+		error(`Unknown Module '{ p2 }'`)
+	end
+})))
+

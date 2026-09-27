@@ -1,0 +1,26 @@
+-- Saved by UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw
+
+-- Bytecode (Base64):
+-- CQMZB3JlcXVpcmUGc2NyaXB0BlBhcmVudAVUeXBlcwlJbnRlcmZhY2ULQmFzZUNvbmZpZ3MHRGVmYXVsdARJY29uHHJieGFzc2V0aWQ6Ly8xMTQyNTY3MTE0NjI5NzELRGlzcGxheU5hbWUJTW9uZXlDb3N0DlNob3BEcm9wV2VpZ2h0FE1pblNob3BTdG9ja1F1YW50aXR5FE1heFNob3BTdG9ja1F1YW50aXR5DlRvb2xDb250cm9sbGVyBE5vbmULRGVzY3JpcHRpb25SUHVsbCBlbmVtaWVzIGFuZCB0cmFwIHRoZW0gY2xvc2UgdG8geW91ISBVc2UgdGhpcyBpbiBtYW55IHdheXMgdG8geW91ciBhZHZhbnRhZ2UuLgZSYXJpdHkGRGl2aW5lClBlcnNpc3RlbnQOU2luZ2xlUHVyY2hhc2UETmFtZQdfX2luZGV4DHNldG1ldGF0YWJsZQABBQAAAQIAL6MAAACkAAEAAAAAQKQBAwAAACBATQEBJAQAAABNAQEkBAAAAE0BASQEAAAATQEB7wUAAABNAQEPBgAAAJ8AAgKkAQEAAAAAQKQCAwAAACBATQICJAQAAABNAgIkBAAAAE0CAiQEAAAATQICOgcAAABNAgI6CAAAAJ8BAgLiAx0ApAQDAAAAIEBNBAS6HgAAADAEA1cLAAAA4gQgADABBG4fAAAAnj0DAwQAAACkAiIAAAAQQp8CAwKCAgIAIwMBBAAAAEADAgQAACBAAwMDBAMFAwYDBwMIAwkDCgMLAgAAAACAhD5BAwwCAAAAAAAAJEADDQIAAAAAAADwPwMOAw8DEAMRAxIDEwMUAxUBAAMWAQEICwkKAAAAC/////8MDQAAAA4PAAAAEBEAAAASEQAAABMUAAAAFRYAAAAXGAAAABkaAAAAGxwAAAADFwMYBQEfAxkEAAAQQgABAAEYAAMAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAMCAAAAAAALAAAAAPIAAAABAAAAAADYeJwelCEWYKzK4jIdAP2sqGCLauq89h8=
+
+-- decompilation:
+require(script.Parent.Parent.Parent.Types.Interface)
+
+local Default = require(script.Parent.Parent.Parent.BaseConfigs.Default)
+
+return (setmetatable({
+	Icon = "rbxassetid://114256711462971",
+	MoneyCost = 2000000.0,
+	ShopDropWeight = 10.0,
+	MinShopStockQuantity = 1.0,
+	MaxShopStockQuantity = 1.0,
+	ToolController = "None",
+	Description = "Pull enemies and trap them close to you! Use this in many ways to your advantage..",
+	Rarity = "Divine",
+	Persistent = false,
+	SinglePurchase = true,
+	DisplayName = script.Name
+}, {
+	__index = Default
+}))
+

@@ -1,0 +1,237 @@
+{
+  "revision": 3,
+  "catalog_match": true,
+  "asset_count": 44,
+  "heroes": 38,
+  "bosses": 6,
+  "ascii_backup_matches": true,
+  "fbx_reimport_passed": true,
+  "embedded_texture_validation_passed": true,
+  "roblox_studio_validation": "Not run",
+  "triangle_range": [
+    1520,
+    6228
+  ],
+  "files": [
+    {
+      "file": "fbx/AgentVenom_Egg.fbx",
+      "bytes": 113420,
+      "sha256": "56299536f464a3a4b8bc6b76390259a9458f9f50005c3e7c3de65aed44aa1f2d"
+    },
+    {
+      "file": "fbx/AllMight_Egg.fbx",
+      "bytes": 130812,
+      "sha256": "d829f560db0c5ee2a4b48e3d931b7666fa74d1c601d453e09556e34e09f5366e"
+    },
+    {
+      "file": "fbx/Aquaman_Egg.fbx",
+      "bytes": 102620,
+      "sha256": "e07cab0084891b269eaefa18233bfbf01654a76789298a73f0d07ee2f3fe8f6c"
+    },
+    {
+      "file": "fbx/Bakugo_Egg.fbx",
+      "bytes": 163756,
+      "sha256": "9e5cc2f2326f9d0de9fd36332b27644ce05866368a84569d4f4b6452fc970c30"
+    },
+    {
+      "file": "fbx/Batman_Egg.fbx",
+      "bytes": 134300,
+      "sha256": "d47f60aa9ec934f141e437c14827d4259633c0c4f7aeb4d8d705bb98cc24afc1"
+    },
+    {
+      "file": "fbx/BlackWidow_Egg.fbx",
+      "bytes": 148908,
+      "sha256": "64bb380208be44666e17ef15a7986b126b1582cc333651f2d9d6688bbfe34db1"
+    },
+    {
+      "file": "fbx/Brook_Egg.fbx",
+      "bytes": 138908,
+      "sha256": "a62d7af63bf8ccc6021df88cd8e9c5b9a0e010b269473f3084743e3512b7438e"
+    },
+    {
+      "file": "fbx/CaptainAmerica_Egg.fbx",
+      "bytes": 94300,
+      "sha256": "2019c252faa2dc98e3ea557623ba60811193ea2b56261a0587d012951146183b"
+    },
+    {
+      "file": "fbx/Carnage_Egg.fbx",
+      "bytes": 109148,
+      "sha256": "c462471d07686aca991e0d5b6903a6887a5651d027cce76b718daf601eff6e70"
+    },
+    {
+      "file": "fbx/Darkseid_Egg.fbx",
+      "bytes": 94540,
+      "sha256": "9a01124250c2a5976505ff9c5f6b88ca4a45e021c58583e84558257df5116081"
+    },
+    {
+      "file": "fbx/Deku_Egg.fbx",
+      "bytes": 118444,
+      "sha256": "e11850d9048ddc6a06369b9841bec535062c43319c51a60e3da892f664912d88"
+    },
+    {
+      "file": "fbx/Flash_Egg.fbx",
+      "bytes": 76156,
+      "sha256": "846ed43680a6a2b5a07b6358102254c0e3ca1b74c3d111f230bcad51383a3547"
+    },
+    {
+      "file": "fbx/Frieza_Egg.fbx",
+      "bytes": 68380,
+      "sha256": "43eaf4c5d2f743e2ce6a21f27797af1585274512bba4183feb54691227135a60"
+    },
+    {
+      "file": "fbx/Gohan_Egg.fbx",
+      "bytes": 135084,
+      "sha256": "287bba29e7b2fee385f386e6246811194dc2c6cc2ee7cfb299b12c2a15718afe"
+    },
+    {
+      "file": "fbx/Goku_Egg.fbx",
+      "bytes": 150684,
+      "sha256": "2a9e7575ae849b6b05988f9417ca2b81446b88e5acd902eb5b5a0526579618ce"
+    },
+    {
+      "file": "fbx/GreenLantern_Egg.fbx",
+      "bytes": 100716,
+      "sha256": "822c3cfdc280eaf6f82612c85d6dae4d769ffcf27e51c0c5d4c09bbd82fad424"
+    },
+    {
+      "file": "fbx/Hawkeye_Egg.fbx",
+      "bytes": 132124,
+      "sha256": "48b8cae9852d907713ff7954424543fb8c3b79faab890fa87e3ffd84cf4e5e76"
+    },
+    {
+      "file": "fbx/Hawks_Egg.fbx",
+      "bytes": 145676,
+      "sha256": "c8c0dbecc92fffb8302b57550bbedc2c81b3a4f166b5ff1f4e127ea0e6b36e36"
+    },
+    {
+      "file": "fbx/Hulk_Egg.fbx",
+      "bytes": 90396,
+      "sha256": "33e7f8a2918482e106f077d0693daf606c16ecd49e3476b16db12cb7f4fc1a1d"
+    },
+    {
+      "file": "fbx/IronMan_Egg.fbx",
+      "bytes": 95804,
+      "sha256": "8b8d4c14f5954518e342c82702fc72ca0d125a7020423102f085c08a6fc04690"
+    },
+    {
+      "file": "fbx/JoyBoy_Egg.fbx",
+      "bytes": 177356,
+      "sha256": "bbdd93df5bb201af36e10a5180f2b9526329b29c792703622b4cd1943eb3b107"
+    },
+    {
+      "file": "fbx/Kaido_Egg.fbx",
+      "bytes": 173660,
+      "sha256": "f592e8fa50890d7b80b9de1126c0362c281a2f1c26e3fb3772700bc9008285ed"
+    },
+    {
+      "file": "fbx/Krillin_Egg.fbx",
+      "bytes": 124652,
+      "sha256": "1627b95cf2a6c8df7dd69ffd29f389f94ace4030e382cc04344d510e1569cb91"
+    },
+    {
+      "file": "fbx/Luffy_Egg.fbx",
+      "bytes": 188860,
+      "sha256": "1cbe03e569c0b781e3623439ea065c381291a19feb5b9b626724005111f870ab"
+    },
+    {
+      "file": "fbx/MilesMorales_Egg.fbx",
+      "bytes": 117276,
+      "sha256": "a034d2bc14bfa5ee38e9211c68860759d334f4abe7d7e95a3aa0f839cd906ad8"
+    },
+    {
+      "file": "fbx/Nami_Egg.fbx",
+      "bytes": 117372,
+      "sha256": "e15d4310f55108c9f91a7e0ed04ee975c9801c12b63f04e77d96ea55044f8ed3"
+    },
+    {
+      "file": "fbx/PeterParker_Egg.fbx",
+      "bytes": 123596,
+      "sha256": "b3f66b12304f7c75966eb32dd1ad08329c0badbc1eec4be658095f369f387d99"
+    },
+    {
+      "file": "fbx/Piccolo_Egg.fbx",
+      "bytes": 126684,
+      "sha256": "5b4782d40346c83bcdaa54e660ef2bb866e717e8064fa103090140cd5f2b1d92"
+    },
+    {
+      "file": "fbx/Sanji_Egg.fbx",
+      "bytes": 132700,
+      "sha256": "e1c12f4c867c409dbd78c8ceee0a2ef048db1dac156d65e0dab55cbf6e8d9dc6"
+    },
+    {
+      "file": "fbx/Shanks_Egg.fbx",
+      "bytes": 146828,
+      "sha256": "e0cb96bdb567b8359aee5889193723f981d8e19a63651013ee77517ca9f34539"
+    },
+    {
+      "file": "fbx/Shigaraki_Egg.fbx",
+      "bytes": 113564,
+      "sha256": "0c0da499adc914e80612d512b52e547bfb0df040e6f03258c51806aba75bcebe"
+    },
+    {
+      "file": "fbx/SpiderGwen_Egg.fbx",
+      "bytes": 81212,
+      "sha256": "4d1e7f7e857b95e9f78360158773b1c3ab2d9459628f7ec1741480c5700fc1b4"
+    },
+    {
+      "file": "fbx/SpiderMan2099_Egg.fbx",
+      "bytes": 80524,
+      "sha256": "a0335b2ae115b4a6e483076d8da43499a12e64276db0938dc89543ff05c9ae81"
+    },
+    {
+      "file": "fbx/Superman_Egg.fbx",
+      "bytes": 102892,
+      "sha256": "27b5bdc9c805b1c548f4fba13aa0d28406b89160db466b2d1edfc744525908d4"
+    },
+    {
+      "file": "fbx/Thanos_Egg.fbx",
+      "bytes": 123068,
+      "sha256": "f704cab09c6f31bed123a915115ef3ce95ec4bb5329c01f34299c76646b1d775"
+    },
+    {
+      "file": "fbx/Thor_Egg.fbx",
+      "bytes": 165548,
+      "sha256": "fd73abc3ee8579ea167f5a75440e50b984b310389b7399a79fb68b488d863365"
+    },
+    {
+      "file": "fbx/Todoroki_Egg.fbx",
+      "bytes": 107996,
+      "sha256": "d948afd108b8bc61263133824ef4a20e41af731e1985a445445f63b981e79dba"
+    },
+    {
+      "file": "fbx/Trunks_Egg.fbx",
+      "bytes": 149052,
+      "sha256": "fdd750016a7dc4037d9854aea17f03f23600b025dd4a545536baf36addb278af"
+    },
+    {
+      "file": "fbx/Uraraka_Egg.fbx",
+      "bytes": 88588,
+      "sha256": "0d41179b387567880b718b7f991b4ec7aaa06f3717b5b1ba0ea98b015048a971"
+    },
+    {
+      "file": "fbx/Usopp_Egg.fbx",
+      "bytes": 106300,
+      "sha256": "1b8660a5024d5d368d91a1ba0fd8b848e27b7436792141b396fb5d78de1b9ed9"
+    },
+    {
+      "file": "fbx/Vegeta_Egg.fbx",
+      "bytes": 119596,
+      "sha256": "e6a99cd47dfcbd3be07850325fc326d327fff5f785de9919d00b3463a6919d7e"
+    },
+    {
+      "file": "fbx/Venom_Egg.fbx",
+      "bytes": 74604,
+      "sha256": "8d84fd191669a42530c4cacb1a75e9dda95df3d7888518ed041053d2ae02abee"
+    },
+    {
+      "file": "fbx/WonderWoman_Egg.fbx",
+      "bytes": 122908,
+      "sha256": "d2f1077631647bce2ba55fff03767aaacdb9ce27852a75a714eea004761316c2"
+    },
+    {
+      "file": "fbx/Zoro_Egg.fbx",
+      "bytes": 161948,
+      "sha256": "69944dda02de2647594b9ef7edda5dda6cf9412afa1121ee5814ce714a9ef8d1"
+    }
+  ]
+}

@@ -1,0 +1,754 @@
+{
+  "all_passed": true,
+  "count": 44,
+  "checks": [
+    {
+      "hero_id": "Hawkeye",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.97237,
+        2.37385,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.6832038247401897e-07,
+      "ground_origin_error": 1.8221808772977965e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "BlackWidow",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.07986,
+        2.56328,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.44300596641267e-07,
+      "ground_origin_error": 1.966168809985902e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "CaptainAmerica",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.5,
+        2.54167,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Hulk",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.48396,
+        2.47918,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.3985225805489563e-07,
+      "ground_origin_error": 1.921685424122188e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Thor",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.93927,
+        2.25529,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.656765950628028e-07,
+      "ground_origin_error": 1.7957430031856347e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "IronMan",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.93333,
+        2.53,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Thanos",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        5.03142,
+        4.15188,
+        5.12
+      ],
+      "expected_height": 5.120000000000001,
+      "height_error": 6.741215408112566e-07,
+      "ground_origin_error": 3.1172530157164147e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Aquaman",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.77994,
+        2.15221,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.5603961762452627e-07,
+      "ground_origin_error": 1.6993732288028696e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "GreenLantern",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.88328,
+        2.43222,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.3985225805489563e-07,
+      "ground_origin_error": 1.921685424122188e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Flash",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.72222,
+        2.54889,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "WonderWoman",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.07986,
+        2.45952,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.44300596641267e-07,
+      "ground_origin_error": 1.966168809985902e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Batman",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.35481,
+        2.20652,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.5797549130810467e-07,
+      "ground_origin_error": 1.7187319656386535e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Superman",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.78941,
+        2.57552,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.512773731311313e-07,
+      "ground_origin_error": 2.0359365748845448e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Darkseid",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        4.38333,
+        3.71167,
+        4.8
+      ],
+      "expected_height": 4.800000000000001,
+      "height_error": 9.608292366181104e-07,
+      "ground_origin_error": 2.932572158442781e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "PeterParker",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.66667,
+        2.47444,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "SpiderGwen",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.66667,
+        2.47444,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "MilesMorales",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.66667,
+        2.47444,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "SpiderMan2099",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.13611,
+        2.47444,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "AgentVenom",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.13333,
+        2.50556,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Venom",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.52139,
+        2.47444,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Carnage",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        4.72896,
+        2.97039,
+        3.84
+      ],
+      "expected_height": 3.84,
+      "height_error": 3.871936407051635e-07,
+      "ground_origin_error": 2.3460574993805494e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Uraraka",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.33106,
+        2.4628,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.3985225805489563e-07,
+      "ground_origin_error": 1.921685424122188e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Bakugo",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.91444,
+        2.06695,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.429241924341909e-07,
+      "ground_origin_error": 1.5682189768995158e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Todoroki",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.23056,
+        2.50556,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.816070910962367e-07,
+      "ground_origin_error": 1.9550479635199736e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Hawks",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        4.70346,
+        2.42922,
+        3.19515
+      ],
+      "expected_height": 3.2,
+      "height_error": 0.004846100690952149,
+      "ground_origin_error": 1.8608272966957884e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Deku",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.23687,
+        2.10172,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.116779596050833e-07,
+      "ground_origin_error": 1.6399424396240647e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "AllMight",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.71871,
+        2.12287,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.429447555409638e-07,
+      "ground_origin_error": 1.5684246079672448e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Shigaraki",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.35294,
+        2.26602,
+        3.52
+      ],
+      "expected_height": 3.5200000000000005,
+      "height_error": 3.9184916555967675e-07,
+      "ground_origin_error": 1.7250407324809203e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Krillin",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.94552,
+        2.52815,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.3822646522120294e-07,
+      "ground_origin_error": 1.9054274957852613e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Trunks",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.68235,
+        2.47054,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.3985225805489563e-07,
+      "ground_origin_error": 1.921685424122188e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Piccolo",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.22205,
+        2.49867,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.886529181291621e-07,
+      "ground_origin_error": 2.025506233849228e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Gohan",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.42424,
+        2.08073,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.429241924341909e-07,
+      "ground_origin_error": 1.5682189768995158e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Vegeta",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.47772,
+        2.07397,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.429241924341909e-07,
+      "ground_origin_error": 1.5682189768995158e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Goku",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.46346,
+        2.08073,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.429241924341909e-07,
+      "ground_origin_error": 1.5682189768995158e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Frieza",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.50101,
+        2.62768,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 5.076487665789386e-07,
+      "ground_origin_error": 2.2154647183469933e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Usopp",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.51803,
+        2.3659,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.707101224354915e-07,
+      "ground_origin_error": 1.8460782769125217e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Nami",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.87782,
+        2.52178,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.44300596641267e-07,
+      "ground_origin_error": 1.966168809985902e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Brook",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        1.88005,
+        1.79081,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.239367710212605e-07,
+      "ground_origin_error": 1.3783447627702117e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Sanji",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        2.62116,
+        2.61486,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 2.3985225805489563e-07,
+      "ground_origin_error": 1.921685424122188e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Zoro",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.88234,
+        2.47115,
+        3.19747
+      ],
+      "expected_height": 3.2,
+      "height_error": 0.002532410481944858,
+      "ground_origin_error": 0.002532696584239602,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Shanks",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.13074,
+        2.44103,
+        3.19722
+      ],
+      "expected_height": 3.2,
+      "height_error": 0.0027792291250081647,
+      "ground_origin_error": 0.0027792768087238073,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Luffy",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.34985,
+        2.55227,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 4.94010722995597e-07,
+      "ground_origin_error": 2.079084282513577e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "JoyBoy",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        3.42176,
+        2.8153,
+        3.2
+      ],
+      "expected_height": 3.2,
+      "height_error": 5.335688681995521e-07,
+      "ground_origin_error": 2.4746657345531275e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    },
+    {
+      "hero_id": "Kaido",
+      "mesh_count": 1,
+      "dimensions_studs": [
+        5.78427,
+        3.66222,
+        6.07168
+      ],
+      "expected_height": 6.08,
+      "height_error": 0.00832154921217132,
+      "ground_origin_error": 2.8916673500134493e-07,
+      "ascii_metadata": true,
+      "non_ascii": [],
+      "unit_scale": 1.0,
+      "finite_vertices": true,
+      "passed": true
+    }
+  ]
+}

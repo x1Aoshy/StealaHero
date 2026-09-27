@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HUD — Egg Escape</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&amp;display=swap">
+<style>body{margin:0;background:#0E1726;font-family:"Fredoka One","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif}a{color:#FFD321}a:hover{color:#FFEA00}
+@keyframes hcRarityGlow{0%,100%{box-shadow:0 0 0 2px #0B1B2D,0 8px 0 2px rgba(0,0,0,0.28),inset 0 -4px 0 rgba(0,0,0,0.25),0 0 0 0 rgba(255,133,34,0)}50%{box-shadow:0 0 0 2px #0B1B2D,0 8px 0 2px rgba(0,0,0,0.28),inset 0 -4px 0 rgba(0,0,0,0.25),0 0 24px 6px rgba(255,133,34,0.55)}}
+.hc-glow-legendary{animation:hcRarityGlow 2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.hc-glow-legendary{animation:none}}
+</style>
+</helmet>
+<div style="position:relative; width:1280px; height:720px; overflow:hidden; background:#06051A; color:#FFFFFF; font-family:'Fredoka One','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif">
+
+<!-- ===== GAME BACKDROP: Cosmic zone ===== -->
+<div aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(180deg, #06051A 0%, #110D33 38%, #24185A 58%, #3A2378 66%, #3A2378 100%)"></div>
+<div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 520px 260px at 82% 30%, rgba(196,2,255,0.20) 0%, rgba(196,2,255,0) 70%), radial-gradient(ellipse 480px 220px at 16% 50%, rgba(0,150,255,0.16) 0%, rgba(0,150,255,0) 70%)"></div>
+
+<svg width="1280" height="480" viewBox="0 0 1280 480" aria-hidden="true" style="position:absolute; left:0; top:0; display:block; overflow:visible">
+<defs>
+<linearGradient id="hcPlanetFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE00FF"></stop><stop offset="0.78" stop-color="#AA1CD2"></stop><stop offset="1" stop-color="#6638A5"></stop></linearGradient>
+</defs>
+<g fill="#FFFFFF">
+<circle cx="42" cy="28" r="1.6" opacity="0.9"></circle>
+<circle cx="98" cy="214" r="1.2" opacity="0.7"></circle>
+<circle cx="148" cy="30" r="1.4" opacity="0.8"></circle>
+<circle cx="28" cy="164" r="1.1" opacity="0.6"></circle>
+<circle cx="236" cy="196" r="1.8" opacity="0.9"></circle>
+<circle cx="292" cy="250" r="1.1" opacity="0.6"></circle>
+<circle cx="296" cy="36" r="1.3" opacity="0.8"></circle>
+<circle cx="404" cy="232" r="1.5" opacity="0.8"></circle>
+<circle cx="452" cy="306" r="1.1" opacity="0.6"></circle>
+<circle cx="518" cy="214" r="1.8" opacity="0.9"></circle>
+<circle cx="584" cy="268" r="1.2" opacity="0.7"></circle>
+<circle cx="640" cy="224" r="1.4" opacity="0.8"></circle>
+<circle cx="706" cy="304" r="1.1" opacity="0.6"></circle>
+<circle cx="764" cy="216" r="1.6" opacity="0.9"></circle>
+<circle cx="824" cy="262" r="1.2" opacity="0.7"></circle>
+<circle cx="886" cy="214" r="1.3" opacity="0.8"></circle>
+<circle cx="950" cy="292" r="1.8" opacity="0.9"></circle>
+<circle cx="982" cy="150" r="1.1" opacity="0.6"></circle>
+<circle cx="1044" cy="240" r="1.5" opacity="0.8"></circle>
+<circle cx="1096" cy="142" r="1.2" opacity="0.7"></circle>
+<circle cx="1134" cy="304" r="1.4" opacity="0.8"></circle>
+<circle cx="1240" cy="286" r="1.1" opacity="0.6"></circle>
+<circle cx="1256" cy="196" r="1.6" opacity="0.9"></circle>
+<circle cx="224" cy="332" r="1.2" opacity="0.7"></circle>
+<circle cx="382" cy="384" r="1.4" opacity="0.7"></circle>
+<circle cx="498" cy="352" r="1.1" opacity="0.6"></circle>
+<circle cx="664" cy="376" r="1.5" opacity="0.8"></circle>
+<circle cx="760" cy="420" r="1.1" opacity="0.6"></circle>
+<circle cx="862" cy="372" r="1.3" opacity="0.7"></circle>
+<circle cx="996" cy="420" r="1.1" opacity="0.6"></circle>
+<circle cx="1220" cy="400" r="1.4" opacity="0.7"></circle>
+<circle cx="316" cy="444" r="1.1" opacity="0.5"></circle>
+<circle cx="610" cy="452" r="1.2" opacity="0.5"></circle>
+<circle cx="920" cy="448" r="1.1" opacity="0.5"></circle>
+<circle cx="1068" cy="352" r="1.2" opacity="0.6"></circle>
+</g>
+<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" transform="translate(258.4 291.2) scale(0.8)" fill="#FFFFFF" stroke="#0B1B2D" stroke-width="1.6" stroke-linejoin="round"></path>
+<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" transform="translate(988 319)" fill="#FFEA00" stroke="#0B1B2D" stroke-width="1.4" stroke-linejoin="round"></path>
+<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" transform="translate(552.8 413.4) scale(0.6)" fill="#CFE3FF" stroke="#0B1B2D" stroke-width="2" stroke-linejoin="round"></path>
+<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" transform="translate(1221.6 152.3) scale(0.7)" fill="#FFFFFF" stroke="#0B1B2D" stroke-width="1.8" stroke-linejoin="round"></path>
+<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" transform="translate(51.6 172.3) scale(0.7)" fill="#FFEA00" stroke="#0B1B2D" stroke-width="1.8" stroke-linejoin="round"></path>
+<g transform="rotate(-16 196 112)">
+<ellipse cx="196" cy="112" rx="62" ry="13" fill="none" stroke="#0B1B2D" stroke-width="9"></ellipse>
+<ellipse cx="196" cy="112" rx="62" ry="13" fill="none" stroke="#FFD321" stroke-width="4"></ellipse>
+</g>
+<circle cx="196" cy="112" r="38" fill="url(#hcPlanetFill)" stroke="#0B1B2D" stroke-width="4"></circle>
+<circle cx="184" cy="100" r="7" fill="#000000" opacity="0.18"></circle>
+<circle cx="211" cy="123" r="5" fill="#000000" opacity="0.18"></circle>
+<circle cx="177" cy="127" r="3.5" fill="#000000" opacity="0.18"></circle>
+<path d="M172 97a28 28 0 0 1 16-14" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.55"></path>
+<g transform="rotate(-16 196 112)">
+<path d="M134 112A62 13 0 0 0 258 112" fill="none" stroke="#0B1B2D" stroke-width="9" stroke-linecap="round"></path>
+<path d="M134 112A62 13 0 0 0 258 112" fill="none" stroke="#FFD321" stroke-width="4" stroke-linecap="round"></path>
+</g>
+<circle cx="1180" cy="236" r="15" fill="#9FB4D1" stroke="#0B1B2D" stroke-width="3"></circle>
+<circle cx="1175" cy="232" r="4" fill="#000000" opacity="0.18"></circle>
+<circle cx="1186" cy="242" r="2.5" fill="#000000" opacity="0.18"></circle>
+</svg>
+
+<!-- ground: space-black studs -->
+<div aria-hidden="true" style="position:absolute; left:0; right:0; bottom:0; height:245px; background:linear-gradient(180deg, #2A2740 0%, #17162A 40%, #0B0A16 100%); border-top:3px solid #0B1B2D; box-shadow:0 -2px 0 rgba(170,120,255,0.35)"></div>
+<div aria-hidden="true" style="position:absolute; left:0; right:0; bottom:0; height:245px; opacity:0.35; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size:22px 22px"></div>
+<div aria-hidden="true" style="position:absolute; left:600px; top:548px; width:170px; height:30px; border-radius:50%; background:rgba(0,0,0,0.35); box-shadow:inset 0 3px 0 rgba(170,120,255,0.18)"></div>
+<div aria-hidden="true" style="position:absolute; left:872px; top:510px; width:120px; height:22px; border-radius:50%; background:rgba(0,0,0,0.35); box-shadow:inset 0 3px 0 rgba(170,120,255,0.18)"></div>
+<div aria-hidden="true" style="position:absolute; left:412px; top:522px; width:96px; height:18px; border-radius:50%; background:rgba(0,0,0,0.35); box-shadow:inset 0 3px 0 rgba(170,120,255,0.18)"></div>
+
+<!-- horizon glows: hub (safe zone) to the left, Zoom's lightning to the right -->
+<div aria-hidden="true" style="position:absolute; left:-180px; top:372px; width:540px; height:210px; background:radial-gradient(ellipse at center, rgba(54,248,0,0.38) 0%, rgba(54,248,0,0.12) 40%, rgba(54,248,0,0) 70%)"></div>
+<div aria-hidden="true" style="position:absolute; left:940px; top:356px; width:480px; height:230px; background:radial-gradient(ellipse at center, rgba(0,150,255,0.42) 0%, rgba(0,150,255,0.12) 40%, rgba(0,150,255,0) 70%)"></div>
+<svg width="52" height="68" viewBox="0 0 24 24" aria-hidden="true" style="position:absolute; left:1112px; top:414px; display:block; overflow:visible">
+<path d="M19 8h8 M20.5 12h10 M18 16h7" fill="none" stroke="#8CE8FF" stroke-width="1.6" stroke-linecap="round" opacity="0.85"></path>
+<path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#0096FF" stroke="#0B1B2D" stroke-width="1.8" stroke-linejoin="round"></path>
+<path d="M12.2 4.6 7.6 11" fill="none" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" opacity="0.7"></path>
+</svg>
+
+<!-- danger vignette -->
+<div aria-hidden="true" style="position:absolute; inset:0; box-shadow:inset 0 0 160px rgba(255,0,55,0.30); pointer-events:none"></div>
+
+<!-- ===== HUD: top-centre villain alert + distance meter ===== -->
+<div style="position:absolute; top:16px; left:320px; width:640px; display:flex; flex-direction:column; gap:16px">
+
+<div role="alert" style="position:relative; height:80px; box-sizing:border-box; border:3px solid #0B1B2D; border-radius:16px; background-color:#FF0037; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FF5A6E 0%, #FF0037 50%, #A8002A 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -6px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35), 0 5px 0 rgba(0,0,0,0.25); outline:2px solid #FF8688; outline-offset:-7px; display:flex; align-items:center; gap:14px; padding:0 16px 0 16px">
+<svg width="48" height="48" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible">
+<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="#FFD321" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path>
+<path d="M7.2 7.6l4.6-1.8" fill="none" stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round" opacity="0.85"></path>
+<path d="M12 8.4v4.8" fill="none" stroke="#0B1B2D" stroke-width="2.6" stroke-linecap="round"></path>
+<circle cx="12" cy="16.4" r="1.5" fill="#0B1B2D"></circle>
+</svg>
+<div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+<div style="color:#FFFFFF; font-size:14px; line-height:1; letter-spacing:0.08em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">VILLAIN ALERT &#183; COSMIC ZONE</div>
+<div style="color:#FFFFFF; font-size:32px; line-height:1.05; letter-spacing:0.02em; white-space:nowrap; text-shadow:0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D;">ZOOM IS CHASING YOU!</div>
+</div>
+<div style="position:relative; flex-shrink:0; width:56px; height:56px; margin-top:-12px">
+<div style="width:56px; height:56px; box-sizing:border-box; border:3px solid #FF8522; border-radius:12px; box-shadow:0 0 0 2px #0B1B2D, 0 4px 0 2px rgba(0,0,0,0.25); background:radial-gradient(circle at 50% 35%, #3E4658 0%, #12161E 55%, #07090D 100%); display:flex; align-items:center; justify-content:center; overflow:hidden">
+<svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" style="display:block; overflow:visible">
+<path d="M12 3.5c4 0 6.8 3 6.8 7.2 0 5-3 9.8-6.8 9.8s-6.8-4.8-6.8-9.8C5.2 6.5 8 3.5 12 3.5z" fill="none" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M12 3.5c4 0 6.8 3 6.8 7.2 0 5-3 9.8-6.8 9.8s-6.8-4.8-6.8-9.8C5.2 6.5 8 3.5 12 3.5z" fill="none" stroke="#0096FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M7.8 12.6l3 1 M16.2 12.6l-3 1" fill="none" stroke="#0B1B2D" stroke-width="4.4" stroke-linecap="round"></path>
+<path d="M7.8 12.6l3 1 M16.2 12.6l-3 1" fill="none" stroke="#0096FF" stroke-width="2" stroke-linecap="round"></path>
+<path d="M12.8 5.4 10.8 8.6h2l-.7 2.4 2.6-3.6h-2z" fill="#0096FF" stroke="#0B1B2D" stroke-width="1.1" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div style="position:absolute; left:50%; bottom:-11px; transform:translateX(-50%); padding:2px 8px; background:#FF8522; border:2px solid #0B1B2D; border-radius:999px; color:#FFFFFF; font-size:13px; line-height:1.15; letter-spacing:0.04em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">ZOOM</div>
+</div>
+</div>
+
+<div style="display:flex; align-items:center; gap:12px; height:72px; box-sizing:border-box; padding:0 20px 0 12px; background:#132038; border:3px solid #0B1B2D; border-radius:16px; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 rgba(0,0,0,0.25)">
+<div aria-hidden="true" style="width:46px; height:46px; flex-shrink:0; box-sizing:border-box; border-radius:50%; border:2px solid #0B1B2D; background-color:#36F800; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #F2FF00 0%, #36F800 49%, #0EA52C 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="display:block; overflow:visible"><path d="M3 11l9-7 9 7 M5 10v10h14V10" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M3 11l9-7 9 7 M5 10v10h14V10" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+<div style="flex-shrink:0; width:140px; display:flex; flex-direction:column; gap:4px">
+<div style="color:#A8FF80; font-size:15px; line-height:1.1; letter-spacing:0.06em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">SAFE ZONE</div>
+<div style="display:flex; align-items:center; gap:6px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M19 12H5 M12 5l-7 7 7 7" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M19 12H5 M12 5l-7 7 7 7" stroke="#FFD321" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<div style="color:#FFFFFF; font-size:26px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">128</div>
+<div style="color:#CFE3FF; font-size:15px; line-height:1; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">studs</div>
+</div>
+</div>
+<div role="progressbar" aria-label="Distance to safe zone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="66" style="position:relative; flex:1; min-width:0; height:40px; display:flex; align-items:center">
+<div style="position:relative; width:100%; height:26px; box-sizing:border-box; border:2px solid #0B1B2D; border-radius:999px; background:#1E2D4F; overflow:hidden">
+<div style="position:absolute; left:0; top:0; bottom:0; width:16%; background-color:rgba(54,248,0,0.30); background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size:22px 22px; border-right:2px dashed #A8FF80"></div>
+<div style="position:absolute; right:0; top:0; bottom:0; width:66%; box-sizing:border-box; border-left:2px solid #0B1B2D; border-radius:999px 0 0 999px; overflow:hidden">
+<div style="position:absolute; right:0; top:0; bottom:0; width:151.515%; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(90deg, #36F800 0%, #36F800 16%, #FFBE00 34%, #FF580A 60%, #FF0037 100%); background-size:22px 22px, 100% 100%"></div>
+<div style="position:absolute; inset:0; box-shadow:inset 0 3px 0 rgba(255,255,255,0.35), inset 0 -4px 0 rgba(0,0,0,0.22)"></div>
+</div>
+</div>
+<div aria-hidden="true" style="position:absolute; left:34%; top:50%; transform:translate(-50%, -50%); width:38px; height:38px; box-sizing:border-box; border-radius:50%; border:2px solid #0B1B2D; background-color:#00E3F8; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.4), 0 3px 0 rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="display:block; overflow:visible"><path d="M13 4a2 2 0 1 0 0-.01 M9 20l3-6 3 3v4 M7 10l3-3 4 1 3 3 M11 13l-4 1" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13 4a2 2 0 1 0 0-.01 M9 20l3-6 3 3v4 M7 10l3-3 4 1 3 3 M11 13l-4 1" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- ===== HUD: collapsed sidebar (60% opacity during chase) ===== -->
+<nav aria-label="Menu" style="position:absolute; left:16px; top:220px; display:flex; flex-direction:column; gap:8px; opacity:0.6">
+<button type="button" aria-label="Shop" style="position:relative; width:64px; height:64px; margin:0; padding:7px 0 0 0; box-sizing:border-box; border:3px solid #0B1B2D; border-radius:14px; background-color:#FF0037; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FF5A6E 0%, #FF0037 50%, #A8002A 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35), 0 4px 0 rgba(0,0,0,0.25); outline:2px solid #FF8688; outline-offset:-6px; font-family:inherit; color:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M3 4h2l2.5 11h11L21 7H6.2 M9 20a1 1 0 1 0 0-.01 M18 20a1 1 0 1 0 0-.01" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M3 4h2l2.5 11h11L21 7H6.2 M9 20a1 1 0 1 0 0-.01 M18 20a1 1 0 1 0 0-.01" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="font-size:12px; line-height:1.1; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Shop</span>
+</button>
+<button type="button" aria-label="Index" style="position:relative; width:64px; height:64px; margin:0; padding:7px 0 0 0; box-sizing:border-box; border:3px solid #0B1B2D; border-radius:14px; background-color:#00AFFF; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #4BE6FF 0%, #00AFFF 48%, #005AFF 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35), 0 4px 0 rgba(0,0,0,0.25); outline:2px solid #8CE8FF; outline-offset:-6px; font-family:inherit; color:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M5 17a3 3 0 0 1 3-3h10" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M5 17a3 3 0 0 1 3-3h10" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="font-size:12px; line-height:1.1; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Index</span>
+</button>
+<button type="button" aria-label="Eggs" style="position:relative; width:64px; height:64px; margin:0; padding:7px 0 0 0; box-sizing:border-box; border:3px solid #0B1B2D; border-radius:14px; background-color:#E405F8; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FF0687 0%, #E405F8 46%, #9D12A7 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35), 0 4px 0 rgba(0,0,0,0.25); outline:2px solid #FF9CFA; outline-offset:-6px; font-family:inherit; color:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M12 3c3.5 0 6.5 5 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8 8.5 3 12 3z" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 3c3.5 0 6.5 5 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8 8.5 3 12 3z" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="font-size:12px; line-height:1.1; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Eggs</span>
+</button>
+<button type="button" aria-label="Settings" style="position:relative; width:64px; height:64px; margin:0; padding:7px 0 0 0; box-sizing:border-box; border:3px solid #0B1B2D; border-radius:14px; background-color:#324E6F; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #3E5F86 0%, #324E6F 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35), 0 4px 0 rgba(0,0,0,0.25); outline:2px solid #9FB4D1; outline-offset:-6px; font-family:inherit; color:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M12 2v3 M12 19v3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M2 12h3 M19 12h3 M4.9 19.1 7 17 M17 7l2.1-2.1" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M12 2v3 M12 19v3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M2 12h3 M19 12h3 M4.9 19.1 7 17 M17 7l2.1-2.1" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="font-size:11px; line-height:1.1; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Settings</span>
+</button>
+</nav>
+
+<!-- ===== HUD: carried egg card (left-centre) ===== -->
+<section aria-label="Carried egg" class="hc-glow-legendary" style="position:absolute; left:96px; top:208px; width:272px; box-sizing:border-box; border:3px solid #FF8522; border-radius:16px; background-color:#324E6F; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size:22px 22px; box-shadow:0 0 0 2px #0B1B2D, 0 8px 0 2px rgba(0,0,0,0.28), inset 0 -4px 0 rgba(0,0,0,0.25), 0 0 0 0 rgba(255,133,34,0); overflow:hidden; display:flex; flex-direction:column">
+<div style="height:40px; flex-shrink:0; box-sizing:border-box; background-color:#E405F8; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FF0687 0%, #E405F8 46%, #9D12A7 100%); background-size:22px 22px, 100% 100%; border-bottom:3px solid #0B1B2D; display:flex; align-items:center; justify-content:center; gap:8px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M13 4a2 2 0 1 0 0-.01 M9 20l3-6 3 3v4 M7 10l3-3 4 1 3 3 M11 13l-4 1" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13 4a2 2 0 1 0 0-.01 M9 20l3-6 3 3v4 M7 10l3-3 4 1 3 3 M11 13l-4 1" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<div style="color:#FFFFFF; font-size:18px; line-height:1; letter-spacing:0.08em; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">CARRYING</div>
+</div>
+<div style="padding:14px 14px 16px; display:flex; flex-direction:column; align-items:center; gap:10px">
+<div style="position:relative; width:100%; height:120px; box-sizing:border-box; background:radial-gradient(circle at 50% 56%, rgba(255,133,34,0.50) 0%, rgba(228,5,248,0.20) 42%, rgba(19,32,56,0) 72%), #132038; border:2px solid #0B1B2D; border-radius:12px; display:flex; align-items:center; justify-content:center">
+<svg width="80" height="100" viewBox="0 0 100 124" aria-hidden="true" style="display:block; overflow:visible">
+<defs>
+<linearGradient id="hcEggFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF0687"></stop><stop offset="0.46" stop-color="#E405F8"></stop><stop offset="1" stop-color="#9D12A7"></stop></linearGradient>
+<clipPath id="hcEggClip"><path d="M50 6C74 6 92 46 92 72A42 42 0 0 1 8 72C8 46 26 6 50 6Z"></path></clipPath>
+</defs>
+<ellipse cx="50" cy="118" rx="30" ry="5" fill="#000000" opacity="0.4"></ellipse>
+<path d="M50 6C74 6 92 46 92 72A42 42 0 0 1 8 72C8 46 26 6 50 6Z" fill="url(#hcEggFill)"></path>
+<g clip-path="url(#hcEggClip)">
+<path d="M0 70 L12 60 L25 70 L38 60 L50 70 L62 60 L75 70 L88 60 L100 70 L100 82 L88 72 L75 82 L62 72 L50 82 L38 72 L25 82 L12 72 L0 82 Z" fill="#FFD321" stroke="#0B1B2D" stroke-width="3" stroke-linejoin="round"></path>
+<circle cx="64" cy="36" r="5.5" fill="#FF9CFA"></circle>
+<circle cx="47" cy="25" r="3.5" fill="#FF9CFA"></circle>
+<circle cx="76" cy="50" r="4" fill="#FF9CFA"></circle>
+<circle cx="30" cy="96" r="5" fill="#FF9CFA"></circle>
+<circle cx="70" cy="98" r="6" fill="#FF9CFA"></circle>
+<circle cx="50" cy="106" r="3.5" fill="#FF9CFA"></circle>
+</g>
+<path d="M50 6C74 6 92 46 92 72A42 42 0 0 1 8 72C8 46 26 6 50 6Z" fill="none" stroke="#0B1B2D" stroke-width="5" stroke-linejoin="round"></path>
+<ellipse cx="32" cy="42" rx="5" ry="11" transform="rotate(22 32 42)" fill="#FFFFFF" opacity="0.6"></ellipse>
+</svg>
+<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="position:absolute; left:52px; top:16px; display:block; overflow:visible"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#FFEA00" stroke="#0B1B2D" stroke-width="2" stroke-linejoin="round"></path></svg>
+<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="position:absolute; right:54px; top:58px; display:block; overflow:visible"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#FFFFFF" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></svg>
+<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" style="position:absolute; left:64px; bottom:22px; display:block; overflow:visible"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#FF9CFA" stroke="#0B1B2D" stroke-width="2.6" stroke-linejoin="round"></path></svg>
+</div>
+<div style="padding:3px 14px; background:#FF8522; border:2px solid #0B1B2D; border-radius:999px; box-shadow:inset 0 -3px 0 rgba(0,0,0,0.18); color:#FFFFFF; font-size:14px; line-height:1.15; letter-spacing:0.06em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">LEGENDARY EGG</div>
+<div style="width:100%; height:44px; box-sizing:border-box; padding:0 12px 0 14px; background:#132038; border:2px solid #0B1B2D; border-radius:999px; display:flex; align-items:center; justify-content:space-between; gap:8px">
+<div style="color:#CFE3FF; font-size:15px; line-height:1; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Escape bounty</div>
+<div style="display:flex; align-items:center; gap:6px">
+<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><circle cx="12" cy="12" r="9" fill="#FFD321" stroke="#0B1B2D" stroke-width="2.4"></circle><path d="M12 7v10 M14.5 9.5c0-1.2-1.1-2-2.5-2s-2.5.8-2.5 2 1 1.7 2.5 2 2.5 1 2.5 2.2-1.1 2-2.5 2-2.5-.8-2.5-2" fill="none" stroke="#0B1B2D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<div style="color:#FFD321; font-size:22px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">$1,800</div>
+</div>
+</div>
+<div style="color:#CFE3FF; font-size:14px; line-height:1.25; text-align:center; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Hatches into a Legendary hero</div>
+</div>
+</section>
+
+<!-- ===== HUD: right-edge toast stack (previous success) ===== -->
+<div role="status" style="position:absolute; right:16px; top:24px; width:268px; height:94px">
+<div aria-hidden="true" style="position:absolute; left:14px; right:14px; top:16px; height:66px; box-sizing:border-box; background:#132038; border:3px solid #0B1B2D; border-radius:14px; opacity:0.8; box-shadow:0 6px 0 rgba(0,0,0,0.28)"></div>
+<div style="position:relative; display:flex; align-items:center; gap:12px; height:68px; box-sizing:border-box; padding:0 14px 0 10px; background:#182644; border:3px solid #0B1B2D; border-radius:14px; box-shadow:0 6px 0 rgba(0,0,0,0.28), inset 0 -4px 0 rgba(0,0,0,0.25); overflow:hidden">
+<div aria-hidden="true" style="width:44px; height:44px; flex-shrink:0; box-sizing:border-box; border:2px solid #0B1B2D; border-radius:10px; background-color:#FFBE00; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FFE85A 0%, #FFBE00 50%, #DE8000 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="display:block; overflow:visible"><path d="M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0z M17 5h3v2a3 3 0 0 1-3 3 M7 5H4v2a3 3 0 0 0 3 3" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0z M17 5h3v2a3 3 0 0 1-3 3 M7 5H4v2a3 3 0 0 0 3 3" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+<div style="display:flex; flex-direction:column; gap:4px; min-width:0">
+<div style="color:#FFD321; font-size:28px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; text-shadow:0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D;">+$1,800</div>
+<div style="color:#FFFFFF; font-size:14px; line-height:1; letter-spacing:0.06em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">ESCAPE BOUNTY</div>
+</div>
+</div>
+</div>
+
+<!-- ===== HUD: bottom-centre speed pill + money card ===== -->
+<div style="position:absolute; left:50%; bottom:20px; transform:translateX(-50%); display:flex; align-items:center; gap:16px">
+<div style="display:flex; align-items:center; gap:10px; height:60px; box-sizing:border-box; padding:0 24px 0 6px; background:#132038; border:3px solid #0B1B2D; border-radius:999px; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 rgba(0,0,0,0.25); outline:2px solid #05F8F8; outline-offset:-6px">
+<div aria-hidden="true" style="width:44px; height:44px; flex-shrink:0; box-sizing:border-box; border-radius:50%; border:2px solid #0B1B2D; background-color:#00E3F8; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #02FFEE 0%, #00E3F8 46%, #20ACB9 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="display:block; overflow:visible"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="#FFFFFF" stroke="#0B1B2D" stroke-width="2.4" stroke-linejoin="round"></path></svg>
+</div>
+<div style="color:#CFE3FF; font-size:15px; line-height:1; letter-spacing:0.06em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">SPEED</div>
+<div style="color:#00E5FF; font-size:30px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; text-shadow:0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D;">1,280</div>
+</div>
+<div style="display:flex; align-items:center; gap:10px; height:60px; box-sizing:border-box; padding:0 22px 0 10px; background-color:#324E6F; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%); background-size:22px 22px; border:3px solid #0B1B2D; border-radius:12px; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 rgba(0,0,0,0.25)">
+<svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><circle cx="12" cy="12" r="9" fill="#FFD321" stroke="#0B1B2D" stroke-width="2.4"></circle><path d="M12 7v10 M14.5 9.5c0-1.2-1.1-2-2.5-2s-2.5.8-2.5 2 1 1.7 2.5 2 2.5 1 2.5 2.2-1.1 2-2.5 2-2.5-.8-2.5-2" fill="none" stroke="#0B1B2D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<div style="display:flex; flex-direction:column; gap:3px">
+<div style="color:#CFE3FF; font-size:13px; line-height:1; letter-spacing:0.06em; white-space:nowrap; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">MONEY</div>
+<div style="color:#FFD321; font-size:28px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; text-shadow:0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D;">$12.4K</div>
+</div>
+</div>
+</div>
+
+<!-- ===== HUD: bottom-right DROP EGG ===== -->
+<button type="button" aria-keyshortcuts="Q" style="position:absolute; right:24px; bottom:20px; width:236px; height:72px; box-sizing:border-box; margin:0; padding:0 18px; border:3px solid #0B1B2D; border-radius:14px; background-color:#FF0037; background-image:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0 28%, rgba(0,0,0,0.16) 31% 40%, transparent 43%), linear-gradient(180deg, #FF5A6E 0%, #FF0037 50%, #A8002A 100%); background-size:22px 22px, 100% 100%; box-shadow:inset 0 -6px 0 rgba(0,0,0,0.22), inset 0 3px 0 rgba(255,255,255,0.35), 0 5px 0 rgba(0,0,0,0.25); outline:2px solid #FF8688; outline-offset:-7px; font-family:inherit; color:#FFFFFF; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px">
+<svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block; flex-shrink:0; overflow:visible"><path d="M10 3c2.8 0 5 4 5 8a5 5 0 0 1-10 0c0-4 2.2-8 5-8z M19.5 8v11 M16.5 16.5l3 3 3-3" stroke="#0B1B2D" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 3c2.8 0 5 4 5 8a5 5 0 0 1-10 0c0-4 2.2-8 5-8z M19.5 8v11 M16.5 16.5l3 3 3-3" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="font-size:26px; line-height:1; letter-spacing:0.03em; white-space:nowrap; text-shadow:0 3px 0 #0B1B2D, 2px 2px 0 #0B1B2D, -2px 2px 0 #0B1B2D, 2px -2px 0 #0B1B2D, -2px -2px 0 #0B1B2D, 0 -2px 0 #0B1B2D;">DROP EGG</span>
+<span aria-hidden="true" style="position:absolute; z-index:1; left:-12px; top:-14px; width:34px; height:34px; box-sizing:border-box; padding-bottom:3px; border:2px solid #0B1B2D; border-radius:10px; background:#132038; box-shadow:inset 0 -4px 0 rgba(0,0,0,0.35), 0 3px 0 rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; color:#FFFFFF; font-size:18px; line-height:1; text-shadow:0 2px 0 #0B1B2D, 1px 1px 0 #0B1B2D, -1px 1px 0 #0B1B2D, 1px -1px 0 #0B1B2D, -1px -1px 0 #0B1B2D;">Q</span>
+</button>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
