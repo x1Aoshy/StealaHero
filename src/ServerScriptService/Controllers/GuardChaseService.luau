@@ -686,13 +686,6 @@ local function playLoop(g, key)
 	end
 end
 
-local function playAttack(g)
-	local track = g.tracks.Attack
-	if track then
-		pcall(track.Play, track, 0.05)
-	end
-end
-
 local function setWalkSpeed(g, speed)
 	if math.abs(g.humanoid.WalkSpeed - speed) > 0.5 then
 		g.humanoid.WalkSpeed = speed
@@ -869,6 +862,7 @@ enterSleeping = function(g, now)
 end
 
 local function enterWaking(g, now, player, root)
+	releaseCarriedEgg(g)
 	g.state = STATE_WAKING
 	g.wakeEndsAt = now + g.wakingDuration
 	g.target = nil
@@ -2407,6 +2401,8 @@ function GuardChaseService.StartChase(player, record, wasDropped)
 		enterWaking(g, now, player, root)
 	elseif g.state == STATE_RETURNING or g.state == STATE_RETRIEVING then
 		-- On its way back: appear near the new carrier if it is far off (with the wake beat), else just turn round.
+		-- An egg it is carrying home goes back to its nest first (it must not teleport in the villain's arms).
+		releaseCarriedEgg(g)
 		local root = getLiveRoot(player)
 		if spawnForCarrier(g, player, root) then
 			enterWaking(g, now, player, root)

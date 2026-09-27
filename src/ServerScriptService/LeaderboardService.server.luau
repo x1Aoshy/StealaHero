@@ -658,7 +658,10 @@ local function buildAvatar(userId: number): Model?
 					d.CollisionGroup = NPC_COLLISION_GROUP
 				end)
 			end
-		elseif d:IsA("LuaSourceContainer") then
+		elseif d:IsA("LuaSourceContainer") or d:IsA("ParticleEmitter") or d:IsA("Fire") or d:IsA("Smoke")
+			or d:IsA("Sparkles") or d:IsA("Trail") or d:IsA("Beam") or d:IsA("Light") or d:IsA("Highlight") then
+			-- no scripts; no accessory effects either (every stat has its own stacked set: the client hides the unused
+			-- ones with LocalTransparencyModifier, which effects ignore)
 			d:Destroy()
 		end
 	end

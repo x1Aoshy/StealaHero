@@ -449,7 +449,7 @@ end
 -- The hero's live headshot on the card Icon (its image hidden), else the entry icon (eggs, heroes without a model).
 local function showIcon(icon: ImageLabel, entry: Entry)
 	if EggPortrait ~= nil then
-		EggPortrait.Clear(icon)
+		-- Mount keeps the egg the card already shows (no rebuild on a refresh) and replaces another one.
 		if entry.eggCategory ~= nil and EggPortrait.Mount(icon, entry.eggCategory) ~= nil then
 			if portraits ~= nil then
 				portraits:Cancel(icon)
@@ -461,6 +461,7 @@ local function showIcon(icon: ImageLabel, entry: Entry)
 			icon.ImageTransparency = 1
 			return
 		end
+		EggPortrait.Clear(icon)
 	end
 	local category = entry.category
 	if portraits ~= nil and category ~= nil and HeroPortrait.HasModel(category) then

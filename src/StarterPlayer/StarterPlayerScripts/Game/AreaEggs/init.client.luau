@@ -1000,8 +1000,11 @@ local function clearGuardCarry(uid)
 	end
 end
 
-local function renderGuardCarry(record)
-	if record == nil or record.State ~= GUARD_CARRIED or guardCarryRenders[record.Uid] then
+-- Deferred from the record update: works from the record's CURRENT state (a Slot update handled in the same cycle
+-- must win, or the egg would stay welded to the villain).
+local function renderGuardCarry(uid)
+	local record = EggCmds.GetAreaEggRecord(uid)
+	if record == nil or record.State ~= GUARD_CARRIED or guardCarryRenders[uid] then
 		return
 	end
 	local guard = guardModelFor(record.AreaId)
@@ -1169,13 +1172,30 @@ EggCmds.AreaEggUpdated:Connect(function(record)
 		return
 	end
 	if record.State == GUARD_CARRIED then
-		task.defer(renderGuardCarry, record)
+		task.defer(renderGuardCarry, record.Uid)
 	else
 		clearGuardCarry(record.Uid)
 	end
 end)
 EggCmds.AreaEggRemoved:Connect(function(uid)
 	clearGuardCarry(uid)
+end)
+-- A full snapshot (join, resync) carries no per-record updates: reconcile the carries with it.
+EggCmds.AreaEggSnapshotUpdated:Connect(function(snapshot)
+	local carried = {}
+	for _, record in ipairs(if type(snapshot) == "table" and type(snapshot.Records) == "table" then snapshot.Records else {}) do
+		if record.State == GUARD_CARRIED then
+			carried[record.Uid] = true
+		end
+	end
+	for uid in pairs(guardCarryRenders) do
+		if not carried[uid] then
+			clearGuardCarry(uid)
+		end
+	end
+	for uid in pairs(carried) do
+		task.defer(renderGuardCarry, uid)
+	end
 end)
 
 CarryRunBackEffects.Start()

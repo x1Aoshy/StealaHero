@@ -3694,6 +3694,7 @@ function MakeSlot(p121, p122) -- line: 2573
 
 		Shadow.Visible = false
 		AssetIconShape.Clear(Icon)
+		clearEggPortrait(Icon)
 		Icon.Image = ""
 		ToolName.Text = ""
 		ToolName.Visible = true
