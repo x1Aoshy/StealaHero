@@ -166,9 +166,11 @@ local GLOSSY_GEOMETRY = {
 	glossTop = 0.07, glossWidth = 0.94, glossHeight = 0.42, glossCornerTop = 0.45, glossCornerBottom = 0.2,
 	glossFrom = 0.72, glossTo = 0.97, -- a faint gloss (minimalist tiles)
 	outline = 0.055, ring = 0.035, ringOffset = -0.05,
-	iconCenter = UDim2.fromScale(0.19, 0.5), iconSize = UDim2.fromScale(0.3, 0.3),
+	-- Owner 2026-09-27: "the Shop and Index icons look very small": 0.95 of the pill's height (it was 0.3; the icon is
+	-- square, so its height is the limit), the word right after it.
+	iconCenter = UDim2.fromScale(0.2, 0.5), iconSize = UDim2.fromScale(0.38, 0.95),
 	plateSize = UDim2.fromScale(0.74, 0.74), plateTransparency = 0.2, plateRim = 0.075, plateInk = 0.13,
-	labelPosition = UDim2.fromScale(0.36, 0.5), labelSize = UDim2.fromScale(0.6, 0.56), labelStroke = 0.13,
+	labelPosition = UDim2.fromScale(0.4, 0.5), labelSize = UDim2.fromScale(0.57, 0.56), labelStroke = 0.13,
 	-- a small count badge on the corner (owner: "the ? / number badge looks extremely big")
 	badgeSize = UDim2.fromScale(0.16, 0.16), badgePosition = UDim2.fromScale(0.97, 0.1),
 	z = { studs = 2, gloss = 2, plate = 3, icon = 4, label = 5, badge = 7 },
@@ -191,6 +193,9 @@ BADGE.round = {
 local RIBBON = {
 	color = C.ink, -- #0b1b3d
 	transparency = 0.45,
+	-- Owner 2026-09-27: "remove that background from the money UI and the shoe": no band behind the currency rows, just
+	-- the icons and the outlined values over the world (the rows keep their size, aspect and layout).
+	band = false,
 	corner = UDim.new(0.14, 0), -- ~5 px at 720p
 	edge = { thickness = 0.03, transparency = 0.8 }, -- SpStrokeLight: ~1 px inner hairline
 	-- SpeedValue / Money: {1.6, 1.25} of the Frame with SpAspect 6.6 -> height-limited: H = 1.25 x Frame height
@@ -1370,7 +1375,7 @@ local function ribbon(row, size, ratio)
 	row.Size = size
 	aspect(row, ratio)
 	row.BackgroundColor3 = RIBBON.color
-	row.BackgroundTransparency = RIBBON.transparency
+	row.BackgroundTransparency = if RIBBON.band then RIBBON.transparency else 1
 	row.BorderSizePixel = 0
 	row.Rotation = 0
 	for _, c in ipairs(row:GetChildren()) do
@@ -1384,10 +1389,14 @@ local function ribbon(row, size, ratio)
 	if outline then
 		outline.Enabled = false -- the D7 pill outline (re-run on an already skinned place)
 	end
-	Kit.addStroke(row, {
+	local edge = Kit.addStroke(row, {
 		name = Kit.Names.strokeLight, color = C.white, thickness = RIBBON.edge.thickness,
 		transparency = RIBBON.edge.transparency, position = "Inner", zIndex = 1,
 	})
+	local hairline = edge or child(row, Kit.Names.strokeLight, "UIStroke")
+	if hairline and not RIBBON.band then
+		hairline.Enabled = false -- no band, no rim
+	end
 end
 
 -- The row's UIPadding (left inset only, so child scales are fractions of the full ribbon height) and horizontal

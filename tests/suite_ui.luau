@@ -502,9 +502,8 @@ if T.check(badge ~= nil, "Index.Button.NotificationBadge missing") then
 		and number:FindFirstChildOfClass("UIStroke") ~= nil and hex(number:FindFirstChildOfClass("UIStroke").Color) == "#0b1b3d",
 		"NotificationBadge number must be white GothamSSm Heavy with an ink stroke")
 end
--- Currency rows (owner brief, 3rd pass): minimalist SQUARED translucent ribbons (flat ink band, small corner, no
--- gradient / outline), the Shop / Index label type on the values, the Shop's banknotes icon on Money, the Speed "+"
--- at the right end of its ribbon, and a real gap between the rows.
+-- Currency rows (owner brief, 3rd pass; 5th pass: no band at all): the Shop / Index label type on the values, the Shop's
+-- banknotes icon on Money, the Speed "+" on the shoe's corner, and a real gap between the rows.
 local rows = H.path(sg, "Money/Bottom/Frame")
 if T.check(rows ~= nil, "StarterGui.Money.Bottom.Frame missing") then
 	local column = rows:FindFirstChildOfClass("UIListLayout")
@@ -522,11 +521,10 @@ if T.check(rows ~= nil, "StarterGui.Money.Bottom.Frame missing") then
 			end
 			local outline = row:FindFirstChild("SpStrokeDark")
 			local edge = row:FindFirstChild("SpStrokeLight")
-			T.check(hex(row.BackgroundColor3) == "#0b1b3d" and row.BackgroundTransparency >= 0.35 and row.BackgroundTransparency <= 0.6
-				and corner ~= nil and allCorners(corner, corner.TopLeftRadius) and corner.TopLeftRadius.Scale <= 0.2 and corner.TopLeftRadius.Offset == 0
-				and not gradientOn and (outline == nil or not outline.Enabled or outline.Transparency >= 1)
-				and isClass(edge, "UIStroke") and edge.Transparency >= 0.7,
-				"Money row %s must be a flat squared translucent ink ribbon (#0b1b3d @0.35-0.6, corner <= 0.2, no gradient / outline, faint SpStrokeLight)", name)
+			-- owner 2026-09-27 (5th pass): no band behind the currency rows at all
+			T.check(row.BackgroundTransparency >= 1 and not gradientOn and (outline == nil or not outline.Enabled or outline.Transparency >= 1)
+				and (edge == nil or not edge.Enabled or edge.Transparency >= 1),
+				"Money row %s must have no background band, gradient or outline (owner: no bg on the money / shoe UI)", name)
 			T.check(row:FindFirstChildOfClass("UIAspectRatioConstraint") ~= nil, "Money row %s needs an aspect constraint (its layout is in ribbon-height units)", name)
 			for _, d in ipairs(row:GetDescendants()) do
 				if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.TextScaled and not d.TextWrapped then

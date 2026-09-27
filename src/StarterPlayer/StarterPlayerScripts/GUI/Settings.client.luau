@@ -158,15 +158,17 @@ end
 local ROW_TEXT = {
 	HideMyPets = { "Hide Your Heroes", "Hides your own heroes in your pen!" },
 	HeroSize = { "Hero Size", "Makes heroes smaller or bigger, only for you!" },
-	DisableVideos = { "Hide Treadmill Phone", "Keeps the treadmill phone off!" }
+	DisableVideos = { "Hide Treadmill Phone", "Keeps the treadmill phone off!" },
+	ShowMoneyPopups = { "Money Popups", "Shows the floating +$ when you earn money!" }
 }
 local ROW_ORDER = {
 	HideOtherPets = 1,
 	HideMyPets = 2,
 	HeroSize = 3,
 	DisableVideos = 4,
-	Music = 5,
-	Trading = 6
+	ShowMoneyPopups = 5,
+	Music = 6,
+	Trading = 7
 }
 
 local function setRowText(row, title: string, description: string)
@@ -208,6 +210,7 @@ end
 local function prepareHideRows()
 	ensureClonedRow("HideMyPets", { "HideOtherPets", "DisableVideos", "Music", "SFX" })
 	ensureClonedRow("HeroSize", { "HideOtherPets", "DisableVideos", "Music", "SFX" })
+	ensureClonedRow("ShowMoneyPopups", { "HideOtherPets", "DisableVideos", "Music", "SFX" })
 
 	for key, texts in pairs(ROW_TEXT) do
 		local row = ScrollingFrame:FindFirstChild(key)
@@ -321,6 +324,7 @@ function t3.Init() -- line: 133
 	registerSettingRow("HideOtherPets")
 	registerSettingRow("HideMyPets")
 	registerSettingRow("DisableVideos")
+	registerSettingRow("ShowMoneyPopups")
 	SettingsCmds.Changed:Connect(function(property: string, b2: boolean) -- line: 142
 		-- upvalues: t2 (copy), color3_2 (copy), color3 (copy)
 		local v73 = t2[property]

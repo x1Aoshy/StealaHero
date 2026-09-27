@@ -125,3 +125,28 @@ for _, id in ipairs({ "131317614803230", "97443431423842", "86038047961937" }) d
 end
 T.check(H.has(pixelSrc, "GetAttribute(\"PixelIcon\")") and H.has(pixelSrc, "layer.GroupTransparency = image.ImageTransparency")
 	and pcall(H.luau.compile, pixelSrc), "PixelNightIcon must drive the pixel layers and follow the scripts' fades")
+
+-- 6. 5th pass (owner 2026-09-27): the "+$" spam is a Settings switch, off by default; the HUD hides a whole screen away;
+--    the currency rows have no band; the Shop / Index icons are bigger.
+local variables = H.path(rs, "Library/Shared/Variables")
+local varSrc = src(variables)
+T.check(H.has(varSrc, "ShowMoneyPopups = {") and string.find(varSrc, "ShowMoneyPopups = {%s*displayName = \"Money Popups\",%s*description = [^\n]*\n%s*default = false") ~= nil,
+	"Shared.Variables.SettingsInfo must define ShowMoneyPopups, off by default")
+local settingsSrc = src(H.path(sps, "GUI/Settings"))
+T.check(H.has(settingsSrc, "registerSettingRow(\"ShowMoneyPopups\")") and H.has(settingsSrc, "ensureClonedRow(\"ShowMoneyPopups\"")
+	and pcall(H.luau.compile, settingsSrc), "the Settings window must have a Money Popups row")
+local moneySrc = src(H.path(sps, "GUI/MoneyUpdate"))
+T.check(H.has(moneySrc, "if not SettingsCmds.IsEnabled(\"ShowMoneyPopups\") then") and pcall(H.luau.compile, moneySrc),
+	"GUI.MoneyUpdate must only float the +$ amounts with ShowMoneyPopups on")
+local motionSrc2 = src(H.path(sps, "BranchControllers/MenuMotionController"))
+T.check(H.has(motionSrc2, "MenuMotionController.AWAY_SCALE = 1.25") and H.has(motionSrc2, "UDim2.fromScale(0, away)"),
+	"hidden HUD groups must travel a whole screen past their edge (their content spills outside their boxes)")
+for _, spec in ipairs({ { "Shop", "ShopIcon" }, { "Index", "HeroIcon" } }) do
+	local button = H.path(sg, "Elements/Left/Tools/" .. spec[1] .. "/Button")
+	local icon = button and button:FindFirstChild(spec[2])
+	if T.check(icon ~= nil and icon:IsA("GuiObject"), "Elements.Left.Tools.%s.Button.%s missing", spec[1], spec[2]) then
+		-- a square icon: its side is min(width * pill aspect, height) in pill heights
+		local side = math.min(icon.Size.X.Scale * 2.5, icon.Size.Y.Scale)
+		T.check(side >= 0.85, "the %s pill icon must be about a pill tall (%.2f pill heights)", spec[1], side)
+	end
+end

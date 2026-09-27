@@ -39,7 +39,7 @@ MenuMotionController.SHOW_INFO = TweenInfo.new(0.36, Enum.EasingStyle.Back, Enum
 MenuMotionController.POP_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 MenuMotionController.POP_SLIDE = 70 -- px the panel travels in from the right
 MenuMotionController.POP_SCALE = 0.9
-MenuMotionController.EDGE_MARGIN = 40 -- px past the screen edge a hidden group ends
+MenuMotionController.AWAY_SCALE = 1.25 -- screens a hidden group travels past its edge
 
 local BASE_ATTRIBUTE = "SpHudRestPosition"
 
@@ -64,17 +64,20 @@ local function edgeOf(object)
 end
 MenuMotionController._edgeOf = edgeOf
 
-local function awayOffset(object, edge)
-	local size = object.AbsoluteSize
-	local margin = MenuMotionController.EDGE_MARGIN
+-- A whole screen past the edge (the groups are children of their ScreenGui, so a Position scale of 1 is one screen):
+-- their content spills far outside their own boxes (the money rows and the "+$" column sit above Money.Bottom, the
+-- night warning's text runs past EndingSoon), so moving them by their box size left them half on screen (owner
+-- 2026-09-27: "it does not hide properly when you open another menu").
+local function awayOffset(_object, edge)
+	local away = MenuMotionController.AWAY_SCALE
 	if edge == "bottom" then
-		return UDim2.fromOffset(0, size.Y + margin)
+		return UDim2.fromScale(0, away)
 	elseif edge == "top" then
-		return UDim2.fromOffset(0, -(size.Y + margin + 40))
+		return UDim2.fromScale(0, -away)
 	elseif edge == "left" then
-		return UDim2.fromOffset(-(size.X + margin), 0)
+		return UDim2.fromScale(-away, 0)
 	end
-	return UDim2.fromOffset(size.X + margin, 0)
+	return UDim2.fromScale(away, 0)
 end
 
 local function groupObject(entry)

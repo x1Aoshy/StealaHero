@@ -130,3 +130,7 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the treadmill model viewports in the speed shop;
   - the "+" on the shoe's corner;
   - the pixel moons in the night countdown, on the egg tab and over growing eggs.
+- (2026-09-27, 5th pass) The floating "+$" money amounts are the `ShowMoneyPopups` setting (Settings row "Money
+  Popups", off by default; `GUI/MoneyUpdate` injected by `scripts/inject/hud_polish.luau`). The currency rows have no
+  band (`RIBBON.band = false`). The Shop / Index icons are 0.95 of the pill height (`GLOSSY_GEOMETRY.iconSize`).
+  HUD groups hidden under a menu travel `AWAY_SCALE` = 1.25 screens (their content spills outside their boxes).
