@@ -68,6 +68,9 @@ end
 
 local prepared = {} -- [villain key] = { [clip name] = Clip } | false
 local function clipsFor(key)
+	if key == nil then
+		return nil
+	end
 	if prepared[key] == nil then
 		local module = key and clipFolder:FindFirstChild(key)
 		local ok, clips = false, nil
@@ -126,7 +129,7 @@ local function onChaseFx(entry)
 	local fields = string.split(value, ";")
 	local seq = tonumber(fields[2])
 	if fields[1] == "Punch" and seq and seq > entry.lastFxSeq then
-		entry.attackT = 0
+		entry.attackAt = os.clock() -- the swing's own clock: a villain out of range never replays a stale hit later
 	end
 	if seq and seq > entry.lastFxSeq then
 		entry.lastFxSeq = seq
@@ -135,6 +138,10 @@ end
 
 local function addEntry(guard)
 	if entries[guard] or not guard:IsA("Model") then
+		return
+	end
+	-- the server is the source of truth: it marks the villains it leaves to the clips (no Animator track) ClientClips
+	if guard:GetAttribute("ClientClips") ~= true then
 		return
 	end
 	local clips = clipsFor(villainKey(guard:GetAttribute("HeroId")))
@@ -168,7 +175,7 @@ local function addEntry(guard)
 		prev = nil,
 		prevT = 0,
 		fade = 1,
-		attackT = nil,
+		attackAt = nil,
 		lastFxSeq = initialSeq,
 		accum = 0,
 		poseBase = newPose(),
@@ -244,13 +251,12 @@ local function step(entry, dt)
 		end
 	end
 
-	if entry.attackT then
+	if entry.attackAt then
 		local attack = clips.Attack
-		entry.attackT += dt
-		if entry.attackT >= attack.Length + ATTACK_OUT then
-			entry.attackT = nil
+		local t = os.clock() - entry.attackAt
+		if t >= attack.Length + ATTACK_OUT then
+			entry.attackAt = nil
 		else
-			local t = entry.attackT
 			local w = if t < ATTACK_IN then t / ATTACK_IN elseif t > attack.Length then 1 - (t - attack.Length) / ATTACK_OUT else 1
 			resetPose(entry.poseAttack)
 			HeroClipMath.SampleClip(attack, math.min(t, attack.Length), entry.poseAttack)
@@ -296,14 +302,29 @@ RunService.PreRender:Connect(function(dt)
 end)
 
 -- Guards: Workspace.__OBJECTS.Areas.GuardAreas.<zone>.Guard (the server may rebuild one: watch the zones)
+local function tryAdd(guard)
+	local ok, err = pcall(addEntry, guard)
+	if not ok then
+		warn("[VillainClipPlayer] " .. guard:GetFullName() .. ": " .. tostring(err))
+	end
+end
+
+local function watchGuard(guard)
+	tryAdd(guard)
+	-- ClientClips may replicate after the rig: start then
+	guard:GetAttributeChangedSignal("ClientClips"):Connect(function()
+		tryAdd(guard)
+	end)
+end
+
 local function watchZone(zone)
 	local guard = zone:FindFirstChild("Guard")
 	if guard then
-		addEntry(guard)
+		watchGuard(guard)
 	end
 	zone.ChildAdded:Connect(function(child)
 		if child.Name == "Guard" then
-			task.defer(addEntry, child)
+			task.defer(watchGuard, child)
 		end
 	end)
 end

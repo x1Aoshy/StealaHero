@@ -82,6 +82,17 @@ if guardModule then
 		clock = 1000.2 + 14
 		guard._onEvent(remote, flooder)
 		T.check(flooder.kicked, "NetGuardService must kick a sustained flood on one remote")
+		-- three separate bursts with quiet seconds between them are not a sustained flood
+		local bursty = newPlayer("Bursty")
+		for _, s in ipairs({ 20, 23, 26, 29 }) do
+			clock = 1000.2 + s
+			for _ = 1, 450 do
+				guard._onEvent(remote, bursty)
+			end
+		end
+		clock = 1000.2 + 32
+		guard._onEvent(remote, bursty)
+		T.check(not bursty.kicked, "NetGuardService must only count flood seconds in a row")
 		-- one-second burst over every remote
 		local burst = newPlayer("Burst")
 		clock = 1100.2

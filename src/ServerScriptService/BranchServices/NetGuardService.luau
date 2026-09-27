@@ -60,7 +60,16 @@ local function onEvent(remote, player, ...)
 		traffic[player] = t
 	end
 	if t.second ~= now then
-		-- close the previous second: a remote over its limit earns a strike, one under it clears its strikes
+		-- close the previous second: a remote over its limit earns a strike; strikes only count seconds IN A ROW, so a
+		-- gap (a silent second, or a remote quiet or under its limit that second) clears them
+		if now > t.second + 1 then
+			table.clear(t.strikes)
+		end
+		for r in pairs(t.strikes) do
+			if (t.perRemote[r] or 0) <= NetGuardService.PER_REMOTE_LIMIT then
+				t.strikes[r] = nil
+			end
+		end
 		for r, n in pairs(t.perRemote) do
 			if n > NetGuardService.PER_REMOTE_LIMIT then
 				t.strikes[r] = (t.strikes[r] or 0) + 1
@@ -68,8 +77,6 @@ local function onEvent(remote, player, ...)
 					kick(player, string.format("%d events/s on %s for %d s", n, r:GetFullName(), t.strikes[r]))
 					return
 				end
-			else
-				t.strikes[r] = nil
 			end
 		end
 		table.clear(t.perRemote)

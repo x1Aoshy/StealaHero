@@ -280,6 +280,17 @@ function mountHeroPortrait(icon, heroId)
 	end
 	return false
 end
+function restoreIconImage(icon)
+	if icon:FindFirstChild("EggPortrait") or icon:FindFirstChild("HeroPortrait") then
+		return -- a portrait still covers the image
+	end
+	local saved = icon:GetAttribute("EggPortraitImageTransparency")
+	if type(saved) == "number" then
+		icon.ImageTransparency = saved
+		icon:SetAttribute("EggPortraitImageTransparency", nil)
+	end
+end
+-- clears both portraits (slot emptied / another kind of item)
 function clearEggPortrait(icon)
 	if EggPortraitModule then
 		pcall(EggPortraitModule.Clear, icon)
@@ -287,11 +298,18 @@ function clearEggPortrait(icon)
 	if HeroPortraitModule then
 		pcall(HeroPortraitModule.Clear, icon)
 	end
-	local saved = icon:GetAttribute("EggPortraitImageTransparency")
-	if type(saved) == "number" then
-		icon.ImageTransparency = saved
-		icon:SetAttribute("EggPortraitImageTransparency", nil)
+	restoreIconImage(icon)
+end
+-- a slot refreshed with the same kind of item keeps its portrait: Mount reuses a portrait of the same hero / egg, so a
+-- refresh (or a hotbar shift) never re-clones the model
+function clearOtherPortrait(icon, keep)
+	if keep ~= "Egg" and EggPortraitModule then
+		pcall(EggPortraitModule.Clear, icon)
 	end
+	if keep ~= "Hero" and HeroPortraitModule then
+		pcall(HeroPortraitModule.Clear, icon)
+	end
+	restoreIconImage(icon)
 end
 
 local Gears = require(ReplicatedStorage.Directory.Gears)
@@ -3429,7 +3447,7 @@ function MakeSlot(p121, p122) -- line: 2573
 			local TextureId = p135.TextureId
 
 			AssetIconShape.Clear(Icon)
-			clearEggPortrait(Icon)
+			clearOtherPortrait(Icon, if v974 == "Asset" then "Hero" elseif v974 == "AssetEgg" then "Egg" else nil)
 			Icon.Image = TextureId
 			Icon.ScaleType = Enum.ScaleType.Fit
 			ToolName.TextXAlignment = TextXAlignment

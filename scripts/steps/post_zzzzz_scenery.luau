@@ -9,8 +9,9 @@
 --   * INSIDE the hub: smaller trees, bushes and pebbles in the empty corners and along the walls;
 --   * INSIDE the stages: pebble clusters tinted to each stage's floor, hugging the side walls.
 -- Every spot is checked against the built world (the occupancy of every part above floor level, plus a clearance) and
--- kept off the main street, the spawn and the lane mouths. Trunks inside the hub collide (the canopies do not); every
--- other scenery part is non-colliding, and no scenery part takes touch / query, so nothing blocks a path or a raycast.
+-- kept off the main street, the spawn and the lane mouths. Trunks inside the hub collide (the canopies do not), so they
+-- also stop raycasts and the camera like any solid part; every other scenery part is non-colliding and takes no touch /
+-- query, so it blocks no path, raycast or camera.
 -- Pebbles and rocks cast no shadow. Runs after the owner layout and the NPC collider pass. Idempotent (Scenery is
 -- rebuilt).
 

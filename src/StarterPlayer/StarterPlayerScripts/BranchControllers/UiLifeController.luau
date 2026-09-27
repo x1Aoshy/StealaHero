@@ -8,7 +8,8 @@
 --   SpSweep = period (s)      a light band sweeping across the button every period (SpSweepDelay s offsets the first)
 --   SpTwinkle = true          a frame that twinkles (BackgroundTransparency flicker at a random rate)
 --   by name: ClaimButton / ClaimAllButton / Claim / ClaimAll / Buy / Purchase buttons sweep every 4 s; count badges
---            (NotificationBadge / ReadyNotification / Notification / Badge) breathe quickly while shown.
+--            (NotificationBadge / ReadyNotification / Notification / Badge) breathe quickly (a looping tween; a hidden badge
+--            costs nothing to draw).
 -- Cost rules: breathe / bob / twinkle are looping engine tweens (no Lua per frame); sweeps share one 0.2 s scheduler and
 -- only run for visible elements; TopbarPlus GUIs are never touched; an element owning another UIScale is not breathed
 -- (ButtonFX and SpeedstersJuice own theirs).
@@ -85,7 +86,12 @@ local function twinkle(gui)
 end
 
 local function addSweep(gui, period, delay)
-	if gui:FindFirstChild("SpSweepShine") then
+	local inherited = gui:FindFirstChild("SpSweepShine")
+	local inheritedGradient = inherited and inherited:FindFirstChildOfClass("UIGradient")
+	if inheritedGradient then
+		-- a clone of a button that already sweeps (a list template): reuse its band
+		inheritedGradient.Offset = Vector2.new(-1, 0)
+		table.insert(sweeps, { gui = gui, period = period, nextAt = os.clock() + (delay or math.random() * period), gradient = inheritedGradient })
 		return
 	end
 	local shine = Instance.new("Frame")
@@ -151,7 +157,10 @@ local function watch(root)
 		bind(d)
 	end
 	root.DescendantAdded:Connect(function(d)
-		task.defer(bind, d)
+		-- only GUI objects (a portrait's ViewportFrame clones whole hero models under PlayerGui)
+		if d:IsA("GuiObject") then
+			task.defer(bind, d)
+		end
 	end)
 end
 
