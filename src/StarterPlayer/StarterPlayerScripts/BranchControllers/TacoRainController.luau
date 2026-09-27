@@ -13,6 +13,11 @@
 --     burst where it lands); "Hit" shows the floating "x3 TACO!" there and puts the Taco particles on the egg's model at
 --     once (Library.Client.Eggs.EggRenderer.ApplyMutationParticles; later renders of that egg add them by themselves);
 --     "Stop" ends the rain here even before the attribute replicates.
+--   * a taco landing near the local player shakes the camera a little (owner 2026-09-27, round 11: "the small camera
+--     shake when a taco falls near you is missing"): up to SHAKE_DEGREES for the big taco onto an egg within
+--     SHAKE_RADIUS, a lighter DECOR_SHAKE_DEGREES for a decorative one within DECOR_SHAKE_RADIUS (at most one every
+--     DECOR_SHAKE_GAP s), fading with the distance; applied after the camera scripts and taken back off before them.
+--   * the decorative tacos burst in StruckVFXSmall (the explosion at 0.4 size); only the egg hits use the full one.
 --   * light: the decorative tacos come from a small pool (at most DECOR_MAX in the air), nothing runs while there is no
 --     rain, and on a phone / a low graphics level (PlayerGui.UiDeviceProfile, the saved quality level) the sky emits
 --     LOW_POWER_RATE of its rate, fewer decorative tacos fall and only half of their landings burst.
@@ -49,6 +54,12 @@ TacoRainController.TINT = Color3.fromRGB(255, 226, 172)
 TacoRainController.SATURATION = 0.22
 TacoRainController.CONTRAST = 0.06
 TacoRainController.HIT_LABEL = "x3 TACO!"
+TacoRainController.SHAKE_RADIUS = 30
+TacoRainController.SHAKE_DEGREES = 1.5
+TacoRainController.DECOR_SHAKE_RADIUS = 14
+TacoRainController.DECOR_SHAKE_DEGREES = 0.6
+TacoRainController.DECOR_SHAKE_GAP = 0.35
+TacoRainController.SHAKE_SECONDS = 0.3
 
 local player = Players.LocalPlayer
 local assets = nil -- ReplicatedStorage.Assets.VFX.TacoRain
@@ -162,18 +173,53 @@ local function hide(part)
 end
 
 ----------------------------------------------------------------------------------------------------
+-- camera shake (a taco landing near you)
+----------------------------------------------------------------------------------------------------
+
+local shake = { magnitude = 0, startedAt = 0, seconds = TacoRainController.SHAKE_SECONDS, applied = nil }
+local lastDecorShake = 0
+
+local function shakeLocal(degrees, seconds)
+	local now = os.clock()
+	local left = if now - shake.startedAt < shake.seconds then shake.magnitude * (1 - (now - shake.startedAt) / shake.seconds) else 0
+	shake.magnitude = math.max(left, degrees)
+	shake.startedAt = now
+	shake.seconds = seconds
+end
+
+-- Shakes the camera when `position` is within `radius` of the local player, harder the closer it lands.
+local function shakeNear(position, radius, degrees)
+	local root = rootPart()
+	if root == nil then
+		return false
+	end
+	local distance = (root.Position - position).Magnitude
+	if distance >= radius then
+		return false
+	end
+	shakeLocal(degrees * (1 - distance / radius), TacoRainController.SHAKE_SECONDS)
+	return true
+end
+TacoRainController._shakeNear = shakeNear
+
+----------------------------------------------------------------------------------------------------
 -- bursts (StruckVFX) and the "x3 TACO!" label
 ----------------------------------------------------------------------------------------------------
 
 local bursts, nextBurst = {}, 0
 
-local function burst(position, multiplier)
-	local template = assets and assets:FindFirstChild("StruckVFX")
+local function burst(position, multiplier, small)
+	local name = if small then "StruckVFXSmall" else "StruckVFX"
+	local template = assets and (assets:FindFirstChild(name) or assets:FindFirstChild("StruckVFX"))
 	if template == nil then
 		return
 	end
 	nextBurst = nextBurst % TacoRainController.BURSTS + 1
 	local holder = bursts[nextBurst]
+	if holder ~= nil and holder.Name ~= template.Name then
+		holder:Destroy() -- this slot held the other size
+		holder = nil
+	end
 	if holder == nil or holder.Parent == nil then
 		holder = template:Clone()
 		holder.Anchored = true
@@ -409,7 +455,11 @@ local function step(dt)
 		local hit = Workspace:Raycast(taco.pos, nextPos - taco.pos, rayParams)
 		if hit or now - taco.born > 5 then
 			if hit and (not s.low or math.random() < 0.5) then
-				burst(hit.Position, 1)
+				burst(hit.Position, 1, true)
+			end
+			if hit and now - lastDecorShake >= TacoRainController.DECOR_SHAKE_GAP
+				and shakeNear(hit.Position, TacoRainController.DECOR_SHAKE_RADIUS, TacoRainController.DECOR_SHAKE_DEGREES) then
+				lastDecorShake = now
 			end
 			hide(taco.part)
 			table.insert(s.pool, taco.part)
@@ -469,6 +519,7 @@ local function drop(payload)
 			connection:Disconnect()
 			taco:Destroy()
 			burst(target, 2)
+			shakeNear(target, TacoRainController.SHAKE_RADIUS, TacoRainController.SHAKE_DEGREES)
 		end
 	end)
 end
@@ -491,6 +542,27 @@ local function onEvent(payload)
 end
 
 function TacoRainController:Start()
+	-- the landing shake, after the camera scripts; last frame's offset comes back off before they run (no drift). It
+	-- nests inside HeroWeaponController's shake (priority -1 / +1): undone first, applied last.
+	RunService:BindToRenderStep("TacoRainShakeUndo", Enum.RenderPriority.Camera.Value - 2, function()
+		local camera = Workspace.CurrentCamera
+		if camera and shake.applied then
+			camera.CFrame = camera.CFrame * shake.applied:Inverse()
+		end
+		shake.applied = nil
+	end)
+	RunService:BindToRenderStep("TacoRainShake", Enum.RenderPriority.Camera.Value + 2, function()
+		local elapsed = os.clock() - shake.startedAt
+		local camera = Workspace.CurrentCamera
+		if camera and shake.magnitude > 0 and elapsed < shake.seconds then
+			local fade = 1 - elapsed / shake.seconds
+			local m = math.rad(shake.magnitude) * fade * fade
+			local t = os.clock() * 36
+			local offset = CFrame.Angles(math.noise(t, 2.3) * m * 2, math.noise(t, 9.1) * m * 2, math.noise(t, 17.7) * m)
+			camera.CFrame = camera.CFrame * offset
+			shake.applied = offset
+		end
+	end)
 	task.spawn(function()
 		local assetsFolder = ReplicatedStorage:WaitForChild("Assets", 30)
 		local vfx = assetsFolder and assetsFolder:WaitForChild("VFX", 30)

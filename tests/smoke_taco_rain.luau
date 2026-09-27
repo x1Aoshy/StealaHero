@@ -248,6 +248,18 @@ if chunk then
 end
 if T.check(ok and type(mod) == "table" and type(mod.DropOnEgg) == "function", "TacoRainService did not load in the sandbox: %s", tostring(mod)) then
 	pcall(mod.Init, mod)
+	-- round 11 (owner 2026-09-27: "the taco rain must only be started from admin, not randomly"): Branch runs every
+	-- service's Init then Start(self) at boot; the old Start(duration) took that call as a 75 s rain on every server
+	if type(mod.Start) == "function" then
+		pcall(mod.Start, mod)
+	end
+	T.check(mod.Start == nil and attributes.TacoRainUntil == nil and not mod.IsActive(),
+		"Branch's boot-time :Start() must never start a rain (TacoRainService has no Start)")
+	local refused = mod.StartRain(mod)
+	T.check(refused == false and attributes.TacoRainUntil == nil, "StartRain must refuse anything but a duration in seconds")
+	T.check(mod.StartRain(60) == true and attributes.TacoRainUntil == 1060 and mod.IsActive(), "StartRain(60) must start a 60 s rain")
+	T.check(mod.StopRain("test") == true and attributes.TacoRainUntil == nil and not mod.IsActive(), "StopRain must end it")
+	table.clear(fired) -- the Stop broadcast: the drops below count from the first event
 	local lowFirst = { NextNumber = function()
 		return 0.1 -- < 0.5: the plot pool
 	end, NextInteger = function(_, a)
@@ -278,4 +290,79 @@ if T.check(ok and type(mod) == "table" and type(mod.DropOnEgg) == "function", "T
 	local before = #sets
 	mod.DropOnEgg(gone)
 	T.check(fired[#fired].Action == "Miss" and #sets == before, "a taco landing on an egg that is gone must be a Miss")
+end
+
+-- 6. round 11 (owner 2026-09-27) ---------------------------------------------------------------------------------
+--   * only the admin panel starts a rain: nothing but HeroAdminService calls StartRain, and no Branch segment defines a
+--     dot-style Start(arg) that Branch's boot-time :Start() would call with the module itself as the argument;
+--   * "one of the taco rain textures shows bugged and huge": the taco picture is never drawn as a 4x4 flipbook, the
+--     flake / spark sheets keep theirs; the decorative landings burst in the smaller StruckVFXSmall;
+--   * "the small camera shake when a taco falls near you is missing": the controller shakes the camera by distance.
+do
+	local callers = {}
+	for _, d in ipairs(place:GetDescendants()) do
+		if d:IsA("LuaSourceContainer") and H.has(src(d), ".StartRain(") and d.Name ~= "TacoRainService" then
+			table.insert(callers, d.Name)
+		end
+	end
+	T.check(#callers == 1 and callers[1] == "HeroAdminService", "only HeroAdminService may start a Taco Rain (callers: %s)",
+		table.concat(callers, ", "))
+	local adminSrc2 = src(H.path(sss, "BranchServices/HeroAdminService"))
+	T.check(H.has(adminSrc2, "return service.StartRain(duration or service.DEFAULT_DURATION)")
+		and H.has(adminSrc2, 'return service.StopRain("admin")'), "the admin commands must call StartRain / StopRain")
+	local traps = {}
+	for _, folder in ipairs({ H.path(sss, "BranchServices"), H.path(sps, "BranchControllers") }) do
+		for _, m in ipairs(folder and folder:GetChildren() or {}) do
+			if m:IsA("ModuleScript") then
+				local param = string.match(src(m), "\nfunction%s+[%w_]+%.Start%(([^)]*)%)")
+				if param ~= nil and param ~= "" and param ~= "self" and param ~= "_self" then
+					table.insert(traps, m.Name .. "(" .. param .. ")")
+				end
+			end
+		end
+	end
+	T.check(#traps == 0, "Branch calls :Start() on every segment at boot; a dot-style Start(arg) gets the module as arg: %s",
+		table.concat(traps, ", "))
+
+	local badFlip, sheets = {}, 0
+	for _, root in ipairs({ assets, H.path(rs, "Mutation_FX/Taco") }) do
+		for _, d in ipairs(root and root:GetDescendants() or {}) do
+			if d:IsA("ParticleEmitter") then
+				local id = tostring(H.assetId(H.uri(d, "TextureContent")))
+				if id == "84855954319870" and d.FlipbookLayout ~= roblox.Enum.ParticleFlipbookLayout.None then
+					table.insert(badFlip, d:GetFullName())
+				elseif id == "13802408466" then
+					sheets += 1
+					if d.FlipbookLayout ~= roblox.Enum.ParticleFlipbookLayout.Grid4x4 then
+						table.insert(badFlip, d:GetFullName())
+					end
+				end
+			end
+		end
+	end
+	T.check(#badFlip == 0 and sheets > 0, "taco picture drawn as a flipbook / flake sheet without its grid: %s", table.concat(badFlip, ", "))
+	local small = assets and assets:FindFirstChild("StruckVFXSmall")
+	local function biggest(root)
+		local top = 0
+		for _, d in ipairs(root and root:GetDescendants() or {}) do
+			if d:IsA("ParticleEmitter") then
+				for _, k in ipairs(d.Size.Keypoints) do
+					top = math.max(top, k.Value)
+				end
+			end
+		end
+		return top
+	end
+	T.check(small ~= nil and biggest(small) > 0 and biggest(small) <= biggest(struck) * 0.45,
+		"StruckVFXSmall must be the explosion at under half its size (%.2f vs %.2f)", biggest(small), biggest(struck))
+
+	local controllerSrc2 = src(H.path(sps, "BranchControllers/TacoRainController"))
+	for _, needle in ipairs({ "local function shakeNear(position, radius, degrees)",
+		'RunService:BindToRenderStep("TacoRainShakeUndo", Enum.RenderPriority.Camera.Value - 2',
+		'RunService:BindToRenderStep("TacoRainShake", Enum.RenderPriority.Camera.Value + 2',
+		"shakeNear(target, TacoRainController.SHAKE_RADIUS, TacoRainController.SHAKE_DEGREES)",
+		"shakeNear(hit.Position, TacoRainController.DECOR_SHAKE_RADIUS, TacoRainController.DECOR_SHAKE_DEGREES)",
+		"burst(hit.Position, 1, true)" }) do
+		T.check(H.has(controllerSrc2, needle), "TacoRainController must contain %s", needle)
+	end
 end

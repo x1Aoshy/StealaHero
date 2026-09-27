@@ -834,6 +834,80 @@ local function speedService()
 	return speedServiceModule or nil
 end
 
+-- Training dummies ragdoll for real (owner 2026-09-27, round 11: "the dummy's R15 ragdoll still does not work, its
+-- legs stay anchored"): a hit used to slide / spin the dummy's root while its Humanoid kept balancing, so the body slid
+-- on planted legs. No client owns a dummy, so the server does what GearRagdollController does for a player's own body:
+-- limb sockets (buildRagdollJoints), the Physics state with PlatformStand (the Humanoid stops balancing), the limbs
+-- collide (not the root box), every part server-owned and thrown along the hit with a tumble. The state's end puts the
+-- joints back and the dummy keeper eases it up on its spot.
+local DUMMY_FLING_MIN, DUMMY_FLING_MAX = 16, 46 -- studs/s along the hit (from the weapon's Push)
+local DUMMY_FLING_UP = 18
+local DUMMY_TUMBLE = 5 -- rad/s tipping the head along the flight
+local dummyRagdolls = setmetatable({}, { __mode = "k" }) -- [dummy] = { motors, collisions }
+
+local function ragdollDummy(model, humanoid, root, direction, push)
+	if dummyRagdolls[model] ~= nil then
+		return
+	end
+	local ok, motors = pcall(buildRagdollJoints, model, root, humanoid)
+	if not ok then
+		log("training dummy ragdoll joints failed: " .. tostring(motors))
+		motors = {}
+	end
+	local state = { motors = motors, collisions = {} }
+	dummyRagdolls[model] = state
+	model:SetAttribute("DummyRagdolled", true)
+	pcall(humanoid.SetStateEnabled, humanoid, Enum.HumanoidStateType.Physics, true)
+	humanoid.PlatformStand = true
+	pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Physics)
+	local heading = if typeof(direction) == "Vector3" then Vector3.new(direction.X, 0, direction.Z) else Vector3.zero
+	heading = if heading.Magnitude > 0.01 then heading.Unit else -root.CFrame.LookVector
+	local speed = math.clamp((tonumber(push) or 0) * 0.9, DUMMY_FLING_MIN, DUMMY_FLING_MAX)
+	local velocity = heading * speed + Vector3.new(0, DUMMY_FLING_UP, 0)
+	local spin = Vector3.yAxis:Cross(heading) * DUMMY_TUMBLE
+	for _, part in ipairs(model:GetDescendants()) do
+		if isBodyPart(model, humanoid, part) then
+			local wanted = part ~= root
+			if part.CanCollide ~= wanted then
+				state.collisions[part] = part.CanCollide
+				part.CanCollide = wanted
+			end
+			-- every limb is its own assembly now: keep them all on the server (never a nearby player's client)
+			pcall(part.SetNetworkOwner, part, nil)
+			part.AssemblyLinearVelocity = velocity
+			part.AssemblyAngularVelocity = spin
+		end
+	end
+end
+
+local function endDummyRagdoll(model)
+	local state = dummyRagdolls[model]
+	if state == nil then
+		return
+	end
+	dummyRagdolls[model] = nil
+	local ok, err = pcall(clearRagdollJoints, model, state.motors)
+	if not ok then
+		log("training dummy ragdoll restore failed: " .. tostring(err))
+	end
+	for part, canCollide in pairs(state.collisions) do
+		if part.Parent then
+			part.CanCollide = canCollide
+		end
+	end
+	model:SetAttribute("DummyRagdolled", nil)
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		pcall(root.SetNetworkOwner, root, nil)
+	end
+	if humanoid and humanoid.Parent and humanoid.Health > 0 then
+		humanoid.PlatformStand = false
+		pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.GettingUp)
+		pcall(humanoid.SetStateEnabled, humanoid, Enum.HumanoidStateType.Physics, false)
+	end
+end
+
 -- Gives the victim their movement back (once). A trapped victim's movement belongs to the trap and is never touched.
 local function restoreMovement(victim, state)
 	if not state.moved or state.restored then
@@ -879,7 +953,8 @@ endDebuff = function(victim, character, token)
 	end
 	fireBatFx({ Action = "DebuffEnd", Victim = victim, Token = state.token })
 	if not victim:IsA("Player") then
-		dummyCalmAt[character] = os.clock() + 0.8 -- a training dummy goes back to its spot a moment later
+		endDummyRagdoll(character)
+		dummyCalmAt[character] = os.clock() + 0.5 -- a training dummy gets up on its spot a moment later
 	end
 end
 
@@ -887,37 +962,7 @@ end
 -- (WalkSpeed / jump / AutoRotate saved and restored like the trap freeze); the slide / spin itself is the victim's
 -- own client (it owns the character's physics), everything visible is drawn by every client from the broadcast.
 -- `direction` is the flat unit knockback heading. options.IgnoreImmunity: a carrier who just lost the egg.
--- A training dummy has no client to move it: the server gives it the slide / spin itself.
-local function moveDummy(character, root, effect, direction, push, duration)
-	local slide = tonumber(effect.Slide)
-	if slide and slide > 0 and type(push) == "number" and typeof(direction) == "Vector3" then
-		-- the Humanoid damps a one-off push at once: keep sliding it like a player's own client does
-		local startedAt = os.clock()
-		task.spawn(function()
-			while root.Parent and debuffs[character] ~= nil do
-				local t = os.clock() - startedAt
-				if t >= slide then
-					break
-				end
-				local speed = 2 * push / slide * (1 - t / slide)
-				root.AssemblyLinearVelocity = Vector3.new(direction.X * speed, root.AssemblyLinearVelocity.Y, direction.Z * speed)
-				task.wait()
-			end
-		end)
-	elseif effect.NoAutoRotate then
-		local stopAt = os.clock() + math.min(duration, 2.2)
-		task.spawn(function()
-			while os.clock() < stopAt and root.Parent and debuffs[character] ~= nil do
-				root.AssemblyAngularVelocity = Vector3.new(0, 22, 0)
-				task.wait(0.1)
-			end
-			if root.Parent then
-				root.AssemblyAngularVelocity = Vector3.zero
-			end
-		end)
-	end
-end
-
+-- A training dummy has no client to move it: the server ragdolls it itself (ragdollDummy above).
 local function applyDebuff(victim, weapon, direction, options)
 	options = type(options) == "table" and options or {}
 	local character, humanoid, root = targetCharacter(victim)
@@ -991,7 +1036,7 @@ local function applyDebuff(victim, weapon, direction, options)
 		Slide = slide,
 	})
 	if not victim:IsA("Player") then
-		moveDummy(character, root, effect, direction, weapon.Push, duration)
+		ragdollDummy(character, humanoid, root, direction, weapon.Push)
 	end
 	task.delay(duration, endDebuff, victim, character, token)
 	return true
@@ -1357,8 +1402,9 @@ local function launchAimed(player, tool, root, weapon)
 end
 
 -- Training dummies (the admin panel's HeroWeaponDummy models, owner 2026-09-27: "the dummy bugs, it stays weird"):
--- no client moves them, so the server keeps them on their feet (no trip / ragdoll / physics states) and puts them back
--- upright on their spot a moment after every state (a knockback slide, a spin, a lucky shove).
+-- no client moves them, so the server keeps them on their feet between hits (no trip / physics states: only
+-- ragdollDummy turns Physics on while it lies limp) and eases them back upright on their spot a moment after every
+-- state or lucky shove. A ragdolled, stunned or settling dummy is left alone.
 local dummyHomes = setmetatable({}, { __mode = "k" }) -- [model] = its root's upright CFrame where it was placed
 local DUMMY_TRIP_STATES = { Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll,
 	Enum.HumanoidStateType.Physics, Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.PlatformStanding }
@@ -1379,16 +1425,39 @@ local function watchDummy(model)
 	dummyHomes[model] = CFrame.new(root.Position) * CFrame.fromOrientation(0, yaw, 0)
 end
 
+local DUMMY_SETTLE_SECONDS = 0.35
+local settling = setmetatable({}, { __mode = "k" }) -- [dummy] = true while it eases back up
+
+-- Eases the dummy from where it lies back up onto its spot (the root carries the whole rig: its joints are back on).
 local function settleDummy(model, root)
 	local home = dummyHomes[model]
-	if not home then
+	if not home or settling[model] then
 		return
 	end
-	root.AssemblyLinearVelocity = Vector3.zero
-	root.AssemblyAngularVelocity = Vector3.zero
-	model:PivotTo(home * root.CFrame:ToObjectSpace(model:GetPivot()))
+	settling[model] = true
+	local from = root.CFrame
+	local startedAt = os.clock()
+	local function still()
+		return root.Parent ~= nil and debuffs[model] == nil and dummyRagdolls[model] == nil
+	end
+	while still() do
+		local alpha = math.clamp((os.clock() - startedAt) / DUMMY_SETTLE_SECONDS, 0, 1)
+		local eased = 1 - (1 - alpha) * (1 - alpha)
+		model:PivotTo(from:Lerp(home, eased) * root.CFrame:ToObjectSpace(model:GetPivot()))
+		for _, part in ipairs(model:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.AssemblyLinearVelocity = Vector3.zero
+				part.AssemblyAngularVelocity = Vector3.zero
+			end
+		end
+		if alpha >= 1 then
+			break
+		end
+		RunService.Heartbeat:Wait()
+	end
+	settling[model] = nil
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
-	if humanoid then
+	if humanoid and still() then
 		pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Running)
 	end
 end
@@ -1408,14 +1477,18 @@ if HeroWeapons then
 				local root = model.Parent and model:FindFirstChild("HumanoidRootPart")
 				if not root then
 					dummyHomes[model] = nil
-				elseif debuffs[model] == nil and now >= (dummyCalmAt[model] or 0) then
+				elseif debuffs[model] == nil and dummyRagdolls[model] == nil and not settling[model]
+					and now >= (dummyCalmAt[model] or 0) then
 					local tilted = root.CFrame.UpVector.Y < 0.95
 					local away = (root.Position - home.Position).Magnitude > 0.75
 					if tilted or away then
-						local ok, err = pcall(settleDummy, model, root)
-						if not ok then
-							log("training dummy reset failed: " .. tostring(err))
-						end
+						task.spawn(function()
+							local ok, err = pcall(settleDummy, model, root)
+							if not ok then
+								settling[model] = nil
+								log("training dummy reset failed: " .. tostring(err))
+							end
+						end)
 					end
 				end
 			end

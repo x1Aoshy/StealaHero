@@ -3,7 +3,10 @@
 -- Owner 2026-09-27: "migrate the taco event (without the treadmill) to the admin panel: a rain of tacos, where there is a
 -- chance a taco falls on an egg in your base or on the stages, which multiplies that egg x3, with the taco explosion VFX,
 -- the taco particle emitter and the taco music". Server-authoritative:
---   * Start(duration) / Stop() (the admin panel's World tab, through BranchServices.HeroAdminService). While it runs the
+--   * StartRain(duration) / StopRain() (the admin panel's World tab, through BranchServices.HeroAdminService: the ONLY
+--     way a rain starts). Round 11 (owner 2026-09-27: "the taco rain must only be started from admin, not randomly"):
+--     these were named Start / Stop, and Branch calls every service's :Start() once the server boots, so every server
+--     began with a 75 s rain nobody asked for. This service has no Branch Start on purpose. While it runs the
 --     Workspace attribute TacoRainUntil holds the end (server time) and TacoRainHits the eggs hit so far: every client
 --     (BranchControllers.TacoRainController) draws the sky, the music and the decorative tacos from them alone, so a
 --     player who joins mid-event sees it too.
@@ -304,7 +307,7 @@ function TacoRainService.TimeLeft()
 	return if current and type(untilAt) == "number" then math.max(0, untilAt - Workspace:GetServerTimeNow()) else 0
 end
 
-function TacoRainService.Stop(reason)
+function TacoRainService.StopRain(reason)
 	if current == nil then
 		return false, "The Taco Rain is not running"
 	end
@@ -317,9 +320,11 @@ function TacoRainService.Stop(reason)
 	return true, message
 end
 
-function TacoRainService.Start(duration)
-	duration = math.clamp(math.floor(tonumber(duration) or TacoRainService.DEFAULT_DURATION), TacoRainService.MIN_DURATION,
-		TacoRainService.MAX_DURATION)
+function TacoRainService.StartRain(duration)
+	if type(duration) ~= "number" or duration ~= duration then
+		return false, "The Taco Rain needs a duration in seconds" -- never a Branch lifecycle call (its self is a table)
+	end
+	duration = math.clamp(math.floor(duration), TacoRainService.MIN_DURATION, TacoRainService.MAX_DURATION)
 	local token = {}
 	local restarted = current ~= nil
 	current = token
@@ -345,13 +350,14 @@ function TacoRainService.Start(duration)
 			end
 		end
 		if current == token then
-			TacoRainService.Stop("time")
+			TacoRainService.StopRain("time")
 		end
 	end)
 	print(string.format("[TacoRain] %s for %d s", if restarted then "restarted" else "started", duration))
 	return true, string.format("Taco Rain %s: %d s", if restarted then "restarted" else "started", duration)
 end
 
+-- Branch lifecycle: Init only (no :Start(), see the header: a rain only starts from the admin panel).
 function TacoRainService:Init()
 	local network = ReplicatedStorage:FindFirstChild("Network") or ReplicatedStorage:WaitForChild("Network", 4)
 	if network == nil then

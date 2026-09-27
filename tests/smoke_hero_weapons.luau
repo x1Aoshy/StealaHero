@@ -401,7 +401,7 @@ do
 		"local function stepFlight(flight, now)", "Action = \"ProjectileEnd\"", "local function explodeGrenade(",
 		"local function modelRadius(tool, weapon)", "params.RespectCanCollide = true", "elseif kind == \"Spin\" then",
 		"local function targetCharacter(victim)", "CollectionService:HasTag(victim, HeroWeapons.DUMMY_TAG)",
-		"local function moveDummy(", "if weapon.Aimed then", "Action = \"ProjectileTurn\"", "Seq = seq,",
+		"local function ragdollDummy(model, humanoid, root, direction, push)", "if weapon.Aimed then", "Action = \"ProjectileTurn\"", "Seq = seq,",
 		"clearLine(flight.raycast, position, seen)", "local wall = flight.raycast(flight.last, position - flight.last)",
 		"HeroWeapons.ReturnHome(root.CFrame)" }) do
 		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
@@ -534,8 +534,31 @@ do
 	end
 	T.check(H.has(controllerSrc, "pcall(Kit.SetStretch, play.tool, keyed(play.stretch, elapsed))"), "the controller must play the clip's Stretch keys")
 	for _, needle in ipairs({ "local function watchDummy(model)", "local function settleDummy(model, root)",
-		"CollectionService:GetInstanceAddedSignal(HeroWeapons.DUMMY_TAG)", "dummyCalmAt[character] = os.clock() + 0.8",
+		"CollectionService:GetInstanceAddedSignal(HeroWeapons.DUMMY_TAG)", "dummyCalmAt[character] = os.clock() + 0.5",
 		"* (tonumber(weapon.LineOffset) or 0)" }) do
 		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
 	end
+end
+
+-- 8. round 11 (owner 2026-09-27): "the dummy's R15 ragdoll still does not work, its legs stay anchored". A hit ragdolls
+--    the dummy on the server (sockets, Physics + PlatformStand, limbs collide, server-owned, flung along the hit), the
+--    state's end restores it and the keeper eases it up; the keeper never pulls a limp / stunned / settling dummy.
+do
+	for _, needle in ipairs({
+		"ragdollDummy(character, humanoid, root, direction, weapon.Push)",
+		"local ok, motors = pcall(buildRagdollJoints, model, root, humanoid)",
+		"pcall(humanoid.SetStateEnabled, humanoid, Enum.HumanoidStateType.Physics, true)",
+		"pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Physics)",
+		"pcall(part.SetNetworkOwner, part, nil)",
+		"local function endDummyRagdoll(model)",
+		"endDummyRagdoll(character)",
+		"elseif debuffs[model] == nil and dummyRagdolls[model] == nil and not settling[model]",
+	}) do
+		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
+	end
+	T.check(not H.has(gearSrc, "local function moveDummy("), "the root-only slide that left the dummy's legs planted must be gone")
+	-- the trip states stay off between hits, but Physics is only turned on for the ragdoll itself
+	local ragdollBody = string.match(gearSrc, "local function ragdollDummy%(.-\nend\n") or ""
+	T.check(H.has(ragdollBody, "humanoid.PlatformStand = true") and H.has(ragdollBody, "local wanted = part ~= root"),
+		"ragdollDummy must go limp (PlatformStand) and let the limbs, not the root box, collide")
 end

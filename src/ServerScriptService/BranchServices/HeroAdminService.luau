@@ -1007,7 +1007,7 @@ COMMANDS.TacoRainStart = function(ctx)
 	if duration ~= nil and not finiteNumber(duration, service.MIN_DURATION, service.MAX_DURATION) then
 		return false, string.format("Duration must be %d to %d s", service.MIN_DURATION, service.MAX_DURATION)
 	end
-	return service.Start(duration)
+	return service.StartRain(duration or service.DEFAULT_DURATION)
 end
 
 COMMANDS.TacoRainStop = function(_ctx)
@@ -1015,7 +1015,7 @@ COMMANDS.TacoRainStop = function(_ctx)
 	if service == nil then
 		return false, "The Taco Rain service is not running"
 	end
-	return service.Stop("admin")
+	return service.StopRain("admin")
 end
 
 COMMANDS.UnlockBaseThemes = function(ctx)

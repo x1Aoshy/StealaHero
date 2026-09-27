@@ -113,8 +113,10 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     (`scripts/tools/vendor_weapon_vfx.luau`: Speedsters' Eggman missile blast, the Ban Hammer lightning / impact) ->
     `ReplicatedStorage.Assets.VFX.HeroWeapons`, plus the place's LightningHit and Mutation_FX.Shocked.
   - Training dummies (CollectionService tag `HeroWeaponDummy`, spawned by the admin panel) are hit like players.
-    GearService's dummy keeper (`watchDummy` / `settleDummy`) turns their trip states off and stands them back up at
-    their spawn spot 0.8 s after each state ends.
+    GearService's dummy keeper (`watchDummy` / `settleDummy`) turns their trip states off between hits and eases them
+    back up at their spawn spot 0.5 s after each state ends. Round 11: a hit ragdolls a dummy on the server
+    (`ragdollDummy`: limb sockets, Physics + PlatformStand, limbs collide, every part server-owned, flung along the hit;
+    `endDummyRagdoll` at the state's end). The keeper never touches a limp, stunned or settling dummy.
   **Round 10 (owner 2026-09-27)**:
   - Luffy's fist plays the authored `Gomu_Pistol_Long` clip: a straight-ahead punch with `Stretch` keys up to x7.5.
     `Kit.SetStretch` scales the rubber arm, and the fist rides its end by `StretchLength` (1.55, set by post_hero_weapons).
@@ -140,6 +142,9 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - The close X was dim because the kit's emboss disc sat above its art. It now carries a `TextButton` glyph like the
     Index window's, inside the band at ZIndex 20.
 - **Taco Rain** (owner 2026-09-27, admin World tab: start 60 / 90 s, stop), ported from V40's "Events / Raining Tacos":
+  - Only the admin panel starts it: `TacoRainService.StartRain` / `StopRain`. They used to be named `Start` / `Stop`,
+    and Branch calls every segment's `:Start()` at boot, so every server began with a 75 s rain (round 11). Never give
+    a Branch segment a dot-style `Start(arg)`; smoke_taco_rain checks every segment for it.
   - `BranchServices.TacoRainService` rolls every second: 15% chance to aim a taco at an egg placed on a player's base
     or resting in a stage nest (`AreaEggService.GetRestingEggs` / `AddRestingEggMutation`), 30 hits max per event.
   - When the taco lands (1.7 s), the server re-checks the egg and gives it the `Taco` mutation (`Mutations.luau`:
@@ -150,7 +155,11 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
     bursts, a floating "x3 TACO!", and a lighter mode on phones.
   - `EggRenderer.ApplyMutationParticles` draws `Mutation_FX.Taco` on every render of a taco'd egg.
   - Assets: `vendor/taco_rain.rbxm` (`scripts/tools/vendor_taco_rain.luau`, from the VFX library), published by
-    `post_taco_rain`.
+    `post_taco_rain`. Its flipbooks follow Speedsters' sheet table (`Step.SHEETS`): the taco picture 84855954319870 is
+    one image, and V40 drew it as a 4x4 sheet (a huge, broken crop). `StruckVFXSmall` (0.4 size) is the burst for the
+    decorative tacos; egg hits keep the full `StruckVFX`.
+  - A taco landing near the local player shakes the camera: up to 1.5° within 30 studs for an egg hit, 0.6° within
+    14 studs for a decorative taco, throttled to one every 0.35 s.
   - Music: `SoundService.TacoRainMusic` = 142376088, the only `AudioStep.OWNER_AUDIO` exception to the whitelist
     (owner request). It stays silent if that audio is not shared with the experience.
 - **Treadmills** (`scripts/steps/treadmill.luau`, round 10): the skins used to sit ~1.2 studs sunk. Now each model
@@ -246,6 +255,12 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the raised treadmills: runner on the belt, the ramp, the moved upgrade signs;
   - admin amounts like `10m` / `2.5B`, and the close X;
   - Taco Rain: whether 142376088 plays, the sky and tint, the taco size, a hit on a base egg and on a stage egg.
+- (2026-09-27, 11th pass) Test in Studio Play:
+  - a training dummy going limp on a hit (legs included) and getting back up on its spot;
+  - a fresh server starts with no Taco Rain;
+  - the taco sky with no broken texture;
+  - the camera shake when a taco lands near you;
+  - the HUD on the treadmill (see the treadmill HUD notes).
 - (2026-09-27, 8th pass) The owner imported the 15 FBX models themselves and sent them as a raw `.rbxm`
   (`assets/user_models/HeroWeaponImports_owner_0927.rbxm`, extracted to `assets/hero_weapons/imports/`): every weapon
   now uses the owner's model (the kit's Prepare runs offline: grip from the import pivot = FBX origin, palette

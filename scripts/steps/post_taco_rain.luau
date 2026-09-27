@@ -6,7 +6,8 @@
 -- the admin panel; its client: StarterPlayerScripts.BranchControllers.TacoRainController):
 --   1. vendor/taco_rain.rbxm (scripts/tools/vendor_taco_rain.luau, Steal a Brainrot's Raining Tacos event) ->
 --      ReplicatedStorage.Assets.VFX.TacoRain.{Taco, StruckVFX, TacoAmbient}: the falling taco, the taco explosion and the
---      sky of tacos. Every emitter is left disabled in storage (the client enables / emits its copies).
+--      sky of tacos, plus StruckVFXSmall (the explosion at 0.4 size for the decorative tacos). Every emitter is left
+--      disabled in storage (the client enables / emits its copies); flipbooks follow Step.SHEETS / SINGLE_PICTURES.
 --   2. ReplicatedStorage.Mutation_FX.Taco: the Taco mutation's particles (Library.Modules.Mutations "Taco" puts them on a
 --      hero's FX part, Library.Client.Eggs.EggRenderer on a taco'd egg), derived from TacoAmbient's own taco emitter and
 --      yellow flakes: a few tacos and crumbs popping off the egg / hero. Tagged EggVfx (PerfController halves them on
@@ -38,6 +39,28 @@ Step.MUSIC_GROUP = { "Music", "AdminAbuseMusic" }
 Step.REMOTE = "TacoRain: Event"
 Step.TACO_TEXTURE = "84855954319870" -- TacoAmbient's taco sprite
 Step.FLAKE_TEXTURE = "13802408466" -- TacoAmbient's yellow flakes
+-- Round 11 (owner 2026-09-27: "one of the taco rain textures shows bugged and huge"): V40's TacoAmbient drew its taco
+-- picture with a 4x4 flipbook, so every particle showed one enlarged sixteenth of the taco. Speedsters' own table
+-- (Shared.ParticleFlipbooks) is the reference: these textures ARE 4x4 animation sheets, the taco is ONE picture.
+Step.SHEETS = {
+	["13802408466"] = true, -- the yellow / red / green taco flakes
+	["8733488500"] = true, -- pixel blob
+	["116373783921886"] = true, -- pixel burst
+	["18802780455"] = true, -- fire specs
+	["123944207040840"] = true, -- fire specs (orange)
+	["16551638647"] = true, -- hit spark
+	["15435367107"] = true,
+	["17629991673"] = true, -- sharp
+	["14687560696"] = true, -- circle
+	["11866495294"] = true, -- pixelated smoke puff
+	["16888340643"] = true,
+}
+Step.SINGLE_PICTURES = { [Step.TACO_TEXTURE] = true }
+-- The decorative tacos that land all around the player burst in a smaller copy of StruckVFX (V40's explosion is
+-- 7-10 studs wide: meant for the one taco that hits something); the egg hits keep the full one.
+Step.SMALL_BURST = "StruckVFXSmall"
+Step.SMALL_BURST_SIZE = 0.4
+Step.SMALL_BURST_SPEED = 0.6
 
 local function log(fmt, ...)
 	print(string.format("[post_taco_rain] " .. fmt, ...))
@@ -72,6 +95,46 @@ local function emitterWith(root, id, flipbook)
 		end
 	end
 	return nil
+end
+
+-- Gives every emitter under `root` the flipbook its texture needs; returns how many it changed.
+function Step.FixFlipbooks(root)
+	local changed = 0
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("ParticleEmitter") then
+			local id = textureOf(d)
+			if Step.SINGLE_PICTURES[id] and d.FlipbookLayout ~= Enum.ParticleFlipbookLayout.None then
+				d.FlipbookLayout = Enum.ParticleFlipbookLayout.None
+				changed += 1
+			elseif Step.SHEETS[id] and d.FlipbookLayout == Enum.ParticleFlipbookLayout.None then
+				d.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+				d.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+				changed += 1
+			end
+		end
+	end
+	return changed
+end
+
+local function scaled(sequence, factor)
+	local keys = {}
+	for _, k in ipairs(sequence.Keypoints) do
+		table.insert(keys, NumberSequenceKeypoint.new(k.Time, k.Value * factor, k.Envelope * factor))
+	end
+	return NumberSequence.new(keys)
+end
+
+-- A copy of `struck` whose particles are Step.SMALL_BURST_SIZE as big and travel Step.SMALL_BURST_SPEED as far.
+function Step.SmallBurst(struck)
+	local small = struck:Clone()
+	small.Name = Step.SMALL_BURST
+	for _, d in ipairs(small:GetDescendants()) do
+		if d:IsA("ParticleEmitter") then
+			d.Size = scaled(d.Size, Step.SMALL_BURST_SIZE)
+			d.Speed = NumberRange.new(d.Speed.Min * Step.SMALL_BURST_SPEED, d.Speed.Max * Step.SMALL_BURST_SPEED)
+		end
+	end
+	return small
 end
 
 local function seq(points)
@@ -132,6 +195,7 @@ function Step.Apply(place, _spPlace, _ctx)
 	local rs = place:GetService("ReplicatedStorage")
 	local source = roblox.deserializeModel(fs.readFile(Step.VENDOR))[1]
 	assert(source and source.Name == Step.FOLDER, Step.VENDOR .. " must hold the TacoRain folder")
+	local fixedFlipbooks = Step.FixFlipbooks(source)
 
 	-- 1. the event assets
 	local assets = rs:FindFirstChild("Assets")
@@ -163,6 +227,8 @@ function Step.Apply(place, _spPlace, _ctx)
 		copy.CanTouch = false
 		copy.Parent = published
 	end
+	local small = Step.SmallBurst(published:FindFirstChild("StruckVFX"))
+	small.Parent = published
 	published.Parent = vfx
 
 	-- 2. the mutation's particles
@@ -219,9 +285,9 @@ function Step.Apply(place, _spPlace, _ctx)
 		remote.Parent = network
 	end
 
-	log("ReplicatedStorage.Assets.VFX.%s (%s, %d emitters), Mutation_FX.%s (%d emitters), SoundService.%s (%s), Network[%q]",
-		Step.FOLDER, table.concat(Step.ASSETS, ", "), emitters, Step.MUTATION, #taco:GetChildren(), Step.MUSIC,
-		if group then group:GetFullName() else "no group", Step.REMOTE)
+	log("ReplicatedStorage.Assets.VFX.%s (%s + %s, %d emitters, %d flipbooks fixed), Mutation_FX.%s (%d emitters), SoundService.%s (%s), Network[%q]",
+		Step.FOLDER, table.concat(Step.ASSETS, ", "), Step.SMALL_BURST, emitters, fixedFlipbooks, Step.MUTATION,
+		#taco:GetChildren(), Step.MUSIC, if group then group:GetFullName() else "no group", Step.REMOTE)
 end
 
 return Step
