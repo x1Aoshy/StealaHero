@@ -229,18 +229,23 @@ function HeroWeapons.AimEnd(weapon: any, origin: Vector3, aim: Vector3, raycast:
 	if raycast then
 		local wall = raycast(origin, finish - origin)
 		if wall then
-			finish = wall - direction * 0.6
-			if (finish - origin).Magnitude < 2 then
-				finish = origin + direction * 2
-			end
+			-- stop short of the wall, never through it (a wall at arm's length ends the throw right there)
+			local reach = math.max((wall - origin).Magnitude - 0.6, 0.5)
+			finish = origin + direction * reach
 		end
 	end
 	return finish
 end
 
+-- Where a returning weapon flies back to: the thrower's catching hand, the same point on the server and every client.
+function HeroWeapons.ReturnHome(rootCFrame: CFrame): Vector3
+	return HeroWeapons.ThrowOrigin(rootCFrame, rootCFrame.Position + rootCFrame.LookVector)
+end
+
 -- A launched projectile's path. path = { Origin, End, Side (+1 / -1), Curve (0 = straight), OutTime, Returns,
 -- BackTime }. Out: a quadratic curve bowing Side of the line by Curve x its length; back (Returns): the mirror bow from
--- End to `home` (the thrower's hand now). Returns the position at `t` seconds and whether the flight is over.
+-- End to `home` (HeroWeapons.ReturnHome of the thrower now), so the way back sweeps the other side of the line.
+-- Returns the position at `t` seconds and whether the flight is over.
 local function bezier(a: Vector3, c: Vector3, b: Vector3, u: number): Vector3
 	local v = 1 - u
 	return a * (v * v) + c * (2 * v * u) + b * (u * u)
@@ -265,7 +270,7 @@ function HeroWeapons.PathPoint(path: any, t: number, home: Vector3?): (Vector3, 
 	local back = target - finish
 	local u = math.clamp((t - path.OutTime) / math.max(path.BackTime or path.OutTime, 0.05), 0, 1)
 	u = u * u * (3 - 2 * u)
-	local control = finish + back * 0.5 + bow * 0.8
+	local control = finish + back * 0.5 - bow * 0.8
 	return bezier(finish, control, target, u), u >= 1
 end
 

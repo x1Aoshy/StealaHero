@@ -887,7 +887,19 @@ end
 local function moveDummy(character, root, effect, direction, push, duration)
 	local slide = tonumber(effect.Slide)
 	if slide and slide > 0 and type(push) == "number" and typeof(direction) == "Vector3" then
-		root.AssemblyLinearVelocity = direction * (push / slide) + Vector3.new(0, 6, 0)
+		-- the Humanoid damps a one-off push at once: keep sliding it like a player's own client does
+		local startedAt = os.clock()
+		task.spawn(function()
+			while root.Parent and debuffs[character] ~= nil do
+				local t = os.clock() - startedAt
+				if t >= slide then
+					break
+				end
+				local speed = 2 * push / slide * (1 - t / slide)
+				root.AssemblyLinearVelocity = Vector3.new(direction.X * speed, root.AssemblyLinearVelocity.Y, direction.Z * speed)
+				task.wait()
+			end
+		end)
 	elseif effect.NoAutoRotate then
 		local stopAt = os.clock() + math.min(duration, 2.2)
 		task.spawn(function()
@@ -1077,9 +1089,12 @@ if not (aimRemote and aimRemote:IsA("RemoteEvent")) then
 	aimRemote.Name = HeroWeapons and HeroWeapons.AIM_REMOTE or "Gear: WeaponAim"
 	aimRemote.Parent = network
 end
-aimRemote.OnServerEvent:Connect(function(player, tool, point)
+aimRemote.OnServerEvent:Connect(function(player, tool, point, seq)
 	if typeof(tool) ~= "Instance" or not tool:IsA("Tool") or typeof(point) ~= "Vector3" then
 		return
+	end
+	if type(seq) ~= "number" or seq ~= seq or seq < 0 or seq > 2 ^ 31 then
+		seq = nil -- the client's throw number, echoed in Launch so it adopts its own predicted flight
 	end
 	if point.X ~= point.X or point.Y ~= point.Y or point.Z ~= point.Z then
 		return -- NaN
@@ -1090,16 +1105,18 @@ aimRemote.OnServerEvent:Connect(function(player, tool, point)
 	end
 	local weapon = heroWeaponOf(tool)
 	if weapon and weapon.Aimed then
-		aims[player] = { tool = tool, point = point, at = os.clock() }
+		aims[player] = { tool = tool, point = point, at = os.clock(), seq = seq and math.floor(seq) }
 	end
 end)
 
+-- The fresh aim point of `tool` (and the client's throw number), consumed by this throw.
 local function aimOf(player, tool, root)
 	local aim = aims[player]
 	if aim and aim.tool == tool and os.clock() - aim.at <= AIM_FRESH then
-		return aim.point
+		aims[player] = nil
+		return aim.point, aim.seq
 	end
-	return root.Position + flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1)) * 30
+	return root.Position + flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1)) * 30, nil
 end
 
 -- Workspace raycast that only stops at collidable world geometry (never a character, a dummy or an effect).
@@ -1130,6 +1147,11 @@ local function wallRaycaster(player)
 		local result = Workspace:Raycast(origin, vector, params)
 		return if result then result.Position else nil
 	end
+end
+
+-- Whether nothing collidable stands between two points (a blast does not reach behind a wall).
+local function clearLine(raycast, from, to)
+	return raycast(from, to - from) == nil
 end
 
 local function segmentDistance(point, a, b)
@@ -1170,7 +1192,7 @@ local function explodeGrenade(flight, position)
 	local found = {}
 	for _, victim in ipairs(weaponVictims(flight.player)) do
 		local seen = seenPosition(flight, victim)
-		if seen and (seen - position).Magnitude <= radius then
+		if seen and (seen - position).Magnitude <= radius and clearLine(flight.raycast, position, seen) then
 			table.insert(found, { victim = victim, distance = (seen - position).Magnitude, away = flatUnit(seen - position, flight.forward) })
 		end
 	end
@@ -1191,9 +1213,32 @@ local function stepFlight(flight, now)
 	local home = nil
 	if path.Returns then
 		local _, _, root = characterOf(flight.player)
-		home = if root then HeroWeapons.ThrowOrigin(root.CFrame, root.Position + root.CFrame.LookVector) else path.Origin
+		home = if root then HeroWeapons.ReturnHome(root.CFrame) else path.Origin
 	end
-	local position, finished = HeroWeapons.PathPoint(path, now - flight.started, home)
+	local t = now - flight.started
+	local position, finished = HeroWeapons.PathPoint(path, t, home)
+	-- the curve and the way back are checked against walls every step, not only the aimed line
+	local wall = flight.raycast(flight.last, position - flight.last)
+	if wall then
+		local direction = position - flight.last
+		direction = if direction.Magnitude > 1e-3 then direction.Unit else flight.forward
+		local stop = wall - direction * 0.5
+		if weapon.Kind == "Grenade" then
+			explodeGrenade(flight, stop)
+			return true
+		elseif weapon.Kind == "Shot" then
+			endFlight(flight, stop, "Miss")
+			return true
+		elseif path.Returns and t < path.OutTime then
+			-- the shield bounces off and comes back from there
+			path.End = stop
+			path.BackTime = HeroWeapons.Travel(weapon, (stop - path.Origin).Magnitude, weapon.ReturnSpeed)
+			path.OutTime = t
+			fireBatFx({ Action = "ProjectileTurn", Id = flight.id, Attacker = flight.player, Weapon = weapon.Id,
+				Position = stop, At = t, BackTime = path.BackTime })
+			position = stop
+		end
+	end
 	local reach = flight.hitRadius + BODY_RADIUS
 	if flight.hits < flight.maxHits then
 		for _, victim in ipairs(weaponVictims(flight.player)) do
@@ -1201,13 +1246,14 @@ local function stepFlight(flight, now)
 				local seen = seenPosition(flight, victim)
 				if seen and segmentDistance(seen, flight.last, position) <= reach then
 					flight.hit[victim] = true
-					flight.hits += 1
 					local heading = flatUnit(position - flight.last, flight.forward)
 					if weapon.Kind == "Grenade" then
 						explodeGrenade(flight, position)
 						return true
 					end
-					landWeaponHit(flight.player, CFrame.new(flight.last), victim, weapon, heading)
+					if landWeaponHit(flight.player, CFrame.new(flight.last), victim, weapon, heading) then
+						flight.hits += 1
+					end
 					if weapon.Kind == "Shot" then
 						endFlight(flight, position, "Hit")
 						return true
@@ -1257,9 +1303,10 @@ local function modelRadius(tool, weapon)
 end
 
 local function launchAimed(player, tool, root, weapon)
-	local aim = aimOf(player, tool, root)
+	local aim, seq = aimOf(player, tool, root)
 	local origin = HeroWeapons.ThrowOrigin(root.CFrame, aim)
-	local finish = HeroWeapons.AimEnd(weapon, origin, aim, wallRaycaster(player))
+	local raycast = wallRaycaster(player)
+	local finish = HeroWeapons.AimEnd(weapon, origin, aim, raycast)
 	local distance = (finish - origin).Magnitude
 	local returns = weapon.Kind == "Boomerang"
 	projectileSerial += 1
@@ -1277,6 +1324,7 @@ local function launchAimed(player, tool, root, weapon)
 		Attacker = player,
 		Weapon = weapon.Id,
 		Id = projectileSerial,
+		Seq = seq,
 		Origin = path.Origin,
 		End = path.End,
 		Side = path.Side,
@@ -1297,6 +1345,7 @@ local function launchAimed(player, tool, root, weapon)
 		maxHits = if weapon.Kind == "Boomerang" then (tonumber(weapon.MaxTargets) or 3) else 1,
 		hitRadius = modelRadius(tool, weapon),
 		forward = flatUnit(finish - origin, Vector3.new(0, 0, -1)),
+		raycast = raycast,
 	})
 end
 

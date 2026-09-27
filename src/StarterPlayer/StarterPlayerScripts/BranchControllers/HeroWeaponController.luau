@@ -569,7 +569,7 @@ local onImpact -- (character, play) forward declaration
 
 -- A light camera shake on this client (owner 2026-09-27: "Mjolnir: a light shake on the client that uses it"):
 -- `magnitude` degrees at the start, fading out over `seconds`. Applied after the camera scripts every frame.
-local shake = { magnitude = 0, startedAt = 0, seconds = 0.3 }
+local shake = { magnitude = 0, startedAt = 0, seconds = 0.3, applied = nil }
 local function shakeLocal(magnitude, seconds)
 	local now = os.clock()
 	local left = if now - shake.startedAt < shake.seconds then shake.magnitude * (1 - (now - shake.startedAt) / shake.seconds) else 0
@@ -725,7 +725,7 @@ local function stopClip(character)
 	end
 end
 
-local function playClip(character, weapon)
+local function playClip(character, weapon, options)
 	local humanoid = characterParts(character)
 	if not humanoid or character:GetAttribute("Ragdolled") == true then
 		return
@@ -753,6 +753,8 @@ local function playClip(character, weapon)
 		tool = tool,
 		impacted = false,
 		humanoid = humanoid,
+		predicted = type(options) == "table" and options.predicted == true, -- this client's own click
+		seq = type(options) == "table" and options.seq or nil,
 	}
 	playing[character] = play
 	if weapon.Id == "Mjolnir" and tool then
@@ -835,15 +837,6 @@ local function sectionPart(tool, section)
 	return nil
 end
 
--- The far end of a long weapon (the Power Pole): the end of its Handle farthest from the wielder.
-local function farEnd(handle, root)
-	local half = math.max(handle.Size.X, handle.Size.Y, handle.Size.Z) / 2
-	local axis = if handle.Size.Y >= handle.Size.X and handle.Size.Y >= handle.Size.Z then handle.CFrame.UpVector
-		elseif handle.Size.X >= handle.Size.Z then handle.CFrame.RightVector else handle.CFrame.LookVector
-	local a, b = handle.Position + axis * half, handle.Position - axis * half
-	return if (a - root.Position).Magnitude >= (b - root.Position).Magnitude then a else b
-end
-
 -- The ground under a point (the first collidable surface below it), else the point itself.
 local function groundBelow(position, ignore)
 	local params = RaycastParams.new()
@@ -855,6 +848,21 @@ local function groundBelow(position, ignore)
 end
 
 local launchLocal -- (character, play) forward declaration: the thrower's own flight, started at once
+
+-- The server's gates at the Impact keyframe (GearService.resolveWeaponContact), checked again before predicting.
+local function stillAbleToThrow(character, play)
+	local humanoid = characterParts(character)
+	if not humanoid or humanoid.Health <= 0 or not play.tool or play.tool.Parent ~= character then
+		return false
+	end
+	if character:GetAttribute("Ragdolled") == true or character:GetAttribute("IsTrapped") == true
+		or character:GetAttribute(HeroWeaponController.DEBUFF_ATTRIBUTE) ~= nil
+		or LocalPlayer:GetAttribute(HeroWeaponController.CARRY_ATTRIBUTE) == true then
+		return false
+	end
+	local okState, current = pcall(humanoid.GetState, humanoid)
+	return not (humanoid.PlatformStand or (okState and HeroWeaponController.DOWN_STATES[current]))
+end
 
 onImpact = function(character, play)
 	local _, root = characterParts(character)
@@ -871,8 +879,9 @@ onImpact = function(character, play)
 		shakeLocal((tonumber(weapon.Shake) or 0.5) * 1.8, 0.32)
 	end
 	if weapon.Aimed then
-		-- the weapon leaves the hand: the thrower's client flies it now, the others when the server's Launch arrives
-		if character == LocalPlayer.Character then
+		-- the weapon leaves the hand: the thrower's client flies it now (its own click, if nothing stopped it during the
+		-- wind-up - the server checks the same), the others when the server's Launch arrives
+		if character == LocalPlayer.Character and play.predicted and stillAbleToThrow(character, play) then
 			launchLocal(character, play)
 		end
 		local hand = rightHandOf(character)
@@ -1081,13 +1090,15 @@ local function finishFlight(flight, position, reason)
 	end
 end
 
--- Draws one flight along `path` (HeroWeapons.PathPoint, the server's own path).
+-- Draws one flight along `path` (HeroWeapons.PathPoint, the server's own path). Every client also stops it at walls
+-- the way the server does (the shield turns back there); the thrower's own grenade / shot waits a moment at its end
+-- for the server's ProjectileEnd, so the blast / splat shows where the server resolved it (an early hit on a rival).
 local function startFlight(character, weapon, path, isLocal)
 	local tool = heldTool(character)
 	local hand = rightHandOf(character)
 	local startAt = if hand then hand.Position else path.Origin
 	local flight = { weapon = weapon, character = character, path = path, startedAt = os.clock(), tool = tool,
-		isLocal = isLocal }
+		isLocal = isLocal, last = path.Origin }
 	if weapon.Kind == "Shot" then
 		-- the web line: a Beam from the wrist to its tip flying out, the owner's web blob riding the tip
 		local origin = Instance.new("Attachment")
@@ -1128,10 +1139,25 @@ local function startFlight(character, weapon, path, isLocal)
 		setSectionHidden(tool, nil, true) -- the held one is the one flying
 	end
 	table.insert(flights, flight)
-	local direction = path.End - path.Origin
-	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.new(0, 0, -1)
-	animate(function(now)
-		if flight.ended then
+	local raycast = wallRaycast()
+
+	-- the thrower's own grenade / shot reached its end: hold it there until the server's ProjectileEnd (or a moment)
+	local function holdForServer(at)
+		flight.holding = true
+		flight.position = at
+		if flight.model then
+			flight.model:Destroy()
+			flight.model = nil
+		end
+		task.delay(0.45, function()
+			if not flight.ended then
+				finishFlight(flight, at, "End")
+			end
+		end)
+	end
+
+	local function step(now)
+		if flight.ended or flight.holding then
 			return false
 		end
 		if not character.Parent then
@@ -1141,38 +1167,79 @@ local function startFlight(character, weapon, path, isLocal)
 		local t = now - flight.startedAt
 		local home = nil
 		if path.Returns then
-			local current = rightHandOf(character)
-			home = if current and current.Parent then current.Position else path.Origin
+			local _, root = characterParts(character)
+			home = if root then HeroWeapons.ReturnHome(root.CFrame) else path.Origin
 		end
 		local position, finished = HeroWeapons.PathPoint(path, t, home)
+		-- walls: the same per-step test as the server (the grenade / shot end there, the shield turns back)
+		local wall = raycast(flight.last, position - flight.last)
+		if wall and not (path.Returns and t >= path.OutTime) then
+			local direction = position - flight.last
+			direction = if direction.Magnitude > 1e-3 then direction.Unit else Vector3.new(0, 0, -1)
+			local stop = wall - direction * 0.5
+			if path.Returns then
+				path.End = stop
+				path.BackTime = HeroWeapons.Travel(weapon, (stop - path.Origin).Magnitude, weapon.ReturnSpeed)
+				path.OutTime = t
+				flight.turned = true
+				position = stop
+			elseif flight.isLocal then
+				holdForServer(stop)
+				return false
+			else
+				finishFlight(flight, stop, "End")
+				return false
+			end
+		end
+		flight.last = position
+		local shown = position
 		local blend = math.clamp(t / 0.08, 0, 1) -- off the hand onto the path
 		if blend < 1 then
-			position = startAt:Lerp(position, blend)
+			shown = startAt:Lerp(position, blend)
 		end
-		flight.position = position
+		flight.position = shown
 		if flight.model then
 			local spin = if weapon.Kind == "Boomerang" then 26 else 32
-			local frame = CFrame.new(position) * CFrame.fromAxisAngle(Vector3.yAxis, t * spin) * FLAT
+			local frame = CFrame.new(shown) * CFrame.fromAxisAngle(Vector3.yAxis, t * spin) * FLAT
 			for part, offset in pairs(flight.layout) do
 				part.CFrame = frame * offset
 			end
 		end
 		if flight.tip then
-			flight.tip.Position = position
+			flight.tip.Position = shown
 			if flight.blob then
-				flight.blob:PivotTo(CFrame.lookAt(position, position + direction))
+				local heading = path.End - path.Origin
+				if heading.Magnitude > 0.01 then
+					flight.blob:PivotTo(CFrame.lookAt(shown, shown + heading.Unit))
+				end
 			end
 		end
 		if finished then
-			finishFlight(flight, if path.Returns then nil else path.End, "End")
+			if path.Returns then
+				finishFlight(flight, nil, "End")
+			elseif flight.isLocal then
+				holdForServer(path.End)
+			else
+				finishFlight(flight, path.End, "End")
+			end
 			return false
 		end
 		return true
+	end
+	animate(function(now)
+		local ok, keep = pcall(step, now)
+		if not ok then
+			warnf("flight failed: " .. tostring(keep))
+			pcall(finishFlight, flight, nil, "Gone") -- never leave the copy flying or the held weapon hidden
+			return false
+		end
+		return keep
 	end)
 	return flight
 end
 
-local lastAim = nil -- { point, at }: this client's last aim point (sent to the server with the click)
+local lastAim = nil -- { point, at, seq }: this client's last aim point (sent to the server with the click)
+local throwSeq = 0 -- this client's throw number, echoed back in the server's Launch
 
 launchLocal = function(character, play)
 	local _, root = characterParts(character)
@@ -1196,12 +1263,16 @@ launchLocal = function(character, play)
 		BackTime = if returns then HeroWeapons.Travel(weapon, distance, weapon.ReturnSpeed) else nil,
 	}, true)
 	flight.awaitingServer = true
+	flight.seq = play.seq
 end
 
 local function pruneFlights()
 	local now = os.clock()
 	for index = #flights, 1, -1 do
 		local flight = flights[index]
+		if flight.awaitingServer and now - flight.startedAt > 1.5 then
+			flight.awaitingServer = false -- the server never launched it (it stopped the throw): not adoptable
+		end
 		if flight.ended and now - (flight.endedAt or now) > 4 then
 			table.remove(flights, index)
 		end
@@ -1217,12 +1288,22 @@ local function onLaunch(payload)
 		return
 	end
 	if payload.Attacker == LocalPlayer then
+		-- our own throw, already in the air: the one with the echoed throw number, else the newest waiting one
+		local adopt = nil
 		for _, flight in ipairs(flights) do
 			if flight.isLocal and flight.awaitingServer and flight.weapon == weapon then
-				flight.awaitingServer = false -- our own throw, already in the air
-				flight.serverId = payload.Id
-				return
+				if payload.Seq ~= nil and flight.seq == payload.Seq then
+					adopt = flight
+					break
+				elseif payload.Seq == nil and (adopt == nil or flight.startedAt > adopt.startedAt) then
+					adopt = flight
+				end
 			end
+		end
+		if adopt then
+			adopt.awaitingServer = false
+			adopt.serverId = payload.Id
+			return
 		end
 	end
 	local path = {
@@ -1238,18 +1319,44 @@ local function onLaunch(payload)
 	flight.serverId = payload.Id
 end
 
+local function flightOf(id)
+	for _, flight in ipairs(flights) do
+		if flight.serverId ~= nil and flight.serverId == id then
+			return flight
+		end
+	end
+	return nil
+end
+
 local function onProjectileEnd(payload)
 	local position = if typeof(payload.Position) == "Vector3" then payload.Position else nil
-	for _, flight in ipairs(flights) do
-		if flight.serverId ~= nil and flight.serverId == payload.Id then
+	local flight = flightOf(payload.Id)
+	if flight then
+		if not flight.ended then
 			finishFlight(flight, position, payload.Reason)
-			return
+		elseif position and flight.weapon.Kind == "Grenade" and payload.Reason == "Explode" and flight.position
+			and (flight.position - position).Magnitude > 3 then
+			explodeAt(flight.weapon, position) -- it blew up somewhere else on the server (an early hit)
 		end
+		return
 	end
 	local weapon = HeroWeapons.Get(payload.Weapon)
 	if weapon and weapon.Kind == "Grenade" and payload.Reason == "Explode" and position then
 		explodeAt(weapon, position) -- a flight this client never drew (it joined mid-throw)
 	end
+end
+
+-- The server's shield hit a wall and turned back (every client turns at walls itself; this catches the rest).
+local function onProjectileTurn(payload)
+	local flight = flightOf(payload.Id)
+	if not flight or flight.ended or flight.turned or typeof(payload.Position) ~= "Vector3" then
+		return
+	end
+	local path = flight.path
+	path.End = payload.Position
+	path.OutTime = math.max(os.clock() - flight.startedAt, 0.05)
+	path.BackTime = math.clamp(tonumber(payload.BackTime) or 0.3, 0.05, 1)
+	flight.turned = true
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -1836,9 +1943,10 @@ local function aimAndFace(tool)
 	if not point then
 		return
 	end
-	lastAim = { point = point, at = os.clock() }
+	throwSeq += 1
+	lastAim = { point = point, at = os.clock(), seq = throwSeq }
 	if aimRemote then
-		pcall(aimRemote.FireServer, aimRemote, tool, point)
+		pcall(aimRemote.FireServer, aimRemote, tool, point, throwSeq)
 	end
 	local heading = Vector3.new(point.X - root.Position.X, 0, point.Z - root.Position.Z)
 	if heading.Magnitude > 0.5 then
@@ -1863,7 +1971,7 @@ local function hookTool(tool)
 			if weapon.Aimed then
 				aimAndFace(tool)
 			end
-			playClip(LocalPlayer.Character, weapon)
+			playClip(LocalPlayer.Character, weapon, { predicted = true, seq = if weapon.Aimed then throwSeq else nil })
 		end
 	end)
 end
@@ -1964,6 +2072,8 @@ local function onBatFx(payload)
 		onLaunch(payload)
 	elseif action == "ProjectileEnd" then
 		onProjectileEnd(payload)
+	elseif action == "ProjectileTurn" then
+		onProjectileTurn(payload)
 	elseif action == "Hit" then
 		onHit(payload)
 	elseif action == "Debuff" then
@@ -1994,6 +2104,7 @@ function HeroWeaponController:Start()
 		for character, play in pairs(playing) do
 			local ok, err = pcall(stepClip, character, play, dt)
 			if not ok then
+				pcall(stopClip, character) -- the joints, the pole and the charge go back
 				playing[character] = nil
 				warnf("clip step failed: " .. tostring(err))
 			end
@@ -2003,7 +2114,15 @@ function HeroWeaponController:Start()
 			warnf("state step failed: " .. tostring(err))
 		end
 	end)
-	-- the attacker's light camera shake, after the camera scripts
+	-- the attacker's light camera shake, after the camera scripts; last frame's offset is taken back off before they
+	-- run, so the camera scripts never read it back (no drift)
+	RunService:BindToRenderStep("HeroWeaponShakeUndo", Enum.RenderPriority.Camera.Value - 1, function()
+		local camera = Workspace.CurrentCamera
+		if camera and shake.applied then
+			camera.CFrame = camera.CFrame * shake.applied:Inverse()
+		end
+		shake.applied = nil
+	end)
 	RunService:BindToRenderStep("HeroWeaponShake", Enum.RenderPriority.Camera.Value + 1, function()
 		local elapsed = os.clock() - shake.startedAt
 		local camera = Workspace.CurrentCamera
@@ -2011,8 +2130,9 @@ function HeroWeaponController:Start()
 			local fade = 1 - elapsed / shake.seconds
 			local m = math.rad(shake.magnitude) * fade * fade
 			local t = os.clock() * 38
-			camera.CFrame = camera.CFrame
-				* CFrame.Angles(math.noise(t, 0.3) * m * 2, math.noise(t, 7.1) * m * 2, math.noise(t, 13.7) * m)
+			local offset = CFrame.Angles(math.noise(t, 0.3) * m * 2, math.noise(t, 7.1) * m * 2, math.noise(t, 13.7) * m)
+			camera.CFrame = camera.CFrame * offset
+			shake.applied = offset
 		end
 	end)
 	-- mobile aim: the last tap in the world (not the move stick's corner)

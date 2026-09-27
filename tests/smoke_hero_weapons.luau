@@ -370,6 +370,12 @@ do
 		T.check((p0 - origin).Magnitude < 1e-3 and (pEnd - finish).Magnitude < 1e-3 and not doneOut, "the shield flies from the hand to the aim point")
 		T.check(math.abs(pMid.X) > 1, "the shield's flight curves (%.2f studs off the line)", pMid.X)
 		T.check((pBack - home).Magnitude < 1e-3 and doneBack, "the shield comes back to the hand")
+		local pReturn = cfg.PathPoint(path, 0.4 + 0.35 * 0.4, origin)
+		T.check(pMid.X * pReturn.X < 0, "the shield comes back on the other side of its line (out %.2f, back %.2f)", pMid.X, pReturn.X)
+		local blocked = cfg.AimEnd(shield, origin, Vector3.new(0, 4, -30), function()
+			return Vector3.new(0, 4, -1)
+		end)
+		T.check((blocked - origin).Magnitude <= 1, "a wall at arm's length ends the throw there, never through it")
 		local grenade = { Origin = origin, End = finish, Side = -1, Curve = 0.16, OutTime = 0.4, Returns = false }
 		local gEnd, gDone = cfg.PathPoint(grenade, 0.4)
 		T.check(gDone and (gEnd - finish).Magnitude < 1e-3, "the batarang lands on the aim point")
@@ -391,11 +397,13 @@ do
 	end
 
 	-- the server: aim remote, simulated flights, dummies, the spin
-	for _, needle in ipairs({ "aimRemote.OnServerEvent:Connect(function(player, tool, point)", "local function launchAimed(",
+	for _, needle in ipairs({ "aimRemote.OnServerEvent:Connect(function(player, tool, point, seq)", "local function launchAimed(",
 		"local function stepFlight(flight, now)", "Action = \"ProjectileEnd\"", "local function explodeGrenade(",
 		"local function modelRadius(tool, weapon)", "params.RespectCanCollide = true", "elseif kind == \"Spin\" then",
 		"local function targetCharacter(victim)", "CollectionService:HasTag(victim, HeroWeapons.DUMMY_TAG)",
-		"local function moveDummy(", "if weapon.Aimed then" }) do
+		"local function moveDummy(", "if weapon.Aimed then", "Action = \"ProjectileTurn\"", "Seq = seq,",
+		"clearLine(flight.raycast, position, seen)", "local wall = flight.raycast(flight.last, position - flight.last)",
+		"HeroWeapons.ReturnHome(root.CFrame)" }) do
 		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
 	end
 	T.check(not H.has(gearSrc, "local function launchProjectile("), "the old victim-seeking projectile must be gone")
@@ -404,12 +412,15 @@ do
 	T.check(aimRemote ~= nil and aimRemote:IsA("RemoteEvent"), "ReplicatedStorage.Network[\"Gear: WeaponAim\"] must be built")
 
 	-- the client: aim, facing, flights, explosion, pole, shake
-	for _, needle in ipairs({ "local function aimAndFace(tool)", "pcall(aimRemote.FireServer, aimRemote, tool, point)",
+	for _, needle in ipairs({ "local function aimAndFace(tool)", "root.CFrame = CFrame.lookAt(root.Position, root.Position + heading.Unit)",
 		"root.CFrame = CFrame.lookAt(root.Position, root.Position + heading.Unit)", "local function startFlight(",
 		"local function onProjectileEnd(payload)", "local function explodeAt(weapon, position)", "T.eggmanBlast()",
 		"T.toonLightning()", "T.electricImpact()", "T.shocked()", "local function extendPole(play, k)",
 		"BindToRenderStep(\"HeroWeaponShake\"", "shakeLocal((tonumber(weapon.Shake) or 0.5) * 1.8, 0.32)",
-		"setSectionHidden(tool, nil, true)", "TouchTapInWorld" }) do
+		"setSectionHidden(tool, nil, true)", "TouchTapInWorld", "local function holdForServer(at)",
+		"local function onProjectileTurn(payload)", "play.predicted and stillAbleToThrow(character, play)",
+		"pcall(aimRemote.FireServer, aimRemote, tool, point, throwSeq)", "flight.seq == payload.Seq",
+		"BindToRenderStep(\"HeroWeaponShakeUndo\"", "pcall(stopClip, character)", "pcall(finishFlight, flight, nil, \"Gone\")" }) do
 		T.check(H.has(controllerSrc, needle), "HeroWeaponController must contain %s", needle)
 	end
 	T.check(not H.has(controllerSrc, "GetAttribute(\"HeroSection\") == \"VFX\""), "no weapon VFX section is shown any more")

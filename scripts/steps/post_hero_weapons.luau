@@ -276,6 +276,10 @@ function Step.BuildWeaponFromImport(tool, imported, config, weaponId)
 		local pivot = if imported:IsA("Model") and imported.WorldPivotData then imported.WorldPivotData else CFrame.new()
 		assert(Step.GRIP_ROTATIONS[weaponId] ~= nil, "no grip rotation for " .. weaponId)
 		gripFromHand = Step.GRIP_ROTATIONS[weaponId] * Step.GripAdjust(weaponId) * pivot:ToObjectSpace(handleSource.CFrame)
+	elseif Step.GRIP_ROTATIONS[weaponId] then
+		-- a Tool prepared by the kit in Studio (GripFromHand = rotation * origin->Handle): the same hand adjustment
+		local rotation = Step.GRIP_ROTATIONS[weaponId]
+		gripFromHand = rotation * Step.GripAdjust(weaponId) * rotation:Inverse() * gripFromHand
 	end
 	local handle, parts = nil, {}
 	local radius = 0
