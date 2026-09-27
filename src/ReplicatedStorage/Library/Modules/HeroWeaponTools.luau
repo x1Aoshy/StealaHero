@@ -40,7 +40,8 @@ local gripRotations = {
 	WebShooter = CFrame.identity,
 	GomuFist = CFrame.Angles(math.pi, 0, 0),
 	Batarang = CFrame.Angles(math.rad(-90), 0, 0),
-	BakugoGauntlet = CFrame.Angles(math.rad(-90), 0, 0),
+	-- the grenade gauntlet is worn like the web shooter: its barrel runs along the forearm (the hand's Y)
+	BakugoGauntlet = CFrame.identity,
 }
 Kit.GripRotations = gripRotations
 

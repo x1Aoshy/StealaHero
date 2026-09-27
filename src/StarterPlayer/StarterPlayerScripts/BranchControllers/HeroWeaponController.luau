@@ -48,6 +48,15 @@ HeroWeaponController.HIT_SOUND = "rbxassetid://72264591133889" -- Library.Audio 
 HeroWeaponController.CARRY_ATTRIBUTE = "CarryingEgg"
 HeroWeaponController.DEBUFF_ATTRIBUTE = "HeroDebuff"
 HeroWeaponController.TARGET_REFRESH = 0.12
+-- Humanoid states in which the character is down: no attacks from there
+HeroWeaponController.DOWN_STATES = {
+	[Enum.HumanoidStateType.FallingDown] = true,
+	[Enum.HumanoidStateType.Ragdoll] = true,
+	[Enum.HumanoidStateType.Physics] = true,
+	[Enum.HumanoidStateType.PlatformStanding] = true,
+	[Enum.HumanoidStateType.GettingUp] = true,
+	[Enum.HumanoidStateType.Dead] = true,
+}
 HeroWeaponController.LEG_JOINTS = {
 	Root = true, LeftHip = true, LeftKnee = true, LeftAnkle = true, RightHip = true, RightKnee = true, RightAnkle = true,
 }
@@ -301,6 +310,64 @@ local T = {
 	end,
 }
 
+-- The owner's effect models (their FBX imported in Studio, published by post_hero_weapons as
+-- ReplicatedStorage.HeroWeaponVfx.<Name>): cloned locally when present; without them the procedural effect plays.
+local function vfxTemplate(name)
+	local folder = ReplicatedStorage:FindFirstChild("HeroWeaponVfx")
+	local template = folder and folder:FindFirstChild(name)
+	return if template and template:IsA("Model") then template else nil
+end
+
+local function vfxModel(name)
+	local template = vfxTemplate(name)
+	if not template then
+		return nil
+	end
+	local model = template:Clone()
+	model.Parent = fxFolder()
+	return model
+end
+
+local function fadeModel(model, seconds, after)
+	task.delay(after or 0, function()
+		if model.Parent == nil then
+			return
+		end
+		for _, part in ipairs(model:GetDescendants()) do
+			if part:IsA("BasePart") then
+				TweenService:Create(part, TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+					{ Transparency = 1 }):Play()
+			end
+		end
+		later(seconds + 0.05, model)
+	end)
+end
+
+local animate -- (fn(now) -> keep) forward declaration, defined with the projectiles
+
+-- A mesh effect that pops at `cframe` (scale `from` -> `to` over `seconds`), holds, then fades. nil without the model.
+local function popModel(name, cframe, from, to, seconds, hold)
+	local model = vfxModel(name)
+	if not model then
+		return nil
+	end
+	local base = model:GetScale()
+	model:PivotTo(cframe)
+	model:ScaleTo(base * from)
+	local started = os.clock()
+	animate(function(now)
+		if model.Parent == nil then
+			return false
+		end
+		local alpha = math.min((now - started) / seconds, 1)
+		model:ScaleTo(base * (from + (to - from) * (1 - (1 - alpha) ^ 3)))
+		model:PivotTo(cframe)
+		return alpha < 1
+	end)
+	fadeModel(model, 0.35, seconds + (hold or 0))
+	return model
+end
+
 local Audio = nil
 local audioLoaded = false
 local function playPop(position, pitch, volume)
@@ -490,6 +557,9 @@ local function stopClip(character)
 	if play.tool and Kit and (play.weapon.Id == "GomuFist" or play.weapon.Id == "PowerPole") then
 		pcall(Kit.SetStretch, play.tool, 1)
 	end
+	for _, part in ipairs(play.vfxParts or {}) do
+		part.Transparency = 1 -- the weapon's "VFX" section only shows during the attack
+	end
 end
 
 local function playClip(character, weapon)
@@ -516,6 +586,14 @@ local function playClip(character, weapon)
 		impacted = false,
 		humanoid = humanoid,
 	}
+	local play = playing[character]
+	play.vfxParts = {}
+	for _, part in ipairs(play.tool and play.tool:GetChildren() or {}) do
+		if part:IsA("BasePart") and part:GetAttribute("HeroSection") == "VFX" then
+			part.Transparency = 0 -- e.g. the Power Pole's energy arc (local, every client does the same)
+			table.insert(play.vfxParts, part)
+		end
+	end
 end
 
 local function stepClip(character, play, dt)
@@ -590,12 +668,21 @@ onImpact = function(character, play)
 			end)
 		end
 		burstAt(nozzle + forward * 2, T.explosion(), { Scale = 0.6, Max = 18 }, 2)
+		popModel("Comic_Explosion", CFrame.lookAt(nozzle + forward * 3.5, nozzle + forward * 5), 0.4, 1.7, 0.22, 0.12)
 		comicText(nozzle + forward * 3 + Vector3.new(0, 2, 0), "BOOM!", Color3.fromRGB(255, 150, 30), 5, 0.75)
 		playPop(nozzle, { 0.55, 0.65 }, 1.4)
 	elseif weapon.Id == "Mjolnir" then
 		-- the slam: a lightning bolt strikes the hammer, a shockwave rolls out, rocks jump
 		local point = root.Position + forward * (tonumber(weapon.Reach) or 3.5) - Vector3.new(0, root.Size.Y * 1.5, 0)
-		lightningBolt(point + Vector3.new(math.random(-3, 3), 28, math.random(-3, 3)), point, weapon.Color, 0.35, 0.3)
+		if vfxTemplate("Mjolnir_Lightning") then
+			-- the owner's bolt meshes stacked from the sky onto the hammer
+			for k = 0, 5 do
+				popModel("Mjolnir_Lightning", CFrame.new(point + Vector3.new(0, k * 2.6 - 1.7, 0))
+					* CFrame.Angles(0, math.random() * math.pi * 2, 0), 1.9, 2.2, 0.08, 0.14)
+			end
+		else
+			lightningBolt(point + Vector3.new(math.random(-3, 3), 28, math.random(-3, 3)), point, weapon.Color, 0.35, 0.3)
+		end
 		shockwave(point + Vector3.new(0, 0.15, 0), weapon.Color, tonumber(weapon.Radius) or 11, 0.5)
 		shockwave(point + Vector3.new(0, 0.2, 0), weapon.Accent, (tonumber(weapon.Radius) or 11) * 0.6, 0.35)
 		flashBall(point + Vector3.new(0, 0.8, 0), weapon.Accent, 1, 6, 0.25)
@@ -623,7 +710,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 local animations = {} -- { fn(now) -> keep }
-local function animate(fn)
+animate = function(fn)
 	table.insert(animations, fn)
 end
 
@@ -685,6 +772,10 @@ local function launchWeb(attackerCharacter, payload, weapon)
 	local line = fxPart({ Color = weapon.Color, Material = Enum.Material.SmoothPlastic, Transparency = 0.05 })
 	local ball = fxPart({ Shape = Enum.PartType.Ball, Color = weapon.Color, Material = Enum.Material.SmoothPlastic,
 		Size = Vector3.one * 0.7 })
+	local blob = vfxModel("Web_Blob") -- the owner's web blob rides the tip when imported
+	if blob then
+		ball.Transparency = 1
+	end
 	burstAt(hand.Position, T.puff(), { Max = 6 }, 1)
 	local started = os.clock()
 	local lastFrom = hand.Position
@@ -697,8 +788,14 @@ local function launchWeb(attackerCharacter, payload, weapon)
 		local tip = lastFrom:Lerp(to, math.min(alpha, 1))
 		placeSegment(line, lastFrom, tip, 0.12)
 		ball.CFrame = CFrame.new(tip)
+		if blob then
+			blob:PivotTo(CFrame.lookAt(tip, tip + (to - lastFrom).Unit))
+		end
 		if alpha >= 1 then
 			ball:Destroy()
+			if blob then
+				blob:Destroy()
+			end
 			TweenService:Create(line, TweenInfo.new(0.3), { Transparency = 1 }):Play()
 			later(0.32, line)
 			return false
@@ -799,6 +896,10 @@ local function onHit(payload)
 				{ CFrame = CFrame.new(position + dir * 2.4), Transparency = 1 }):Play()
 			later(0.4, blob)
 		end
+		local attackerCharacter = characterOfPlayer(payload.Attacker)
+		local _, attackerRoot = characterParts(attackerCharacter)
+		local facing = if attackerRoot then attackerRoot.Position else position + Vector3.new(0, 0, -5)
+		popModel("Web_Net", CFrame.lookAt(position, Vector3.new(facing.X, position.Y, facing.Z)), 0.3, 1.5, 0.14, 0.35)
 		playPop(position, { 1.1, 1.25 }, 1.1)
 	elseif effect == "Electrocuted" then
 		flashBall(position, weapon.Accent, 2, 6, 0.2, 0.3)
@@ -815,6 +916,9 @@ local function onHit(payload)
 		flashBall(position, weapon.Color, 2, 8, 0.35)
 		flashBall(position, weapon.Accent, 1, 5, 0.25)
 		burstAt(position, T.explosion(), { Scale = 0.7, Max = 18 }, 2)
+		local cam = Workspace.CurrentCamera
+		local toward = if cam then cam.CFrame.Position else position + Vector3.new(0, 0, 10)
+		popModel("Comic_Explosion", CFrame.lookAt(position, toward), 0.5, 1.9, 0.25, 0.2)
 		playPop(position, { 0.55, 0.65 }, 1.4)
 	elseif effect == "SpinTornado" then
 		burstAt(position - Vector3.new(0, 2.5, 0), T.twirl(), { Max = 8 }, 1.2)
@@ -951,6 +1055,52 @@ local function smokeScreen(state, duration)
 	end)
 end
 
+-- Owner 2026-09-27: "the ragdoll bugs: it does not get back up right after it ends, and the weapons can be used
+-- while down". A knockback slide / blast hop made the victim's Humanoid trip (engine FallingDown / Ragdoll states),
+-- which nothing stood back up. While the local player is in a weapon state those trip states are off, the slide keeps
+-- the body upright, and when the state ends a body still lying from a trip gets up where it is.
+local TRIP_STATES = { Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll }
+local TRIPPED = { [Enum.HumanoidStateType.FallingDown] = true, [Enum.HumanoidStateType.Ragdoll] = true }
+
+local function holdUpright(state, humanoid)
+	state.humanoid = humanoid
+	state.tripStates = {}
+	for _, stateType in ipairs(TRIP_STATES) do
+		local ok, enabled = pcall(humanoid.GetStateEnabled, humanoid, stateType)
+		state.tripStates[stateType] = if ok then enabled else true
+		pcall(humanoid.SetStateEnabled, humanoid, stateType, false)
+	end
+end
+
+local function uprightRoot(root)
+	local _, yaw = root.CFrame:ToOrientation()
+	root.CFrame = CFrame.new(root.Position) * CFrame.fromOrientation(0, yaw, 0)
+	root.AssemblyAngularVelocity = Vector3.zero
+end
+
+local function standBackUp(state)
+	local humanoid = state.humanoid
+	if not humanoid then
+		return
+	end
+	for stateType, enabled in pairs(state.tripStates or {}) do
+		pcall(humanoid.SetStateEnabled, humanoid, stateType, enabled)
+	end
+	task.defer(function()
+		-- a villain catch's ragdoll (GearService, Physics state) owns the body: leave it to GearRagdollController
+		if humanoid.Parent == nil or humanoid.Health <= 0 or humanoid.PlatformStand
+			or state.character:GetAttribute("Ragdolled") == true then
+			return
+		end
+		local ok, current = pcall(humanoid.GetState, humanoid)
+		local root = humanoid.RootPart
+		if ok and TRIPPED[current] and root then
+			uprightRoot(root)
+			pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.GettingUp)
+		end
+	end)
+end
+
 local function endState(token)
 	local state = states[token]
 	if not state then
@@ -962,6 +1112,9 @@ local function endState(token)
 	end
 	for name in pairs(state.written) do
 		releaseJoint(jointEntry(state.character, name))
+	end
+	if state.humanoid then
+		standBackUp(state)
 	end
 	for _, emitter in ipairs(state.emitters) do
 		emitter.Enabled = false -- the last particles fade out instead of vanishing
@@ -1018,8 +1171,16 @@ local function onDebuff(payload)
 	local head = character:FindFirstChild("Head")
 	head = if head and head:IsA("BasePart") then head else root
 
+	local feet = root.CFrame * CFrame.new(0, -(humanoid.HipHeight + root.Size.Y / 2), 0)
 	if effect == "Webbed" then
-		buildWebNet(state, root, weapon.Color)
+		local cocoon = vfxModel("Web_Cocoon") -- the owner's cocoon wraps the victim when imported
+		if cocoon then
+			table.insert(state.instances, cocoon)
+			state.follow = { model = cocoon, base = cocoon:GetScale(), offset = root.CFrame:ToObjectSpace(feet), pop = 0.16 }
+			cocoon:PivotTo(feet)
+		else
+			buildWebNet(state, root, weapon.Color)
+		end
 	elseif effect == "Electrocuted" then
 		state.flash = highlightOn(state, character, weapon.Accent, 0.6, 0.2)
 		state.arcs = {}
@@ -1030,6 +1191,14 @@ local function onDebuff(payload)
 		local attachment = rootAttachment(state, root, "HeroWeaponZap")
 		for _, emitter in ipairs(attachEmitters(attachment, T.lightning(), { Enabled = true, Scale = 0.35, Rate = 14 })) do
 			table.insert(state.emitters, emitter)
+		end
+		state.bolts = {}
+		for _ = 1, 3 do
+			local bolt = vfxModel("Mjolnir_Lightning") -- the owner's bolts crackle around the body when imported
+			if bolt then
+				table.insert(state.bolts, bolt)
+				table.insert(state.instances, bolt)
+			end
 		end
 	elseif effect == "CleanKnockback" then
 		local attachment = rootAttachment(state, root, "HeroWeaponSlide")
@@ -1047,14 +1216,28 @@ local function onDebuff(payload)
 			end
 		end)
 	elseif effect == "Dazed" then
-		state.marks = starBillboards(state, head, 4, "★", Color3.fromRGB(255, 220, 60))
+		local ring = vfxModel("Dazed_Stars") -- the owner's star ring when imported
+		if ring then
+			table.insert(state.instances, ring)
+			state.starRing = { model = ring, head = head }
+		else
+			state.marks = starBillboards(state, head, 4, "★", Color3.fromRGB(255, 220, 60))
+		end
 	elseif effect == "SmokeStun" then
 		local cloud = Instance.new("Attachment")
 		cloud.Name = "HeroWeaponSmokeCloud"
 		cloud.Position = root.Position -- Terrain space = world space
 		cloud.Parent = Workspace.Terrain
 		table.insert(state.lingering, cloud)
-		attachEmitters(cloud, T.smokeBomb(), { Emit = 2, Scale = 0.55 })
+		local smoke = vfxModel("Bat_Smoke_Cloud") -- the owner's bat smoke cloud when imported
+		if smoke then
+			smoke:PivotTo(feet)
+			smoke:ScaleTo(smoke:GetScale() * 1.5)
+			fadeModel(smoke, 0.45, math.max(duration - 0.45, 0.1))
+			attachEmitters(cloud, T.smokeBomb(), { Emit = 1, Scale = 0.45 })
+		else
+			attachEmitters(cloud, T.smokeBomb(), { Emit = 2, Scale = 0.55 })
+		end
 		local puffs = rootAttachment(state, head, "HeroWeaponPuffs", Vector3.new(0, 0.8, 0))
 		for _, emitter in ipairs(attachEmitters(puffs, T.puff(), { Enabled = true })) do
 			table.insert(state.emitters, emitter)
@@ -1082,8 +1265,9 @@ local function onDebuff(payload)
 		end
 	end
 
-	-- the victim's own client moves the body it owns
+	-- the victim's own client moves the body it owns (and keeps it on its feet)
 	if payload.Victim == LocalPlayer then
+		holdUpright(state, humanoid)
 		if effect == "CleanKnockback" or effect == "ExplosionBlast" then
 			local direction = if typeof(payload.Direction) == "Vector3" then payload.Direction else -root.CFrame.LookVector
 			direction = Vector3.new(direction.X, 0, direction.Z)
@@ -1121,6 +1305,17 @@ local function stepStates(now, dt)
 		local waist = jointEntry(character, "Waist")
 		local neck = jointEntry(character, "Neck")
 		local wobbleWaist, wobbleNeck = nil, nil
+		if state.follow and state.follow.model.Parent then
+			local follow = state.follow
+			local pop = math.min(t / follow.pop, 1)
+			follow.model:ScaleTo(follow.base * (0.6 + 0.4 * (1 - (1 - pop) ^ 3)))
+			follow.model:PivotTo(root.CFrame * follow.offset)
+		end
+		if state.starRing and state.starRing.model.Parent then
+			local head = state.starRing.head
+			state.starRing.model:PivotTo(CFrame.new(head.Position + Vector3.new(0, head.Size.Y * 0.5 + 0.6, 0))
+				* CFrame.Angles(0, t * 5, 0))
+		end
 		if effect == "Electrocuted" then
 			wobbleWaist = CFrame.Angles(math.rad(math.random(-9, 9)), math.rad(math.random(-14, 14)), math.rad(math.random(-9, 9)))
 			wobbleNeck = CFrame.Angles(math.rad(math.random(-14, 14)), math.rad(math.random(-18, 18)), 0)
@@ -1141,6 +1336,11 @@ local function stepStates(now, dt)
 				end
 				if state.flash then
 					state.flash.FillTransparency = if state.flash.FillTransparency > 0.5 then 0.25 else 0.8
+				end
+				for _, bolt in ipairs(state.bolts or {}) do
+					local offset = Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 1.6, math.random() - 0.5) * 2.2
+					bolt:PivotTo(CFrame.new(centre + offset - Vector3.new(0, 1.7, 0))
+						* CFrame.Angles(math.random() * 0.6 - 0.3, math.random() * math.pi * 2, math.random() * 0.6 - 0.3))
 				end
 			end
 		elseif effect == "Webbed" then
@@ -1191,6 +1391,9 @@ local function stepStates(now, dt)
 				return
 			end
 			local speed = movement.speed * (1 - t / movement.slide)
+			if root.CFrame.UpVector.Y < 0.97 then
+				uprightRoot(root) -- slide back standing, never tumbling
+			end
 			local vy = root.AssemblyLinearVelocity.Y
 			if movement.hop > 0 then
 				vy = movement.hop
@@ -1229,6 +1432,10 @@ local function canAttackLocally(tool, weapon)
 		or character:GetAttribute(HeroWeaponController.DEBUFF_ATTRIBUTE) ~= nil
 		or LocalPlayer:GetAttribute(HeroWeaponController.CARRY_ATTRIBUTE) == true then
 		return false
+	end
+	local okState, current = pcall(humanoid.GetState, humanoid)
+	if humanoid.PlatformStand or (okState and HeroWeaponController.DOWN_STATES[current]) then
+		return false -- no attacking while down (owner 2026-09-27)
 	end
 	if guard and type(guard.CanActivateLocal) == "function" then
 		local ok, allowed = pcall(guard.CanActivateLocal, tool) -- shows "Cannot use items in the safe zone!"

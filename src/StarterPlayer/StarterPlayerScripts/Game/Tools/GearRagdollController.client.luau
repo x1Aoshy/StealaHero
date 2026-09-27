@@ -64,12 +64,22 @@ local active = nil -- { token, character, humanoid, root, motors, created, colli
 -- children of the character the Humanoid knows as R15 limbs, or the R6 limb names) are ragdoll limbs now; every other
 -- part keeps its own collision and gets no joint swap.
 local R6_BODY = { Torso = true, Head = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true }
+local R15_BODY = {
+	HumanoidRootPart = true, LowerTorso = true, UpperTorso = true, Head = true,
+	LeftUpperArm = true, LeftLowerArm = true, LeftHand = true, RightUpperArm = true, RightLowerArm = true, RightHand = true,
+	LeftUpperLeg = true, LeftLowerLeg = true, LeftFoot = true, RightUpperLeg = true, RightLowerLeg = true, RightFoot = true,
+}
 local function isBodyPart(character, humanoid, part)
 	if not (part and part:IsA("BasePart")) or part.Parent ~= character then
 		return false
 	end
-	if R6_BODY[part.Name] then
+	if R6_BODY[part.Name] or R15_BODY[part.Name] then
 		return true
+	end
+	-- never index a missing Humanoid (review 2026-09-27: the get-up loop passed none, errored every frame and left the
+	-- body frozen with PlatformStand on)
+	if typeof(humanoid) ~= "Instance" or not humanoid:IsA("Humanoid") then
+		return false
 	end
 	local ok, kind = pcall(humanoid.GetBodyPartR15, humanoid, part)
 	return ok and kind ~= nil and kind ~= Enum.BodyPartR15.Unknown
@@ -166,6 +176,8 @@ local function startRagdoll(payload)
 
 	humanoid.PlatformStand = true
 	pcall(humanoid.ChangeState, humanoid, Enum.HumanoidStateType.Physics)
+	-- nothing is used while limp: the held weapon goes back to the backpack (owner 2026-09-27)
+	pcall(humanoid.UnequipTools, humanoid)
 	local animator = humanoid:FindFirstChildOfClass("Animator")
 	if animator then
 		for _, playing in ipairs(animator:GetPlayingAnimationTracks()) do
@@ -315,7 +327,7 @@ function endRagdoll(state, quiet)
 		if ok and not moved and active == nil and root.Parent then
 			lastSet = from:Lerp(target, 1 - (1 - alpha) * (1 - alpha))
 			root.CFrame = lastSet
-			for _, part in ipairs(bodyParts(character)) do
+			for _, part in ipairs(bodyParts(character, humanoid)) do
 				part.AssemblyLinearVelocity = Vector3.zero
 				part.AssemblyAngularVelocity = Vector3.zero
 			end

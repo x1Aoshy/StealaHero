@@ -112,7 +112,7 @@ end
 HeroWeapons.EFFECTS = {
 	Webbed = { WalkSpeed = 0, NoJump = true, Duration = 2.5 },
 	Electrocuted = { WalkSpeed = 0, NoJump = true, Duration = 2.5 },
-	CleanKnockback = { WalkSpeed = 0, NoJump = true, Slide = 0.7, Duration = 2.5, ReleaseAfterSlide = true },
+	CleanKnockback = { WalkSpeed = 0, NoJump = true, Slide = 0.85, Duration = 2.5, ReleaseAfterSlide = true },
 	Dazed = { WalkSpeed = 4, NoJump = true, Duration = 2.2 },
 	SmokeStun = { WalkSpeed = 7, NoJump = true, Duration = 2.5 },
 	ExplosionBlast = { WalkSpeed = 0, NoJump = true, Slide = 0.5, Duration = 2.5, SlowAfterSlide = 6 },

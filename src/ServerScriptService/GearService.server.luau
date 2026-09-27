@@ -433,12 +433,20 @@ end
 -- an aura / trail / accessory welded into the character is never a ragdoll limb (owner 2026-09-27: "with an aura or
 -- a trail equipped the ragdoll goes stiff").
 local R6_BODY = { Torso = true, Head = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true }
+local R15_BODY = {
+	HumanoidRootPart = true, LowerTorso = true, UpperTorso = true, Head = true,
+	LeftUpperArm = true, LeftLowerArm = true, LeftHand = true, RightUpperArm = true, RightLowerArm = true, RightHand = true,
+	LeftUpperLeg = true, LeftLowerLeg = true, LeftFoot = true, RightUpperLeg = true, RightLowerLeg = true, RightFoot = true,
+}
 local function isBodyPart(character, humanoid, part)
 	if not (part and part:IsA("BasePart")) or part.Parent ~= character then
 		return false
 	end
-	if R6_BODY[part.Name] then
+	if R6_BODY[part.Name] or R15_BODY[part.Name] then
 		return true
+	end
+	if typeof(humanoid) ~= "Instance" or not humanoid:IsA("Humanoid") then
+		return false
 	end
 	local ok, kind = pcall(humanoid.GetBodyPartR15, humanoid, part)
 	return ok and kind ~= nil and kind ~= Enum.BodyPartR15.Unknown
@@ -617,9 +625,32 @@ local lastSwingAt = setmetatable({}, { __mode = "k" }) -- [player] = os.clock() 
 local swingSerial = 0
 
 -- The swinger's own state, checked when the swing starts and again at the contact moment.
+-- Owner 2026-09-27: "the weapons can be used while ragdolled - make that not happen": a body that is down (the
+-- ragdoll, PlatformStand, or a Humanoid state the owning client reports as fallen / physics / getting up) cannot
+-- attack either.
+local DOWN_STATES = {
+	[Enum.HumanoidStateType.FallingDown] = true,
+	[Enum.HumanoidStateType.Ragdoll] = true,
+	[Enum.HumanoidStateType.Physics] = true,
+	[Enum.HumanoidStateType.PlatformStanding] = true,
+	[Enum.HumanoidStateType.GettingUp] = true,
+	[Enum.HumanoidStateType.Dead] = true,
+}
+local function isDown(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return true
+	end
+	if humanoid.PlatformStand then
+		return true
+	end
+	local ok, state = pcall(humanoid.GetState, humanoid)
+	return ok and DOWN_STATES[state] == true
+end
+
 local function canSwing(player, character)
 	return character:GetAttribute("IsTrapped") ~= true and character:GetAttribute("Ragdolled") ~= true
-		and character:GetAttribute(DEBUFF_ATTRIBUTE) == nil and not isCarrying(player)
+		and character:GetAttribute(DEBUFF_ATTRIBUTE) == nil and not isCarrying(player) and not isDown(character)
 end
 
 local function fireBatFx(payload)

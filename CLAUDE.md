@@ -86,8 +86,18 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   (+ previews posed on the clips); `post_hero_weapons` builds the Tools like `Kit.Prepare`. GearService resolves the
   hit at Impact by the weapon's Kind and applies a 2.5 s state (`HeroDebuff` attribute) instead of the ragdoll;
   `BranchControllers.HeroWeaponController` plays the clips, projectiles and states; `Library.Client.WeaponPortrait`
-  draws the weapon in the hotbar / Index. If the owner imports their FBX weapons in Studio, `Kit.Prepare` turns them
-  into Tools (swap the part models for the imports in `post_hero_weapons`).
+  draws the weapon in the hotbar / Index.
+  **The owner's real models** are FBX (`assets/hero_weapons/fbx/weapons` 8, `fbx/vfx` 7 effect meshes; `fbx/anim` are
+  the same clips on a dummy, not needed). Claude cannot upload meshes, so the owner imports them in Studio: Import 3D
+  the 15 files into the latest build, paste `assets/hero_weapons/HeroWeaponsImport.lua` in the command bar (generated
+  by `gen_import_helper.py` with `fbx_manifest.json`: it fixes scale / pivot against the FBX, runs the owner's
+  `Kit.Prepare`, files everything in `ServerStorage.HeroWeaponImports`), saves and sends the place. The build extracts
+  it to `assets/hero_weapons/imports/{weapons,vfx}/*.rbxm` (`scripts/lib/hero_weapon_imports.luau`, also
+  `lune run scripts/tools/extract_hero_weapon_imports.luau <save.rbxl | .rbxm>`); an imported weapon replaces its part
+  stand-in (`Handle = RightHand * GripFromHand`), the effects go to `ReplicatedStorage.HeroWeaponVfx` and the
+  controller uses them (cocoon, star ring, bolts, comic explosion, bat smoke, web blob / net). Test the path without
+  Studio with `STEALAHERO_WEAPON_IMPORTS=synthetic` (block stand-ins at the FBX bounds). Previews:
+  `render_fbx_weapons.py` (the owner's meshes held with their kit's grip on their clips).
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
@@ -157,3 +167,8 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the hotbar / Index weapon portraits;
   - the red target glow;
   - traps catching another player on a stage.
+- (2026-09-27, 7th pass) The owner sent the real weapon / effect FBX models: waiting for their Studio import (see
+  Pipelines > Hero weapons; `HeroWeaponsImport.lua`). Ragdoll fix: the get-up loop called `bodyParts(character)`
+  without the Humanoid, errored every frame and left the body frozen with PlatformStand on (and able to attack):
+  fixed; a ragdoll now unequips the weapon, and GearService / the controller refuse attacks from a body that is down.
+  Weapon victims no longer trip (FallingDown / Ragdoll states off during the state, stood back up after).

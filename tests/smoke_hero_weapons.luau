@@ -57,6 +57,17 @@ for toolName, weaponId in pairs(OWNER_MAPPING) do
 	local heroGrip = tool:GetAttribute("HeroGrip")
 	T.check(typeof(heroGrip) == "CFrame" and (heroGrip.Position - tool.Grip.Position).Magnitude < 1e-3,
 		"%s: Tool.Grip must be the model's grip (HeroGrip)", toolName)
+	local imported = tool:GetAttribute("HeroWeaponModel") == "Import"
+	T.check(imported or tool:GetAttribute("HeroWeaponModel") == "Parts", "%s: HeroWeaponModel must say Import or Parts", toolName)
+	if imported and typeof(tool:GetAttribute("GripFromHand")) == "CFrame" then
+		-- the engine's RightGrip (Handle = RightHand * RightGripAttachment * Grip^-1) must hold the Handle where the owner's
+		-- kit puts it (Handle = RightHand * GripFromHand)
+		local attachment = roblox.CFrame.new(0, -0.15, 0) * roblox.CFrame.Angles(math.rad(-90), 0, 0)
+		local held = attachment * tool.Grip:Inverse()
+		local want = tool:GetAttribute("GripFromHand")
+		T.check((held.Position - want.Position).Magnitude < 1e-3 and (held.LookVector - want.LookVector).Magnitude < 1e-3,
+			"%s: the imported model must be held exactly where the kit's GripFromHand puts it", toolName)
+	end
 	T.check(#H.badJoints(tool) == 0, "%s has joints pointing outside the tool: %s", toolName, table.concat(H.badJoints(tool), ", "))
 	local parts = 0
 	for _, d in ipairs(tool:GetDescendants()) do
@@ -80,7 +91,11 @@ for toolName, weaponId in pairs(OWNER_MAPPING) do
 			end
 		end
 	end
-	T.check(parts >= 6 and parts <= 40, "%s: %d parts (a readable toy weapon, cheap per player)", toolName, parts)
+	if imported then
+		T.check(parts >= 2 and parts <= 40, "%s: %d imported meshes", toolName, parts)
+	else
+		T.check(parts >= 6 and parts <= 40, "%s: %d parts (a readable toy weapon, cheap per player)", toolName, parts)
+	end
 end
 for _, classic in ipairs({ "Prehistoric Bat", "Abyss Ocean Bat" }) do
 	local tool = shopItems and shopItems:FindFirstChild(classic)
@@ -133,25 +148,45 @@ end
 do
 	local chunk = H.sandbox(kitSrc, { Enum = roblox.Enum, CFrame = roblox.CFrame, Vector3 = roblox.Vector3 })
 	local Kit = chunk and chunk()
+	-- parts by HeroSection (the part stand-ins and the owner's imports name them differently)
+	local function sectionPart(tool, section)
+		for _, part in ipairs(tool:GetChildren()) do
+			if part:IsA("BasePart") and part:GetAttribute("HeroSection") == section then
+				return part
+			end
+		end
+		return nil
+	end
+	-- a part's length along the stretch direction (the Kit scales the part axis most aligned with it)
+	local function lengthAlong(part, dir)
+		local weld = part:FindFirstChild("HeroWeaponWeld")
+		local v = weld.C0:VectorToObjectSpace(dir)
+		local ax, ay, az = math.abs(v.X), math.abs(v.Y), math.abs(v.Z)
+		return if ax >= ay and ax >= az then part.Size.X elseif ay >= az then part.Size.Y else part.Size.Z
+	end
 	local fist = shopItems and shopItems:FindFirstChild("Volcano Bat")
 	if T.check(type(Kit) == "table" and fist ~= nil, "HeroWeaponTools must load") then
 		fist = fist:Clone()
-		local rubber, fistPart = fist:FindFirstChild("Rubber"), fist:FindFirstChild("Fist")
-		local fistWeld = fistPart:FindFirstChild("HeroWeaponWeld")
-		local restLength, restFist = rubber.Size.X, fistWeld.C0.Position
-		Kit.SetGomuTime(fist, 0.30) -- the peak of Gomu_Pistol: stretch 2.25
-		T.check(math.abs(rubber.Size.X - restLength * 2.25) < 1e-3, "SetGomuTime must stretch the rubber arm x2.25 at the punch")
-		T.check((fistWeld.C0.Position - restFist).Magnitude > 1.6, "SetGomuTime must throw the fist forward")
-		Kit.SetGomuTime(fist, 0)
-		T.check(math.abs(rubber.Size.X - restLength) < 1e-3 and (fistWeld.C0.Position - restFist).Magnitude < 1e-3,
-			"SetGomuTime(tool, 0) must reset the fist")
+		local rubber, fistPart = sectionPart(fist, "Rubber"), sectionPart(fist, "Fist")
+		if T.check(rubber ~= nil and fistPart ~= nil, "the Gum-Gum fist needs a Rubber and a Fist section") then
+			local rubberWeld, fistWeld = rubber:FindFirstChild("HeroWeaponWeld"), fistPart:FindFirstChild("HeroWeaponWeld")
+			local dir = rubberWeld.C0.Position.Unit
+			local restLength, restFist = lengthAlong(rubber, dir), fistWeld.C0.Position
+			Kit.SetGomuTime(fist, 0.30) -- the peak of Gomu_Pistol: stretch 2.25
+			T.check(math.abs(lengthAlong(rubber, dir) - restLength * 2.25) < 1e-3, "SetGomuTime must stretch the rubber arm x2.25 at the punch")
+			T.check((fistWeld.C0.Position - restFist).Magnitude > 1.6, "SetGomuTime must throw the fist forward")
+			Kit.SetGomuTime(fist, 0)
+			T.check(math.abs(lengthAlong(rubber, dir) - restLength) < 1e-3 and (fistWeld.C0.Position - restFist).Magnitude < 1e-3,
+				"SetGomuTime(tool, 0) must reset the fist")
+		end
 	end
 	-- the Power Pole's Handle is a cylinder (it runs along its own X): the stretch must follow the pole, not the
-	-- Handle's Y (review: the shaft got fat and the tip flew up the forearm)
+	-- Handle's Y (review: the shaft got fat and the tip flew up the forearm). The owner's imported pole has no Extend
+	-- section (it does not extend), so this only runs on the part stand-in.
 	local pole = shopItems and shopItems:FindFirstChild("Forest Bat")
-	if T.check(type(Kit) == "table" and pole ~= nil, "Forest Bat (Power Pole) missing") then
+	if type(Kit) == "table" and pole ~= nil and sectionPart(pole, "Extend") then
 		pole = pole:Clone()
-		local shaft, tip = pole:FindFirstChild("Shaft"), pole:FindFirstChild("TipCap")
+		local shaft, tip = sectionPart(pole, "Extend"), sectionPart(pole, "Tip")
 		local shaftWeld, tipWeld = shaft:FindFirstChild("HeroWeaponWeld"), tip:FindFirstChild("HeroWeaponWeld")
 		local restSize, restShaft, restTip = shaft.Size, shaftWeld.C0.Position, tipWeld.C0.Position
 		local dir = restShaft.Unit
@@ -191,6 +226,44 @@ T.check(H.has(src(H.path(sps, "GUI/Index/AreaIndexProgressComponent")), "WeaponP
 	"the Index stage card must show the weapon")
 T.check(H.has(src(H.path(sss, "StageHazardService")), "GetAttribute(\"HeroDebuff\") ~= nil"),
 	"StageHazardService must leave a debuffed player's WalkSpeed to GearService")
+
+-- 5b. the owner's FBX models: Studio import helper, extraction, build path, effect meshes
+local importHelper = H.fs.isFile("assets/hero_weapons/HeroWeaponsImport.lua") and H.fs.readFile("assets/hero_weapons/HeroWeaponsImport.lua") or ""
+T.check(pcall(H.luau.compile, importHelper) and H.has(importHelper, "pcall(Kit.Prepare, model, spec.id)")
+	and H.has(importHelper, "HeroWeaponImports"), "assets/hero_weapons/HeroWeaponsImport.lua must prepare the imports with the owner's kit")
+for _, name in ipairs({ "CapShield", "PowerPole", "WebShooter", "Batarang", "Bakugo_Gauntlet", "Mjolnir", "GomuFist",
+	"Web_Blob", "Web_Net", "Web_Cocoon", "Mjolnir_Lightning", "Dazed_Stars", "Comic_Explosion", "Bat_Smoke_Cloud" }) do
+	T.check(H.has(importHelper, "[\"" .. name .. "\"]"), "the import helper must know %s.fbx", name)
+end
+local buildSrc = H.fs.readFile("scripts/build_stealahero.luau")
+T.check(H.has(buildSrc, "require(\"./lib/hero_weapon_imports\").fromPlaceFile(OUT_PATH)"),
+	"the build must extract ServerStorage.HeroWeaponImports from a Studio save before overwriting it")
+local stepSrc = H.fs.readFile("scripts/steps/post_hero_weapons.luau")
+T.check(H.has(stepSrc, "function Step.BuildWeaponFromImport(") and H.has(stepSrc, "local grip = gripFromHand:Inverse() * Step.GRIP_ATTACHMENT"),
+	"post_hero_weapons must build the tools from the owner's imported models")
+local vfxFolder = rs:FindFirstChild("HeroWeaponVfx")
+T.check(vfxFolder ~= nil, "ReplicatedStorage.HeroWeaponVfx missing (empty until the effects are imported)")
+for _, model in ipairs(vfxFolder and vfxFolder:GetChildren() or {}) do
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			T.check(part.Anchored and not part.CanCollide and not part.CanQuery and not part.CanTouch,
+				"HeroWeaponVfx.%s.%s must be anchored and never collide", model.Name, part.Name)
+		end
+	end
+end
+for _, name in ipairs({ "Web_Cocoon", "Dazed_Stars", "Mjolnir_Lightning", "Comic_Explosion", "Bat_Smoke_Cloud", "Web_Blob", "Web_Net" }) do
+	T.check(H.has(controllerSrc, "\"" .. name .. "\""), "HeroWeaponController must use the owner's %s when imported", name)
+end
+
+-- 5c. "the ragdoll does not get back up, and the weapons can be used while down" (owner 2026-09-27)
+local ragdollSrc0 = src(H.path(sps, "Game/Tools/GearRagdollController"))
+for call in string.gmatch(ragdollSrc0, "bodyParts%(([^)]*)%)") do
+	T.check(call == "character, humanoid", "GearRagdollController must pass the Humanoid to bodyParts (got bodyParts(%s)): the get-up loop errored every frame", call)
+end
+T.check(H.has(ragdollSrc0, "pcall(humanoid.UnequipTools, humanoid)"), "a ragdolled player must put the weapon away")
+T.check(H.has(gearSrc, "and not isDown(character)"), "GearService must refuse attacks from a body that is down")
+T.check(H.has(controllerSrc, "HeroWeaponController.DOWN_STATES[current]") and H.has(controllerSrc, "local function standBackUp(state)")
+	and H.has(controllerSrc, "holdUpright(state, humanoid)"), "weapon victims must stay upright and get back up")
 
 -- 5. owner's reports
 T.check(H.has(gearSrc, "local debuff = debuffs[character]") and H.has(gearSrc, "if debuffs[character] ~= state or state.restored or"),

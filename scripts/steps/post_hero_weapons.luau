@@ -16,12 +16,23 @@
 --   2. Publishes src/ReplicatedStorage/Directory/WeaponAnimations/<WeaponId>.luau (the owner's attack clips, generated
 --      by scripts/tools/hero_weapons/gen_weapon_clips.py) as ReplicatedStorage.Directory.WeaponAnimations after
 --      validating each with the game's own HeroClipMath.PrepareClip (Impact inside the clip, the right arm animated).
--- No Sound, no Light, no mesh asset. Idempotent (a re-run rebuilds the same tools).
+--   3. The owner's own models: a weapon imported in Studio and prepared with their HeroWeaponTools.Prepare
+--      (assets/hero_weapons/HeroWeaponsImport.lua -> ServerStorage.HeroWeaponImports, extracted by the build to
+--      assets/hero_weapons/imports/weapons/<WeaponId>.rbxm) REPLACES the part model of that weapon: its MeshParts (with
+--      their textures) are flattened into the Tool, re-welded to the Handle, and Tool.Grip holds the Handle where the
+--      kit's GripFromHand puts it (Handle = RightHand * GripFromHand). The effect models
+--      (imports/vfx/<Name>.rbxm: Web_Blob, Web_Net, Web_Cocoon, Mjolnir_Lightning, Dazed_Stars, Comic_Explosion,
+--      Bat_Smoke_Cloud) go to ReplicatedStorage.HeroWeaponVfx for BranchControllers.HeroWeaponController. A "VFX"
+--      section of a weapon (the Power Pole's energy arc) is hidden until the attack shows it.
+--      STEALAHERO_WEAPON_IMPORTS=synthetic fabricates those imports from assets/hero_weapons/fbx_manifest.json (block
+--      parts at each FBX mesh's bounds, laid out exactly like Prepare's output) to test the path without Studio.
+-- No Sound, no Light, no mesh upload (an import's meshes are the owner's Studio uploads). Idempotent.
 
 local roblox = require("@lune/roblox")
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local serde = require("@lune/serde")
+local process = require("@lune/process")
 
 local Instance = roblox.Instance
 local CFrame = roblox.CFrame
@@ -36,6 +47,23 @@ Step.CONFIG = "src/ReplicatedStorage/Library/Modules/HeroWeapons.luau"
 Step.CLIP_MATH = "src/ReplicatedStorage/Library/Modules/HeroClipMath.luau"
 Step.CLIP_DIR = "src/ReplicatedStorage/Directory/WeaponAnimations"
 Step.WELD_NAME = "HeroWeaponWeld"
+Step.IMPORT_DIR = "assets/hero_weapons/imports"
+Step.FBX_MANIFEST = "assets/hero_weapons/fbx_manifest.json"
+Step.VFX_FOLDER = "HeroWeaponVfx"
+-- HeroWeaponTools.gripRotations (the owner's kit + the two weapons it did not list), for the synthetic imports
+Step.GRIP_ROTATIONS = {
+	Mjolnir = CFrame.Angles(math.rad(-90), 0, 0),
+	PowerPole = CFrame.Angles(math.rad(-90), 0, 0),
+	PowerPole_GoldToy = CFrame.Angles(math.rad(-90), 0, 0),
+	CapShield = CFrame.Angles(math.rad(-90), 0, 0),
+	Batarang = CFrame.Angles(math.rad(-90), 0, 0),
+	WebShooter = CFrame.new(),
+	BakugoGauntlet = CFrame.new(),
+	GomuFist = CFrame.Angles(math.pi, 0, 0),
+}
+Step.METAL_PALETTES = { mjolnir_metal = true, steel_dark = true, silver = true, gold = true, cartridge_brass = true,
+	hammer_forged = true, hammer_edge = true, hammer_inlay = true }
+Step.NEON_PALETTES = { lightning = true, web_neon = true, gold_energy = true }
 -- R15 RightGripAttachment (RightHand space): GripFromHand = this * (Handle in grip space), like Kit.Prepare's value.
 Step.GRIP_ATTACHMENT = CFrame.new(0, -0.15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
 -- the legacy bat pieces a hero weapon drops
@@ -154,6 +182,212 @@ function Step.BuildWeapon(tool, weapon, palettes, config)
 	return #parts
 end
 
+local function flattenedParts(root)
+	local parts = {}
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("BasePart") then
+			table.insert(parts, d)
+		end
+	end
+	return parts
+end
+
+-- Rebuilds `tool` from an imported Tool made by HeroWeaponTools.Prepare in Studio. Returns the part count.
+function Step.BuildWeaponFromImport(tool, imported, config, weaponId)
+	for _, child in ipairs(tool:GetChildren()) do
+		if shouldDrop(child) then
+			child:Destroy()
+		end
+	end
+	local gripFromHand = imported:GetAttribute("GripFromHand")
+	assert(typeof(gripFromHand) == "CFrame", weaponId .. " import has no GripFromHand (run HeroWeaponsImport.lua in Studio)")
+	local handle, parts = nil, {}
+	for _, source in ipairs(flattenedParts(imported)) do
+		local part = source:Clone()
+		for _, child in ipairs(part:GetChildren()) do
+			if child:IsA("BasePart") or child:IsA("JointInstance") or child:IsA("WeldConstraint")
+				or child:IsA("LuaSourceContainer") or child:IsA("Sound") or child:IsA("Light") then
+				child:Destroy() -- nested parts come in on their own; joints are rebuilt below
+			end
+		end
+		part.CFrame = source.CFrame
+		part.Anchored = false
+		part.CanCollide = false
+		part.CanTouch = false
+		part.CanQuery = false
+		part.Massless = true
+		local section = part:GetAttribute("HeroSection")
+		if type(section) ~= "string" then
+			section = string.match(part.Name, "__([^_]+)__") or "Handle"
+			part:SetAttribute("HeroSection", section)
+		end
+		local palette = string.match(part.Name, "__[^_]+__(.+)$")
+		if palette then
+			part:SetAttribute("HeroPalette", palette)
+		end
+		if section == "VFX" then
+			part.Transparency = 1 -- shown by HeroWeaponController while the attack plays
+			part.CastShadow = false
+		end
+		part.Parent = tool
+		table.insert(parts, part)
+		if source.Name == "Handle" and handle == nil then
+			handle = part
+		end
+	end
+	assert(handle ~= nil, weaponId .. " import has no Handle")
+	for _, part in ipairs(parts) do
+		if part ~= handle then
+			local weld = Instance.new("Weld")
+			weld.Name = Step.WELD_NAME
+			weld.Part0 = handle
+			weld.Part1 = part
+			weld.C0 = handle.CFrame:ToObjectSpace(part.CFrame)
+			weld.C1 = CFrame.new()
+			weld.Parent = part
+		end
+	end
+	-- Handle = RightHand * GripFromHand (the kit), and the engine's RightGrip does Handle = RightHand * attachment * Grip^-1
+	local grip = gripFromHand:Inverse() * Step.GRIP_ATTACHMENT
+	tool.Grip = grip
+	tool.RequiresHandle = true
+	tool.CanBeDropped = false
+	tool.ManualActivationOnly = false
+	local spec = config.WEAPONS[weaponId]
+	tool.ToolTip = spec.DisplayName
+	tool:SetAttribute("HeroWeaponId", weaponId)
+	tool:SetAttribute("HeroGrip", grip)
+	tool:SetAttribute("GripFromHand", gripFromHand)
+	tool:SetAttribute("HeroWeaponName", spec.DisplayName)
+	tool:SetAttribute("HeroEffect", spec.Effect)
+	tool:SetAttribute("HeroWeaponModel", "Import")
+	tool:SetAttribute("ItemType", "Gear")
+	if type(tool:GetAttribute("GearName")) ~= "string" then
+		tool:SetAttribute("GearName", tool.Name)
+	end
+	return #parts
+end
+
+-- A stand-in for a Studio import made from the FBX manifest: block parts at each mesh's bounds, laid out and tagged
+-- exactly like HeroWeaponTools.Prepare's output (origin = the file origin).
+function Step.SyntheticWeapon(name, entry)
+	local tool = Instance.new("Tool")
+	tool.Name = entry.WeaponId
+	local handle = nil
+	local parts = {}
+	for _, mesh in ipairs(entry.Meshes) do
+		local part = Instance.new("Part")
+		part.Name = mesh.name
+		part.Size = Vector3.new(math.max(mesh.size[1], 0.05), math.max(mesh.size[2], 0.05), math.max(mesh.size[3], 0.05))
+		part.CFrame = CFrame.new(mesh.centre[1], mesh.centre[2], mesh.centre[3])
+		part:SetAttribute("HeroSection", mesh.section)
+		part.Material = if Step.METAL_PALETTES[mesh.palette or ""] then Enum.Material.Metal
+			elseif Step.NEON_PALETTES[mesh.palette or ""] then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		part.Parent = tool
+		table.insert(parts, part)
+		if mesh.name == "Handle" then
+			handle = part
+		end
+	end
+	tool:SetAttribute("HeroWeaponId", entry.WeaponId)
+	tool:SetAttribute("HeroWeaponSource", name .. ".fbx (synthetic)")
+	tool:SetAttribute("GripFromHand", Step.GRIP_ROTATIONS[entry.WeaponId] * handle.CFrame)
+	return tool
+end
+
+function Step.SyntheticVfx(name, entry)
+	local model = Instance.new("Model")
+	model.Name = name
+	for _, mesh in ipairs(entry.Meshes) do
+		local part = Instance.new("Part")
+		part.Name = mesh.name
+		part.Size = Vector3.new(math.max(mesh.size[1], 0.05), math.max(mesh.size[2], 0.05), math.max(mesh.size[3], 0.05))
+		part.CFrame = CFrame.new(mesh.centre[1], mesh.centre[2], mesh.centre[3])
+		part.Parent = model
+	end
+	model:SetAttribute("HeroWeaponSource", name .. ".fbx (synthetic)")
+	return model
+end
+
+-- { weapons = { [WeaponId] = Tool }, vfx = { [Name] = Model } } from assets/hero_weapons/imports (or synthetic).
+function Step.LoadImports()
+	local out = { weapons = {}, vfx = {} }
+	if process.env.STEALAHERO_WEAPON_IMPORTS == "synthetic" then
+		local manifest = serde.decode("json", fs.readFile(Step.FBX_MANIFEST))
+		for name, entry in pairs(manifest.Weapons) do
+			out.weapons[entry.WeaponId] = Step.SyntheticWeapon(name, entry)
+		end
+		for name, entry in pairs(manifest.Vfx) do
+			out.vfx[name] = Step.SyntheticVfx(name, entry)
+		end
+		return out
+	end
+	for kind, bucket in pairs({ weapons = out.weapons, vfx = out.vfx }) do
+		local dir = Step.IMPORT_DIR .. "/" .. kind
+		if fs.isDir(dir) then
+			for _, file in ipairs(fs.readDir(dir)) do
+				local name = string.match(file, "^(.+)%.rbxm$")
+				if name then
+					local ok, roots = pcall(roblox.deserializeModel, fs.readFile(dir .. "/" .. file))
+					if ok and roots[1] then
+						bucket[name] = roots[1]
+					else
+						print("[post_hero_weapons] !! could not read " .. dir .. "/" .. file .. ": " .. tostring(roots))
+					end
+				end
+			end
+		end
+	end
+	return out
+end
+
+-- The effect models under ReplicatedStorage.HeroWeaponVfx (anchored, no collisions, no shadow).
+function Step.PublishVfx(place, vfx)
+	local rs = place:GetService("ReplicatedStorage")
+	local folder = rs:FindFirstChild(Step.VFX_FOLDER)
+	if folder then
+		folder:Destroy()
+	end
+	folder = Instance.new("Folder")
+	folder.Name = Step.VFX_FOLDER
+	folder.Parent = rs
+	local published = {}
+	for name, source in pairs(vfx) do
+		local model = Instance.new("Model")
+		model.Name = name
+		local primary = nil
+		for _, part in ipairs(flattenedParts(source)) do
+			local copy = part:Clone()
+			for _, child in ipairs(copy:GetChildren()) do
+				if child:IsA("BasePart") or child:IsA("JointInstance") or child:IsA("WeldConstraint")
+					or child:IsA("LuaSourceContainer") or child:IsA("Sound") or child:IsA("Light") then
+					child:Destroy()
+				end
+			end
+			copy.CFrame = part.CFrame
+			copy.Anchored = true
+			copy.CanCollide = false
+			copy.CanTouch = false
+			copy.CanQuery = false
+			copy.CastShadow = false
+			copy.Massless = true
+			copy.Parent = model
+			if part.Name == "Handle" then
+				primary = copy
+			end
+		end
+		if primary then
+			model.PrimaryPart = primary
+		end
+		-- the pivot is the FBX file origin (the effect meshes are authored around it)
+		model.WorldPivotData = CFrame.new()
+		model.Parent = folder
+		table.insert(published, name)
+	end
+	table.sort(published)
+	return published
+end
+
 function Step.PublishClips(place, config)
 	local directory = place:GetService("ReplicatedStorage"):FindFirstChild("Directory")
 	assert(directory ~= nil, "ReplicatedStorage.Directory missing")
@@ -201,6 +435,7 @@ function Step.Apply(place, _spPlace, _ctx)
 
 	local shopItems = rs:FindFirstChild("GearTools") and rs.GearTools:FindFirstChild("ShopItems")
 	assert(shopItems ~= nil, "ReplicatedStorage.GearTools.ShopItems missing")
+	local imports = Step.LoadImports()
 	local built = {}
 	local toolNames = {}
 	for toolName in pairs(config.BY_TOOL) do
@@ -211,10 +446,29 @@ function Step.Apply(place, _spPlace, _ctx)
 		local weaponId = config.BY_TOOL[toolName]
 		local tool = shopItems:FindFirstChild(toolName)
 		assert(tool ~= nil and tool:IsA("Tool"), "GearTools.ShopItems." .. toolName .. " is not a Tool")
-		local count = Step.BuildWeapon(tool, byId[weaponId], data.Palettes, config)
-		table.insert(built, string.format("%s -> %s (%d parts)", toolName, weaponId, count))
+		local imported = imports.weapons[weaponId]
+		if imported then
+			local count = Step.BuildWeaponFromImport(tool, imported, config, weaponId)
+			table.insert(built, string.format("%s -> %s (owner's model, %d meshes)", toolName, weaponId, count))
+		else
+			local count = Step.BuildWeapon(tool, byId[weaponId], data.Palettes, config)
+			tool:SetAttribute("HeroWeaponModel", "Parts")
+			table.insert(built, string.format("%s -> %s (part stand-in, %d parts)", toolName, weaponId, count))
+		end
 	end
 	local clips = Step.PublishClips(place, config)
+	local vfx = Step.PublishVfx(place, imports.vfx)
+	local missing, total = {}, 0
+	for weaponId in pairs(config.WEAPONS) do
+		total += 1
+		if not imports.weapons[weaponId] then
+			table.insert(missing, weaponId)
+		end
+	end
+	table.sort(missing)
+	print(string.format("[post_hero_weapons] owner models: %d/%d weapon imports, %d effect imports (%s)%s", total - #missing,
+		total, #vfx, if #vfx > 0 then table.concat(vfx, ", ") else "none",
+		if #missing > 0 then "; part stand-ins for " .. table.concat(missing, ", ") .. " until they are imported" else ""))
 	print("[post_hero_weapons] " .. #built .. " hero weapon tools: " .. table.concat(built, ", "))
 	print("[post_hero_weapons] " .. #clips .. " attack clips: " .. table.concat(clips, ", "))
 end
