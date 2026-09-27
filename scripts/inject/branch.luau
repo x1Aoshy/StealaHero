@@ -9,6 +9,8 @@
 --   BranchControllers/UiLifeController                idle UI animations (breathe / bob / sweep / twinkle)
 --   BranchControllers/PerfController                  plot billboards capped to a render distance; phone budget
 --   BranchControllers/UiScaleController               HUD groups scaled per device (phone / tablet / console)
+--   BranchControllers/EggHealthController             logs where the egg client stopped when the stages show no eggs
+--   BranchControllers/MenuMotionController            egg / hero list open animation; the HUD slides away under any menu
 return {
 	{
 		target = "ServerScriptService/BranchServer",
@@ -56,6 +58,18 @@ return {
 		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/PerfController",
 		class = "ModuleScript",
 		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/PerfController.luau",
+		create = true,
+	},
+	{
+		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/EggHealthController",
+		class = "ModuleScript",
+		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/EggHealthController.luau",
+		create = true,
+	},
+	{
+		target = "StarterPlayer/StarterPlayerScripts/BranchControllers/MenuMotionController",
+		class = "ModuleScript",
+		source = "src/StarterPlayer/StarterPlayerScripts/BranchControllers/MenuMotionController.luau",
 		create = true,
 	},
 }

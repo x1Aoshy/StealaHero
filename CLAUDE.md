@@ -69,7 +69,8 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
 - **Branch framework**: Branch 2.0.0 is vendored in `vendor/Branch` (MIT) and installed at
   `ReplicatedStorage.Packages.Branch`. New systems go in as segments:
   - `ServerScriptService.BranchServices` (`*Service`, started by `BranchServer`);
-  - `StarterPlayerScripts.BranchControllers` (`*Controller`, started by `BranchClient`).
+  - `StarterPlayerScripts.BranchControllers` (`*Controller`, started by `BranchClient`): UiLife, Perf, UiScale,
+    EggHealth, MenuMotion.
 
   Branch.Data is not used (the player saves stay on `Library.Database`). Branch.Network is not used either: it needs
   the Branch Studio plugin's codegen.
@@ -115,5 +116,17 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the device sizing (`UiScaleController`, `PlayerGui.UiDeviceProfile`) in the phone, tablet and console emulators,
     and the round egg-grab prompts.
 
-  The owner may send a moon icon of their own: until then the night timer shows the pixel-art moon
-  (`HUD.PIXEL_MOON` in ui_30_hud).
+  The owner may send a moon icon of their own: until then every moon / sun image shows the pixel-art icons
+  (`HUD.PIXEL_MOON` / `HUD.PIXEL_SUN` in ui_30_hud; the SpPixelIcon layers are driven by `GUI/PixelNightIcon`).
+- (2026-09-27, 4th pass) The owner saw EMPTY stages in a live server: the server spawned every egg
+  ("Initial population done: 38/38") but the egg client (`Game/AreaEggs`) never drew one and logged nothing. The root
+  cause was not found statically. The client now names the step it waits on after 10 s (`[AreaEggs] start-up still
+  waiting at: ...`), loads the presentation-only modules in the background, reconciles drawn eggs every 4 s, and
+  `BranchControllers.EggHealthController` logs `[EggHealth] ...` when the stages show no eggs. If the eggs are still
+  missing, ask for those two log lines: they name the culprit.
+- (2026-09-27, 4th pass) Test in Studio Play:
+  - Zoro's `Aura_Blades`;
+  - the egg / hero list pop-in and the HUD sliding away under menus (`MenuMotionController`);
+  - the treadmill model viewports in the speed shop;
+  - the "+" on the shoe's corner;
+  - the pixel moons in the night countdown, on the egg tab and over growing eggs.

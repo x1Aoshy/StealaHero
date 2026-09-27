@@ -63,7 +63,7 @@ end
 
 local sab = H.path(place:GetService("ReplicatedStorage"), "Assets/VFX/SAB")
 if T.check(sab ~= nil, "ReplicatedStorage.Assets.VFX.SAB missing") then
-	for _, name in ipairs({ "Aura_Ki", "Aura_SSJ", "Aura_RedStars" }) do
+	for _, name in ipairs({ "Aura_Ki", "Aura_SSJ", "Aura_RedStars", "Aura_Blades" }) do
 		local effect = sab:FindFirstChild(name)
 		local emitters = 0
 		for _, d in ipairs(effect and effect:GetDescendants() or {}) do
@@ -79,8 +79,18 @@ local sabController = H.path(scripts, "Game/SabVfxController")
 if T.check(sabController ~= nil, "SabVfxController missing") then
 	local src = sabController.Source
 	for _, entry in ipairs({ "Goku = { effect = \"Aura_Ki\"", "Gohan = { effect = \"Aura_SSJ\"", "Superman = { effect = \"Aura_RedStars\"",
-		"Zoro = { effect = \"Aura_Ki\"", "Hawks = { effect = false", "IronMan = Color3.fromRGB(70, 165, 255)" }) do
+		"Zoro = { effect = \"Aura_Blades\"", "Hawks = { effect = false", "IronMan = Color3.fromRGB(70, 165, 255)" }) do
 		T.check(string.find(src, entry, 1, true) ~= nil, "SabVfxController lacks the aura entry %s", entry)
 	end
+	T.check(string.find(src, "Zoro = { effect = \"Aura_Ki\"", 1, true) == nil, "Zoro must not wear Goku's ki aura")
 	T.check(pcall(H.luau.compile, src), "SabVfxController does not compile")
+end
+-- Zoro's swordsman aura: slashes (a OneShot flipbook) around the body and a flat spinning wind crescent at the feet.
+local blades = sab and sab:FindFirstChild("Aura_Blades")
+if T.check(blades ~= nil, "Aura_Blades missing") then
+	local slash = blades:FindFirstChild("BladeSlashes")
+	T.check(slash ~= nil and slash.FlipbookLayout == H.roblox.Enum.ParticleFlipbookLayout.Grid4x4
+		and slash.FlipbookMode == H.roblox.Enum.ParticleFlipbookMode.OneShot, "Aura_Blades slashes must be a Grid4x4 OneShot flipbook")
+	local wind = blades:FindFirstChild("BladeWind", true)
+	T.check(wind ~= nil and wind.Orientation == H.roblox.Enum.ParticleOrientation.VelocityPerpendicular, "Aura_Blades wind crescent must lie flat")
 end

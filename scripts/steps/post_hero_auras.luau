@@ -5,11 +5,16 @@
 -- emitter stored Enabled = false, sized for a 5-stud character and scaled by the hero's rendered Scale):
 --   Aura_Ki        the owner's "Goku - SSJ2 Aura" model (vendor/goku_ssj2_aura.rbxm, sent 2026-09-27): its flame
 --                  aura flipbook (OriginalAura2x2, Grid2x2) on an attachment 0.6 above the root. Goku wears it white
---                  (a ki aura), Zoro green (the client recolours it).
+--                  (a ki aura; the client recolours it).
 --   Aura_SSJ       the same flame plus the model's Super Saiyan 2 sparks (Images/0003, Grid8x8) at the head, an arm
 --                  and both feet. Gohan wears it as sent.
 --   Aura_RedStars  small red twinkling stars around the body (V40 "PinkStars" and "Pixel Blob" flipbooks,
 --                  Grid4x4 OneShot). Superman.
+--   Aura_Blades    Zoro (owner 2026-09-27: "Zoro has Goku's VFX, give him a fitting one"): a swordsman's aura instead of a
+--                  ki flame. Green-white sword slashes flash around the body (the "Slash22" flipbook of the Speedsters
+--                  Cursed Energy kit, Grid4x4 OneShot), a dark green wind crescent spins flat at his feet (its "Smokey
+--                  Crescent", a Tatsumaki swirl) and a few green specks drift up. Textures from
+--                  assets/vfx_library/VfxLibrary.rbxl.
 
 local roblox = require("@lune/roblox")
 local fs = require("@lune/fs")
@@ -105,6 +110,82 @@ local function star(parent, name, texture, color, rate, size)
 	return e
 end
 
+-- Zoro's swordsman aura (see the header): slashes around the body, a spinning wind crescent under the feet, specks.
+Step.BLADE_TEXTURES = {
+	slash = "rbxassetid://121148164489745", -- Speedsters CursedEnergy "Slash22" (Grid4x4)
+	crescent = "rbxassetid://17085222506", -- Speedsters CursedEnergy "Smokey Crescent" (Grid4x4)
+	speck = "rbxassetid://136781994057492", -- Speedsters CursedEnergy "cat spec 3"
+}
+local function blades(folder)
+	local part = host(folder, "Aura_Blades", "Zoro: sword slashes + wind crescent")
+	local slash = Instance.new("ParticleEmitter")
+	slash.Name = "BladeSlashes"
+	slash.TextureContent = Content.fromUri(Step.BLADE_TEXTURES.slash)
+	slash.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	slash.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+	slash.Rate = 2.4
+	slash.Lifetime = NumberRange.new(0.32, 0.45)
+	slash.Speed = NumberRange.new(0, 0)
+	slash.Size = seq({ { 0, 3.1 }, { 1, 3.9 } })
+	slash.Transparency = seq({ { 0, 0.05 }, { 0.7, 0.15 }, { 1, 1 } })
+	slash.Rotation = NumberRange.new(-180, 180)
+	slash.LightEmission = 1
+	slash.LightInfluence = 0
+	slash.Brightness = 2.2
+	slash.ZOffset = 0.6
+	slash.Color = ColorSequence.new(Color3.fromRGB(225, 255, 230), Color3.fromRGB(70, 235, 120))
+	slash.Shape = Enum.ParticleEmitterShape.Box
+	slash.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	slash.LockedToPart = true
+	slash.Enabled = false
+	slash.Parent = part
+
+	local feet = attachment(part, "BladeWindAttachment", Vector3.new(0, -2.4, 0))
+	local crescent = Instance.new("ParticleEmitter")
+	crescent.Name = "BladeWind"
+	crescent.TextureContent = Content.fromUri(Step.BLADE_TEXTURES.crescent)
+	crescent.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	crescent.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+	crescent.Rate = 1.3
+	crescent.Lifetime = NumberRange.new(0.8, 1.1)
+	crescent.Speed = NumberRange.new(0.01, 0.01)
+	crescent.EmissionDirection = Enum.NormalId.Top
+	crescent.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	crescent.Size = seq({ { 0, 3.6 }, { 1, 5.6 } })
+	crescent.Transparency = seq({ { 0, 0.25 }, { 0.6, 0.35 }, { 1, 1 } })
+	crescent.Rotation = NumberRange.new(0, 360)
+	crescent.RotSpeed = NumberRange.new(140, 220)
+	crescent.LightEmission = 0.7
+	crescent.LightInfluence = 0
+	crescent.Brightness = 1.6
+	crescent.Color = ColorSequence.new(Color3.fromRGB(30, 130, 65), Color3.fromRGB(110, 255, 150))
+	crescent.LockedToPart = true
+	crescent.Enabled = false
+	crescent.Parent = feet
+
+	local speck = Instance.new("ParticleEmitter")
+	speck.Name = "BladeSpecks"
+	speck.TextureContent = Content.fromUri(Step.BLADE_TEXTURES.speck)
+	speck.Rate = 5
+	speck.Lifetime = NumberRange.new(0.8, 1.4)
+	speck.Speed = NumberRange.new(1.2, 2.6)
+	speck.EmissionDirection = Enum.NormalId.Top
+	speck.SpreadAngle = Vector2.new(25, 25)
+	speck.Drag = 0.8
+	speck.Size = seq({ { 0, 0 }, { 0.2, 0.28 }, { 1, 0 } })
+	speck.Transparency = seq({ { 0, 0 }, { 0.8, 0.2 }, { 1, 1 } })
+	speck.LightEmission = 1
+	speck.LightInfluence = 0
+	speck.Brightness = 2
+	speck.Color = ColorSequence.new(Color3.fromRGB(150, 255, 170))
+	speck.Shape = Enum.ParticleEmitterShape.Box
+	speck.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	speck.Enabled = false
+	speck.Parent = part
+	return part
+end
+Step._blades = blades
+
 function Step.Apply(place, _spPlace, _ctx)
 	local rs = place:GetService("ReplicatedStorage")
 	local assets = rs:FindFirstChild("Assets")
@@ -130,7 +211,7 @@ function Step.Apply(place, _spPlace, _ctx)
 	end
 	local made = {}
 	if flame then
-		local ki = host(folder, "Aura_Ki", "Goku (white) / Zoro (green): ki flame aura")
+		local ki = host(folder, "Aura_Ki", "Goku (white): ki flame aura")
 		stored(flame, attachment(ki, "AuraAttachment", Vector3.new(0, 0.6, 0)))
 		table.insert(made, "Aura_Ki")
 		local ssj = host(folder, "Aura_SSJ", "Gohan: Super Saiyan 2 flame + sparks")
@@ -148,6 +229,8 @@ function Step.Apply(place, _spPlace, _ctx)
 	star(stars, "RedStars", "rbxassetid://8733414465", Color3.fromRGB(255, 45, 55), 7, 0.45)
 	star(stars, "RedGlints", "rbxassetid://8733488500", Color3.fromRGB(255, 120, 110), 4, 0.3)
 	table.insert(made, "Aura_RedStars")
+	blades(folder)
+	table.insert(made, "Aura_Blades")
 	print("[post_hero_auras] per-hero auras: " .. table.concat(made, ", "))
 end
 

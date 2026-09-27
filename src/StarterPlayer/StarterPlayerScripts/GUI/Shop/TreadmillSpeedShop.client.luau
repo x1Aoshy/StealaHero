@@ -66,12 +66,107 @@ local function updateRobuxUpgradePrice(n2: number, n3: number) -- line: 63
 		RobuxUpgrade.Cost.Text = `{ Constants.ROBUX_ICON_STR } { not v52 and "???" or Simple.FormatCompact(v51, ".#") }`
 	end)
 end
+-- Owner 2026-09-27: "the speed shop's Upgrade Treadmill uses old renders or photos: make new viewports with the accurate
+-- models of our treadmills". Each tier icon gets a ViewportFrame over it (same size, position and aspect) showing that
+-- tier's own model - ReplicatedStorage.Assets.Models.Treadmills[<id>].Model, the one the plots render - as a static,
+-- effect-free copy seen three-quarters from the end of the belt towards the console. The old render stays underneath
+-- as the fallback when a tier has no model.
+local TREADMILL_VIEW_FOV = 30
+local TREADMILL_VIEW_SIDE = math.rad(38) -- how far round from straight down the belt
+local TREADMILL_VIEW_RISE = 0.5 -- camera height per unit of distance
+local treadmillViews = {} -- [icon ImageLabel] = { viewport, camera, model, id }
+
+local function consoleSide(model, boxCFrame, boxSize)
+	-- the console is the tall end of the frame: sign of the local Z where the tallest parts stand
+	local weight, total = 0, 0
+	local threshold = -boxSize.Y / 2 + boxSize.Y * 0.6
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local localPosition = boxCFrame:PointToObjectSpace(part.Position)
+			if localPosition.Y + part.Size.Y / 2 > threshold then
+				weight += localPosition.Z * part.Size.Magnitude
+				total += part.Size.Magnitude
+			end
+		end
+	end
+	return if total > 0 and weight < 0 then -1 else 1
+end
+
+local function showTreadmillModel(icon, treadmillId)
+	local view = treadmillViews[icon]
+	if view and view.id == treadmillId then
+		view.viewport.Visible = icon.Visible
+		return
+	end
+	local skins = ReplicatedStorage.Assets.Models:FindFirstChild("Treadmills")
+	local skin = skins and skins:FindFirstChild(treadmillId)
+	local folder = skin and skin:FindFirstChild("Model")
+	local source = folder and folder:FindFirstChildWhichIsA("Model")
+	if source == nil then
+		if view then
+			view.viewport.Visible = false
+			view.id = nil
+		end
+		icon.ImageTransparency = 0
+		return
+	end
+	if view == nil then
+		local viewport = Instance.new("ViewportFrame")
+		viewport.Name = icon.Name .. "View"
+		viewport.BackgroundTransparency = 1
+		viewport.Size = icon.Size
+		viewport.Position = icon.Position
+		viewport.AnchorPoint = icon.AnchorPoint
+		viewport.SizeConstraint = icon.SizeConstraint
+		viewport.ZIndex = icon.ZIndex + 1
+		viewport.Ambient = Color3.fromRGB(190, 190, 195)
+		viewport.LightColor = Color3.fromRGB(255, 248, 235)
+		viewport.LightDirection = Vector3.new(-0.8, -1.5, -0.5)
+		for _, constraint in ipairs(icon:GetChildren()) do
+			if constraint:IsA("UIAspectRatioConstraint") or constraint:IsA("UISizeConstraint") then
+				constraint:Clone().Parent = viewport
+			end
+		end
+		local camera = Instance.new("Camera")
+		camera.FieldOfView = TREADMILL_VIEW_FOV
+		camera.Parent = viewport
+		viewport.CurrentCamera = camera
+		viewport.Parent = icon.Parent
+		view = { viewport = viewport, camera = camera }
+		treadmillViews[icon] = view
+	end
+	if view.model then
+		view.model:Destroy()
+		view.model = nil
+	end
+	local model = source:Clone()
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("LuaSourceContainer") or d:IsA("Sound") or d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail")
+			or d:IsA("Light") or d:IsA("LayerCollector") then
+			d:Destroy()
+		end
+	end
+	model.Parent = view.viewport
+	view.model = model
+	view.id = treadmillId
+	local boxCFrame, boxSize = model:GetBoundingBox()
+	local side = consoleSide(model, boxCFrame, boxSize)
+	local direction = Vector3.new(math.sin(TREADMILL_VIEW_SIDE), TREADMILL_VIEW_RISE, -side * math.cos(TREADMILL_VIEW_SIDE)).Unit
+	local radius = boxSize.Magnitude / 2
+	local distance = radius / math.tan(math.rad(TREADMILL_VIEW_FOV / 2)) * 0.92
+	local eye = boxCFrame:PointToWorldSpace(direction * distance)
+	view.camera.CFrame = CFrame.lookAt(eye, boxCFrame.Position)
+	view.viewport.Visible = icon.Visible
+	icon.ImageTransparency = 1
+end
+
 local function refreshUpgrade(p1, n4: number) -- line: 76
 	-- upvalues: Treadmills (copy), Pack (copy), Client (copy), UpgradeTreadmill (copy), Upgrade (copy), Simple (copy), UpgradeBackgroundColor3 (copy), color3 (copy), UIGradient (copy), v24 (copy), RobuxUpgrade (copy), Products (copy), Constants (copy), GetPrice (copy), n1 (ref)
 	local v37 = Treadmills.GetByUpgradeLevel(p1.TreadmillUpgradeLevel)
 
 	assert(v37 ~= nil, `Invalid current treadmill level { p1.TreadmillUpgradeLevel }`)
 	Pack.TreadmillIconCurrent.Image = v37.Icon
+	pcall(showTreadmillModel, Pack.TreadmillIconCurrent, v37._id)
 
 	local _, v39 = Client.GetNextConfig(p1)
 
@@ -83,6 +178,7 @@ local function refreshUpgrade(p1, n4: number) -- line: 76
 
 	UpgradeTreadmill.Visible = true
 	Pack.TreadmillIconNext.Image = v39.Icon
+	pcall(showTreadmillModel, Pack.TreadmillIconNext, v39._id)
 	Upgrade.Cost.Text = "$" .. Simple.FormatCompact(v39.Price, ".#")
 
 	local v40 = Client.CanAffordNext(p1)

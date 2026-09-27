@@ -215,6 +215,11 @@ local RIBBON = {
 	plus = {
 		size = 0.72, inset = 0.14, gap = 0.14, corner = 0.25, -- H
 		fill = Kit.ButtonFamilies.premium_gold.fill, stroke = C.ink, strokeThickness = 0.08, glyphStroke = 0.16,
+		-- Owner 2026-09-27: "where the shoe is there must be no background, and put the + right at the corner of the shoe
+		-- image": no gold key cap any more, just the "+" glyph (bright green, thick ink outline) on the shoe's top-right
+		-- corner. Box in holder units (the shoe fills its holder).
+		onShoe = true,
+		cornerSize = 0.62, cornerPosition = Vector2.new(0.9, 0.16), glyphColor = Color3.fromRGB(110, 255, 120),
 	},
 	friendIcon = 139671463277267, -- Steal a Hero's own "Friends" art (TradePlayerList bottom bar)
 	boostIcon = Kit.Icons.ability, -- Speedsters lightning bolt
@@ -294,7 +299,9 @@ local LEFT_LIFE = {
 
 -- Right-edge tabs (owner brief, 5th pass): glossy ROUNDED SQUARES as tall as the left pills (70 px at 720p), icon only -
 -- EGGS shows the Steal an Egg egg, HERO INDEX a big "H" - stacked on the right edge and vertically centred.
-local TAB_GAP = 0.06 -- of the Tabs box height (~9 px)
+-- Owner 2026-09-27: "separate the egg button and the H button a bit more": the squares keep their size (the box aspect
+-- follows TAB_ROW), the gap between them grows from ~5 to ~14 px at 720p.
+local TAB_GAP = 0.14 -- of the Tabs box height
 local TAB_ROW = (1 - TAB_GAP) / 2 -- each square's share of the box height
 local TABS_BOX_ASPECT = TAB_ROW -- one square wide: width / height of two squares + one gap
 local TABS_BOX_SIZE = UDim2.fromScale(LEFT_BOX_WIDTH / TOOL_PILL_ASPECT, 0.6) -- square side = the left pills' height
@@ -1471,6 +1478,39 @@ end
 -- legacy plus art is kept, transparent.
 local function skinPlusButton(button, rowAspect)
 	local P = RIBBON.plus
+	if P.onShoe then
+		place(button, UDim2.fromScale(P.cornerSize, P.cornerSize), UDim2.fromScale(P.cornerPosition.X, P.cornerPosition.Y),
+			Vector2.new(0.5, 0.5))
+		button.SizeConstraint = Enum.SizeConstraint.RelativeXY
+		aspect(button, 1)
+		button.ImageTransparency = 1
+		button.BackgroundTransparency = 1
+		button.BorderSizePixel = 0
+		button.Rotation = 0
+		button.ZIndex = math.max(button.ZIndex, 5)
+		for _, c in ipairs(button:GetChildren()) do
+			if c:IsA("UIGradient") or c:IsA("UIStroke") then
+				c.Enabled = false -- the gold key cap of the earlier pass
+			end
+		end
+		Kit.hideLegacyStrokes(button)
+		local glyph = Kit.ensureChild(button, "TextLabel", "SpPlus")
+		glyph.Text = "+"
+		glyph.BackgroundTransparency = 1
+		glyph.BorderSizePixel = 0
+		place(glyph, UDim2.fromScale(1, 1), UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
+		glyph.Rotation = 0
+		glyph.AutomaticSize = Enum.AutomaticSize.None
+		glyph.TextScaled = true
+		glyph.TextWrapped = true
+		glyph.TextXAlignment = Enum.TextXAlignment.Center
+		glyph.TextYAlignment = Enum.TextYAlignment.Center
+		glyph.ZIndex = button.ZIndex + 1
+		glyph.Active = false
+		Kit.styleText(glyph, "sidebar", { strokeThickness = P.glyphStroke, strokeColor = C.ink })
+		glyph.TextColor3 = P.glyphColor
+		return glyph
+	end
 	local unit = 1 / RIBBON.icon -- 1 H in holder scale
 	local centreX = rowAspect - P.inset - P.size / 2 - RIBBON.padLeft -- H, from the holder's left edge
 	place(button, UDim2.fromScale(P.size * unit, P.size * unit), UDim2.fromScale(centreX * unit, 0.5), Vector2.new(0.5, 0.5))
@@ -1619,14 +1659,15 @@ local function applyMoney(sg)
 		local boost = child(speed, "CurrentBoost")
 		if boost and Kit.isText(boost) then
 			boost.LayoutOrder = 1
-			-- the value ends before the "+" (inset + size + gap from the ribbon's right end)
+			-- the value ends before the "+" (inset + size + gap from the ribbon's right end); with the "+" on the shoe's
+			-- corner it runs to the ribbon's end
 			local P = RIBBON.plus
-			local width = RIBBON.rowAspect - P.inset - P.size - P.gap - valueStart
+			local width = if P.onShoe then RIBBON.rowAspect - P.inset - valueStart else RIBBON.rowAspect - P.inset - P.size - P.gap - valueStart
 			boost.Size = UDim2.fromScale(width / rowContent, RIBBON.textHeight)
 			boost.SizeConstraint = Enum.SizeConstraint.RelativeXY
 			valueFaces(boost, { scriptOwned = { TextColor3 = true } })
 		end
-		table.insert(done, "SpeedValue(ribbon, + at the right end)")
+		table.insert(done, if RIBBON.plus.onShoe then "SpeedValue(ribbon, + on the shoe corner)" else "SpeedValue(ribbon, + at the right end)")
 	end
 
 	-- buff lines (Visible + Text script-owned)
@@ -2082,12 +2123,12 @@ HUD.PIXEL_SUN = {
 	"......kk......",
 }
 
-local function pixelIcon(parent, name, rows, like)
+local function pixelIcon(parent, name, rows, like, className)
 	local existing = parent:FindFirstChild(name)
 	if existing then
 		existing:Destroy()
 	end
-	local frame = roblox.Instance.new("Frame")
+	local frame = roblox.Instance.new(className or "Frame")
 	frame.Name = name
 	frame.BackgroundTransparency = 1
 	frame.AnchorPoint = like.AnchorPoint
@@ -2207,6 +2248,88 @@ local function skinNightTimer(root, geometry, pillSize)
 		nightText(label, geometry.text)
 	end
 	return true
+end
+
+-- Owner 2026-09-27: "every moon image must be the new one, all of them: you replaced only one". Besides the night timer,
+-- the game draws the moon in the start-of-night countdown (ResetStartTimer.Frame.SleepIcon; DayIcon is its sun), on
+-- the egg tab at night (Elements.Tabs.GrowingEggs.NightImage) and in the billboard over growing eggs at night
+-- (ReplicatedStorage.Assets.Billboards.NightEggTimeSkip). Each of these images gets an SpPixelIcon layer: a
+-- CanvasGroup filling the image with the pixel moon (Moon) and the pixel sun (Sun), and the image carries the PixelIcon
+-- attribute. StarterPlayerScripts.GUI.PixelNightIcon picks the layer from the image the game's scripts set (moon ids ->
+-- Moon, sun ids -> Sun), blanks the old art and follows the script's ImageTransparency fades with GroupTransparency.
+-- ReplicatedStorage.Assets.UI.PixelIcons.SpPixelIcon is the same layer for moon images made at runtime.
+-- { service, path, the only icon that image ever shows } (one grid per image: the billboard sits over every growing egg
+-- at night, and a pixel icon is ~50-80 Frames)
+HUD.PIXEL_ICON_TARGETS = {
+	{ "StarterGui", "ResetStartTimer.Frame.SleepIcon", "Moon" }, -- also the Demonic event's red moon
+	{ "StarterGui", "ResetStartTimer.Frame.DayIcon", "Sun" },
+	{ "StarterGui", "Elements.Tabs.GrowingEggs.NightImage", "Moon" },
+	{ "ReplicatedStorage", "Assets.Billboards.NightEggTimeSkip.Main.Frame.ImageLabel", "Moon" },
+}
+local FILL = {
+	AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1, 1),
+	SizeConstraint = Enum.SizeConstraint.RelativeXY, ZIndex = 1,
+}
+local function pixelLayer(parent, zIndex, only)
+	local layer = parent:FindFirstChild("SpPixelIcon")
+	if layer then
+		layer:Destroy()
+	end
+	layer = roblox.Instance.new("CanvasGroup")
+	layer.Name = "SpPixelIcon"
+	layer.BackgroundTransparency = 1
+	layer.BorderSizePixel = 0
+	layer.AnchorPoint = FILL.AnchorPoint
+	layer.Position = FILL.Position
+	layer.Size = FILL.Size
+	layer.ZIndex = zIndex
+	aspect(layer, 1)
+	local like = table.clone(FILL)
+	like.ZIndex = zIndex
+	local icons = {}
+	if only ~= "Sun" then
+		table.insert(icons, pixelIcon(layer, "Moon", HUD.PIXEL_MOON, like))
+	end
+	if only ~= "Moon" then
+		table.insert(icons, pixelIcon(layer, "Sun", HUD.PIXEL_SUN, like))
+	end
+	for _, icon in ipairs(icons) do
+		icon:SetAttribute("SpBob", nil)
+		icon:SetAttribute("SpBobPeriod", nil)
+		icon.Visible = false
+	end
+	layer.Parent = parent
+	return layer
+end
+
+local function applyPixelMoons(place)
+	local done = {}
+	local rs = place:GetService("ReplicatedStorage")
+	local assets = child(rs, "Assets")
+	local ui = assets and child(assets, "UI")
+	if ui then
+		local folder = child(ui, "PixelIcons")
+		if not folder then
+			folder = roblox.Instance.new("Folder")
+			folder.Name = "PixelIcons"
+			folder.Parent = ui
+		end
+		pixelLayer(folder, 1)
+		table.insert(done, "template")
+	else
+		warn("ReplicatedStorage.Assets.UI missing: no pixel icon template")
+	end
+	for _, target in ipairs(HUD.PIXEL_ICON_TARGETS) do
+		local image = Kit.findPath(place, target[1] .. "." .. target[2])
+		if image and isImage(image) then
+			pixelLayer(image, image.ZIndex + 1, target[3])
+			image:SetAttribute("PixelIcon", true)
+			table.insert(done, target[2])
+		else
+			warn("%s.%s missing: no pixel moon there", target[1], target[2])
+		end
+	end
+	note("Pixel moon / sun layers: %s", table.concat(done, ", "))
 end
 
 local function applyNightTimer(sg)
@@ -2448,6 +2571,7 @@ function HUD.Apply(place, spPlace, ctx)
 		{ "notifications", function() applyNotifications(sg, rs) end },
 		{ "misc", function() applyMisc(sg) end },
 		{ "nightTimer", function() applyNightTimer(sg) end },
+		{ "pixelMoons", function() applyPixelMoons(place) end },
 		{ "backpack", function() applyBackpack(place) end },
 	}
 	local failed = {}

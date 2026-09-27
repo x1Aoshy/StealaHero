@@ -566,25 +566,25 @@ if T.check(rows ~= nil, "StarterGui.Money.Bottom.Frame missing") then
 	local speedFace = H.path(rows, "SpeedValue/CurrentBoost/Shadow")
 	T.check(speedFace ~= nil and hex(speedFace.TextColor3) == "#00ddff", "SpeedValue.CurrentBoost.Shadow keeps its script-owned cyan #00ddff")
 	T.check(shopType(speedFace), "SpeedValue value must use the Shop / Index label type")
-	-- the "+" shortcut (ButtonFX-bound by SpeedShopShortcut) sits at the RIGHT end of the speed ribbon
+	-- the "+" shortcut (ButtonFX-bound by SpeedShopShortcut). Owner 2026-09-27: no background, the "+" right on the
+	-- shoe image's top-right corner.
 	local speed = rows:FindFirstChild("SpeedValue")
 	local holder = speed and speed:FindFirstChild("ImageLabel")
 	local plus = holder and holder:FindFirstChild("ImageButton")
 	local glyph = plus and plus:FindFirstChild("SpPlus")
 	T.check(isClass(plus, "ImageButton") and plus.ImageTransparency == 1 and glyph ~= nil and glyph.Text == "+" and glyph.TextScaled and glyph.TextWrapped,
 		"Speed row needs its \"+\" button (SpPlus, TextScaled + TextWrapped)")
-	local ratio = speed and speed:FindFirstChildOfClass("UIAspectRatioConstraint")
-	if plus and holder and ratio then
-		-- ribbon-height units: the holder is a RelativeYY square list item that starts after the row's left padding
-		local pad = speed:FindFirstChildOfClass("UIPadding")
-		local width = ratio.AspectRatio
-		local start = pad and pad.PaddingLeft.Scale * width or 0
-		local contentH = pad and (1 - pad.PaddingTop.Scale - pad.PaddingBottom.Scale) or 1
-		local side = holder.Size.Y.Scale * contentH
-		local left = start + (plus.Position.X.Scale - plus.AnchorPoint.X * plus.Size.X.Scale) * side
-		local right = left + plus.Size.X.Scale * side
-		T.check(holder.SizeConstraint == Enum.SizeConstraint.RelativeYY and left > start + side and right <= width and right >= width * 0.95,
-			"Speed \"+\" must sit at the right end of the speed ribbon, clear of the shoe icon (spans %.2f-%.2f of %.2f ribbon heights)", left, right, width)
+	if plus then
+		T.check(plus.BackgroundTransparency == 1, "Speed \"+\" must have no background (owner: no background on the shoe)")
+		local cx = plus.Position.X.Scale + (0.5 - plus.AnchorPoint.X) * plus.Size.X.Scale
+		local cy = plus.Position.Y.Scale + (0.5 - plus.AnchorPoint.Y) * plus.Size.Y.Scale
+		T.check(cx >= 0.7 and cx <= 1.1 and cy >= -0.1 and cy <= 0.35,
+			"Speed \"+\" must sit on the shoe image's top-right corner (centre %.2f, %.2f of the shoe)", cx, cy)
+		for _, c in ipairs(plus:GetChildren()) do
+			if c:IsA("UIGradient") or c:IsA("UIStroke") then
+				T.check(not c.Enabled, "Speed \"+\" must not keep its gold key cap (%s)", c.Name)
+			end
+		end
 	end
 end
 local timer = sg:FindFirstChild("GameResetTimer")

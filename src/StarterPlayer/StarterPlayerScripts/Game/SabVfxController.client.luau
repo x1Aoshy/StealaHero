@@ -68,7 +68,7 @@ local AURA_BY_HERO = {
 	Goku = { effect = "Aura_Ki", color = Color3.fromRGB(255, 255, 255), brightness = 3 },
 	Gohan = { effect = "Aura_SSJ" },
 	Superman = { effect = "Aura_RedStars" },
-	Zoro = { effect = "Aura_Ki", color = Color3.fromRGB(80, 255, 120), brightness = 1.6 },
+	Zoro = { effect = "Aura_Blades" }, -- a swordsman's slashes + wind crescent, not Goku's ki (owner 2026-09-27)
 	Hawks = { effect = false },
 }
 
