@@ -46,6 +46,8 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   from `assets/user_models/StealaHero_user_models_0747.rbxl`), converted to R15 by `scripts/lib/rig_convert.luau`.
 - `assets/models/bases/<Stage>/` — the 6 stage bases (see below). `assets/animations/` — hero animation rig/previews.
   `assets/eggs/` — hero egg models/textures. `docs/` — plans. `design/`, `audit/` — references and one-off tools.
+- `assets/vfx_library/VfxLibrary.rbxl` — standalone place with every VFX model of Steal a Hero, Steal an Egg,
+  Speedsters (sibling `../Speedsters`) and V40 (`reference/`), built by `scripts/tools/build_vfx_library.luau`.
 
 ## Pipelines
 - **Stage bases** (Stark Lab, Hall of Justice, Brooklyn Rooftop, U.A. Hero Arena, Capsule Corp Arena, Sunny Pirate
