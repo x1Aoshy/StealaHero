@@ -5,7 +5,8 @@
 --   1. no UICorner in StarterGui / the ReplicatedStorage UI / the world GUIs rounds anything (all four radii 0);
 --   2. no visible non-stud background pattern overlay is left (the old theme patterns), every visible stud layer reads
 --      (ImageTransparency <= 0.62);
---   3. the Shop / Index sidebar buttons are square tiles with a gap between them;
+--   3. the Shop / Index sidebar buttons are small 2.5:1 rectangles with a gap between them (owner: "a rectangle more than a
+--      giant square");
 --   4. StarterPlayerScripts.GUI.SquareUi (runtime corners) is injected and compiles.
 
 local place = H.place()
@@ -59,7 +60,7 @@ if T.check(tools ~= nil, "StarterGui.Elements.Left.Tools missing") then
 	for _, name in ipairs({ "Shop", "Index" }) do
 		local wrapper = tools:FindFirstChild(name)
 		local ratio = wrapper and wrapper:FindFirstChildOfClass("UIAspectRatioConstraint")
-		T.check(ratio ~= nil and math.abs(ratio.AspectRatio - 1) < 1e-3, "Left.Tools.%s must be a square tile", name)
+		T.check(ratio ~= nil and math.abs(ratio.AspectRatio - 2.5) < 1e-3, "Left.Tools.%s must be a small 2.5:1 rectangle", name)
 	end
 	local layout = tools:FindFirstChildOfClass("UIListLayout")
 	T.check(layout ~= nil and layout.Padding.Scale >= 0.04, "Left.Tools must keep a gap between the Shop and Index tiles (Padding %s)",

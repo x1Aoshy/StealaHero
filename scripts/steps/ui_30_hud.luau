@@ -92,7 +92,7 @@ local TICKER = {
 
 -- Speedsters "!" badge (materials hud.badge, Mainhud.LeftSideBar.Shop.!).
 local BADGE = {
-	size = UDim2.fromScale(0.4588, 0.4588),
+	size = UDim2.fromScale(0.3, 0.3), -- owner 2026-09-27: the badges read far too big (was 0.4588)
 	position = UDim2.fromScale(0.9747, 0.1397),
 	anchor = Vector2.new(0.5, 0.5),
 	corner = 0.9,
@@ -161,15 +161,16 @@ local GLOSSY = {
 local GLOSSY_GEOMETRY = {
 	-- the pill keeps TOOL_PILL_ASPECT (2.714) through its wrapper's aspect constraint, so scale tiles stay square:
 	-- 8 studs across, ~2.7 rows
-	studColumns = 5,
+	studColumns = 8,
 	studTransparency = 0.55,
 	glossTop = 0.07, glossWidth = 0.94, glossHeight = 0.42, glossCornerTop = 0.45, glossCornerBottom = 0.2,
 	glossFrom = 0.72, glossTo = 0.97, -- a faint gloss (minimalist tiles)
 	outline = 0.055, ring = 0.035, ringOffset = -0.05,
-	iconCenter = UDim2.fromScale(0.5, 0.4), iconSize = UDim2.fromScale(0.56, 0.56),
+	iconCenter = UDim2.fromScale(0.19, 0.5), iconSize = UDim2.fromScale(0.3, 0.3),
 	plateSize = UDim2.fromScale(0.74, 0.74), plateTransparency = 0.2, plateRim = 0.075, plateInk = 0.13,
-	labelPosition = UDim2.fromScale(0.06, 0.84), labelSize = UDim2.fromScale(0.88, 0.24), labelStroke = 0.13,
-	badgeSize = UDim2.fromScale(0.36, 0.36), badgePosition = UDim2.fromScale(0.96, 0.06),
+	labelPosition = UDim2.fromScale(0.36, 0.5), labelSize = UDim2.fromScale(0.6, 0.56), labelStroke = 0.13,
+	-- a small count badge on the corner (owner: "the ? / number badge looks extremely big")
+	badgeSize = UDim2.fromScale(0.16, 0.16), badgePosition = UDim2.fromScale(0.97, 0.1),
 	z = { studs = 2, gloss = 2, plate = 3, icon = 4, label = 5, badge = 7 },
 }
 
@@ -260,16 +261,17 @@ local NIGHT = {
 ---------------------------------------------------------------------------------------------------
 
 -- Left tool "pill": wider than tall, icon left + label right (reference "Tienda" / "Indice").
--- Owner 2026-09-27: "separate the Shop and Hero Index buttons a bit, more minimalist, square, keep the stud style":
--- the pills became square stud tiles (icon on top, word under it), square corners, a wider gap.
-local TOOL_PILL_ASPECT = 1 -- square tiles (were 190 x 70 pills)
+-- Owner 2026-09-27: "separate the Shop and Hero Index buttons a bit, more minimalist, keep the stud style" and then
+-- "great, but I want a rectangle more than a giant square; the UI is too big on PC and phone": small square-cornered
+-- stud rectangles (icon left, word right), ~105 x 42 px at 1280x720, a clear gap between them.
+local TOOL_PILL_ASPECT = 2.5 -- width / height (were 86 px squares)
 local TOOL_PILL_CORNER = UDim.new(0, 0) -- square
-local LEFT_BOX_ASPECT = 0.22 -- 4 tiles + 3 gaps: width / height
-local LEFT_BOX_WIDTH = 0.068 -- of the Elements content width, BEFORE Left's own UIScale (1.1) -> ~86 px tiles
+local LEFT_BOX_ASPECT = 0.5 -- 4 rectangles + 3 gaps: width / height
+local LEFT_BOX_WIDTH = 0.082 -- of the Elements content width (divided by Left's own UIScale) -> ~104 px wide
 -- left edge, vertically centred (UIScale scales about the AnchorPoint, so the 1.1 scale keeps the centre)
 local LEFT_BOX_POSITION = UDim2.fromScale(0.012, 0.5)
 local LEFT_BOX_ANCHOR = Vector2.new(0, 0.5)
-local LEFT_ROW_PADDING = 0.045 -- of the box height -> ~17 px gap between the tiles
+local LEFT_ROW_PADDING = 0.06 -- of the box height -> ~12 px gap between the rectangles
 local TOOL_ICON = {
 	size = UDim2.fromScale(0.26, 0.7), position = UDim2.fromScale(0.055, 0.5), anchor = Vector2.new(0, 0.5),
 }
@@ -291,7 +293,7 @@ local TABS_BOX_ASPECT = TAB_ROW -- one square wide: width / height of two square
 local TABS_BOX_SIZE = UDim2.fromScale(LEFT_BOX_WIDTH / TOOL_PILL_ASPECT, 0.6) -- square side = the left pills' height
 local TABS_BOX_POSITION = UDim2.fromScale(0.988, 0.5)
 local TAB_ICON_SIZE = UDim2.fromScale(0.74, 0.74)
-local TAB_BADGE_SIZE = UDim2.fromScale(0.44, 0.44)
+local TAB_BADGE_SIZE = UDim2.fromScale(0.34, 0.34)
 local TAB_LETTER = "H"
 -- Steal a Hero's own egg sticker (the art on Elements.Tabs.GrowingEggs.Icon in the base place; Speedsters Escape
 -- has no egg icon in materials.json). The hero/index icon is the Speedsters one.
@@ -2017,14 +2019,126 @@ local function nightText(label, size)
 	end
 end
 
+-- Pixel-art night / day icons (owner 2026-09-27: "design a new icon for the night ... make it with pixel art"): a fat
+-- crescent moon with an ink outline, a warm shade on its inner edge, a highlight and two little stars; a matching sun
+-- for the night phase. Built from Frames (one per same-colour run of a row), so no image is uploaded;
+-- StarterPlayerScripts.GUI.PixelNightIcon shows the one matching the image GameResetTimer.client sets.
+local PIXEL_PALETTE = {
+	k = hex("#15183a"), y = hex("#ffe9a3"), s = hex("#e9b347"), w = hex("#fffbe6"), ["*"] = hex("#ffffff"), ["+"] = hex("#ffe27a"),
+	o = hex("#ffcf33"), r = hex("#f39a1c"), a = hex("#ffd84a"),
+}
+HUD.PIXEL_MOON = {
+	"....kkk.......",
+	"...kwwsk...+..",
+	"..kwwssk..+*+.",
+	".kwyysk....+..",
+	"kwwyysk.......",
+	"kwyyysk.....*.",
+	"kwyyysk.......",
+	"kyyyyysk......",
+	"kyyyyysskkkk..",
+	"kyyyyyysssssk.",
+	".kyyyyyyyyyk..",
+	"..kyyyyyyyk...",
+	"...kyyyyyk....",
+	"....kkkkk.....",
+}
+HUD.PIXEL_SUN = {
+	"......kk......",
+	"...k.kaak.k...",
+	"..kak.kk.kak..",
+	".kaakkookkaak.",
+	"..kkooooookk..",
+	".k.kowwoork.k.",
+	"kakoowwooorkak",
+	"kakooooooorkak",
+	".k.kooooork.k.",
+	"..kkoroorrkk..",
+	".kaakkrrkkaak.",
+	"..kak.kk.kak..",
+	"...k.kaak.k...",
+	"......kk......",
+}
+
+local function pixelIcon(parent, name, rows, like)
+	local existing = parent:FindFirstChild(name)
+	if existing then
+		existing:Destroy()
+	end
+	local frame = roblox.Instance.new("Frame")
+	frame.Name = name
+	frame.BackgroundTransparency = 1
+	frame.AnchorPoint = like.AnchorPoint
+	frame.Position = like.Position
+	frame.Size = like.Size
+	frame.SizeConstraint = like.SizeConstraint
+	frame.ZIndex = like.ZIndex
+	frame.Visible = false
+	aspect(frame, 1)
+	local n = #rows
+	for y, row in ipairs(rows) do
+		local x = 1
+		while x <= #row do
+			local ch = string.sub(row, x, x)
+			local last = x
+			while last < #row and string.sub(row, last + 1, last + 1) == ch do
+				last += 1
+			end
+			if ch ~= "." then
+				local px = roblox.Instance.new("Frame")
+				px.Name = "Px"
+				px.BorderSizePixel = 0
+				px.BackgroundColor3 = PIXEL_PALETTE[ch]
+				px.Position = UDim2.fromScale((x - 1) / n, (y - 1) / n)
+				px.Size = UDim2.fromScale((last - x + 1) / n + 0.002, 1 / n + 0.002) -- a hair of overlap hides seams
+				px.ZIndex = like.ZIndex
+				px.Parent = frame
+			end
+			x = last + 1
+		end
+	end
+	frame.Parent = parent
+	return frame
+end
+
+-- Owner 2026-09-27: "remove its background, leave it without bg (or exactly like the original game)": the timer is just
+-- the icon and the outlined time over the world -- no pill, no shadow, no glow discs (the square-UI pass had turned the
+-- glow discs into light squares behind the moon). The moon / sun art stays the game's own (the owner is drawing a new
+-- moon icon).
+HUD.NIGHT_TIMER_BG = false
+
+local function hideNightBackground(root, pill)
+	pill.BackgroundTransparency = 1
+	for _, d in ipairs(pill:GetDescendants()) do
+		if d:IsA("UIStroke") then
+			d.Enabled = false
+		elseif d:IsA("GuiObject") then
+			d.Visible = false
+		elseif d:IsA("UIGradient") then
+			d.Enabled = false
+		end
+	end
+	if isImage(pill) then
+		pill.ImageTransparency = 1
+	end
+	local shadow = child(root, "SpShadow")
+	if shadow then
+		shadow:Destroy()
+	end
+end
+
 local function skinNightTimer(root, geometry, pillSize)
 	local pill = child(root, "Background")
 	if not (pill and pill:IsA("GuiObject")) then
 		warn("GameResetTimer.%s.Background missing", root.Name)
 		return false
 	end
-	nightPill(pill, pillSize)
-	nightShadow(root, pill)
+	if HUD.NIGHT_TIMER_BG then
+		nightPill(pill, pillSize)
+		nightShadow(root, pill)
+	else
+		hideNightBackground(root, pill)
+	end
 	local main = child(root, "Main")
 	if not main then
 		warn("GameResetTimer.%s.Main missing", root.Name)
@@ -2043,7 +2157,22 @@ local function skinNightTimer(root, geometry, pillSize)
 	if holder and holder:IsA("GuiObject") then
 		holder.Size = geometry.icon
 		holder.LayoutOrder = 0
-		nightGlow(holder, child(holder, "ImageLabel"))
+		holder.BackgroundTransparency = 1
+		if HUD.NIGHT_TIMER_BG then
+			nightGlow(holder, child(holder, "ImageLabel"))
+		else
+			for _, c in ipairs(holder:GetChildren()) do
+				if string.sub(c.Name, 1, 6) == "SpGlow" then
+					c:Destroy()
+				end
+			end
+		end
+		local image = child(holder, "ImageLabel")
+		if image and image:IsA("GuiObject") then
+			pixelIcon(holder, "SpPixelMoon", HUD.PIXEL_MOON, image)
+			pixelIcon(holder, "SpPixelSun", HUD.PIXEL_SUN, image)
+			image:SetAttribute("PixelIcons", true)
+		end
 	end
 	local label = child(main, "TextLabel")
 	if label and Kit.isText(label) then
@@ -2164,12 +2293,19 @@ end
 -- BackgroundTransparency, UIStroke.Thickness/Color, Size and ZIndex are script-owned, so the Speedsters square base
 -- is a tint layer (SpSkin 77444378011596 over the scripted colour, like Mainhud.ActiveBuffsHolder cards) and the
 -- colours come from the attributes.
+-- Owner 2026-09-27: "the hotbar must be black / grey, the style is fine but the colour must be minimalist": charcoal
+-- slots with the same stud base and outlines, a lighter grey while dragging, a white outline when equipped.
+local SLOT_FAMILY = {
+	color = hex("#24272e"),
+	light = { thickness = 0.04, offset = -0.06, zIndex = 2, rotation = 90, gradient = { { 0, "#8a909c" }, { 1, "#4a4f5a" } } },
+	dark = { color = hex("#0c0d11"), thickness = 0.04, offset = -0.02, zIndex = 3 },
+}
 local BACKPACK_ATTRIBUTES = {
-	BackgroundColor = Kit.Sidebar.Backpack.color, -- #ff580a, Speedsters Backpack / buff-card square
-	DraggableColor = Kit.Sidebar.Ability.color, -- #ffaa00
-	EquippedColor = C.accentCyan, -- equipped outline, reads on the orange square
-	BorderColor = C.ink,
-	DefaultStrokeColor = C.ink,
+	BackgroundColor = SLOT_FAMILY.color,
+	DraggableColor = hex("#3c414c"),
+	EquippedColor = hex("#ffffff"), -- equipped outline, reads on the charcoal square
+	BorderColor = SLOT_FAMILY.dark.color,
+	DefaultStrokeColor = SLOT_FAMILY.dark.color,
 	SlotLockedTransparency = 0,
 	CornerRadius = Sz.sidebarButton.corner,
 	SearchBoxColor = hex("#003658"), -- Speedsters codes TextBox
@@ -2200,7 +2336,7 @@ local function skinSlotTemplate(template)
 	end
 	skin.ZIndex = (minZ or 2) - 1
 	Kit.setCorner(skin, Sz.sidebarButton.corner)
-	familyStrokes(skin, Kit.Sidebar.Backpack)
+	familyStrokes(skin, SLOT_FAMILY)
 
 	local number = child(template, "Number")
 	if number and Kit.isText(number) then

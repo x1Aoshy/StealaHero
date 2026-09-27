@@ -8,4 +8,10 @@ return {
 		source = "src/StarterPlayer/StarterPlayerScripts/GUI/SquareUi.client.luau",
 		create = true,
 	},
+	{
+		target = "StarterPlayer/StarterPlayerScripts/GUI/PixelNightIcon",
+		class = "LocalScript",
+		source = "src/StarterPlayer/StarterPlayerScripts/GUI/PixelNightIcon.client.luau",
+		create = true,
+	},
 }

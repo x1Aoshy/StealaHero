@@ -1678,6 +1678,17 @@ local function collectJointedParts(model, root)
 	return reached
 end
 
+-- Villains with authored clips (ReplicatedStorage.Directory.VillainAnimations.<HeroId>, owner 2026-09-27: "each boss its
+-- own attack, run and a distracted / asleep idle; Frieza's float") are animated on every client by
+-- StarterPlayerScripts.Game.VillainClipPlayer: the server loads no Animator track for them (nothing to replicate, no
+-- track fighting the clips) and marks the rig ClientClips.
+local function hasClientClips(guardModel)
+	local heroId = guardModel:GetAttribute("HeroId")
+	local directory = ReplicatedStorage:FindFirstChild("Directory")
+	local folder = directory and directory:FindFirstChild("VillainAnimations")
+	return type(heroId) == "string" and folder ~= nil and folder:FindFirstChild(heroId) ~= nil
+end
+
 local function loadTracks(humanoid, zoneName)
 	local tracks = {}
 	local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -2069,7 +2080,7 @@ local function setupZone(zone)
 		pathFailedUntil = 0,
 		wakingDuration = resolveWakingDuration(),
 		knockbackForce = KNOCKBACK_FORCE_BY_ZONE[zoneName] or DEFAULT_KNOCKBACK_FORCE,
-		tracks = loadTracks(humanoid, zoneName),
+		tracks = if hasClientClips(guardModel) then {} else loadTracks(humanoid, zoneName),
 		currentLoop = nil,
 		path = path,
 		agentParams = agentParams,
@@ -2115,6 +2126,7 @@ local function setupZone(zone)
 		end)
 	end
 
+	guardModel:SetAttribute("ClientClips", hasClientClips(guardModel))
 	guardModel:SetAttribute("AreaId", zoneName)
 	guardModel:SetAttribute("HomeCFrame", home)
 	guardModel:SetAttribute("HeadLookAtDisabled", true)

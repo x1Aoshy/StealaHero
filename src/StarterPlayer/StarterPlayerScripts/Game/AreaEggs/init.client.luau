@@ -1072,28 +1072,41 @@ local function renderGuardCarry(uid)
 			posed[motor] = base
 		end
 	end
+	-- Game.VillainClipPlayer leaves the arm joints at rest while this is set, so the carry pose holds the egg
+	guard:SetAttribute("ClipArmsHeld", true)
 	trove:Add(function()
 		for motor, base in pairs(posed) do
 			if motor.Parent then
 				motor.C0 = base
 			end
 		end
+		if guard.Parent then
+			guard:SetAttribute("ClipArmsHeld", nil)
+		end
 	end)
 end
 
--- Grab (owner 2026-09-27: "an animation of grabbing the eggs"): when a player takes an egg (the record turns Carried),
--- every client plays a short procedural grab on that player's R15 character -- crouch, reach down, lift the egg to
--- the chest, back up -- as Motor6D.C0 offsets over the rest pose (attribute VfxBaseC0), on top of what the Animator
--- plays. R6 or missing joints: nothing.
-local GRAB_TIME = 0.6
+-- Grab (owner 2026-09-27: "an animation of the character grabbing the egg"): when a player takes an egg (the record turns
+-- Carried), every client plays a procedural grab on that player's R15 character -- a squat with the torso bent forward
+-- and both hands reaching to the nest, then the egg is scooped up to the chest and the body rises -- as Motor6D.C0
+-- offsets over the rest pose (attribute VfxBaseC0), on top of what the Animator plays. Signs (R15, facing -Z): Waist
+-- rx < 0 bends forward, Hip rx > 0 swings the thigh forward, Knee rx < 0 bends, Shoulder rx > 0 raises the arm forward.
+-- R6 or missing joints: nothing.
+local GRAB_TIME = 0.85
 local GRAB_KEYS = {
 	{ 0, {} },
-	{ 0.35, { Waist = { 28, 0, 0 }, RightHip = { 22, 0, 0 }, LeftHip = { 22, 0, 0 }, RightKnee = { -40, 0, 0 }, LeftKnee = { -40, 0, 0 },
-		RightShoulder = { 62, 0, 8 }, LeftShoulder = { 62, 0, -8 }, RightElbow = { 10, 0, 0 }, LeftElbow = { 10, 0, 0 } } },
-	{ 0.7, { Waist = { 6, 0, 0 }, RightShoulder = { 45, 0, 10 }, LeftShoulder = { 45, 0, -10 }, RightElbow = { 70, 0, 0 }, LeftElbow = { 70, 0, 0 } } },
+	{ 0.32, { Root = { 0, 0, 0, -0.55 }, Waist = { -38, 0, 0 }, Neck = { 18, 0, 0 }, RightHip = { 48, 0, 0 }, LeftHip = { 48, 0, 0 },
+		RightKnee = { -82, 0, 0 }, LeftKnee = { -82, 0, 0 }, RightAnkle = { 30, 0, 0 }, LeftAnkle = { 30, 0, 0 },
+		RightShoulder = { 72, 0, -12 }, LeftShoulder = { 72, 0, 12 }, RightElbow = { 12, 0, 0 }, LeftElbow = { 12, 0, 0 } } },
+	{ 0.45, { Root = { 0, 0, 0, -0.55 }, Waist = { -34, 0, 0 }, Neck = { 14, 0, 0 }, RightHip = { 48, 0, 0 }, LeftHip = { 48, 0, 0 },
+		RightKnee = { -82, 0, 0 }, LeftKnee = { -82, 0, 0 }, RightAnkle = { 30, 0, 0 }, LeftAnkle = { 30, 0, 0 },
+		RightShoulder = { 64, 0, -22 }, LeftShoulder = { 64, 0, 22 }, RightElbow = { 40, 0, 0 }, LeftElbow = { 40, 0, 0 } } },
+	{ 0.75, { Root = { 0, 0, 0, 0.12 }, Waist = { 6, 0, 0 }, Neck = { 4, 0, 0 }, RightShoulder = { 48, 0, -18 }, LeftShoulder = { 48, 0, 18 },
+		RightElbow = { 84, 0, 0 }, LeftElbow = { 84, 0, 0 } } },
 	{ 1, {} },
 }
-local GRAB_JOINTS = { "Waist", "RightHip", "LeftHip", "RightKnee", "LeftKnee", "RightShoulder", "LeftShoulder", "RightElbow", "LeftElbow" }
+local GRAB_JOINTS = { "Root", "Waist", "Neck", "RightHip", "LeftHip", "RightKnee", "LeftKnee", "RightAnkle", "LeftAnkle", "RightShoulder",
+	"LeftShoulder", "RightElbow", "LeftElbow" }
 local grabTokens = setmetatable({}, { __mode = "k" }) -- [character] = number
 
 local function grabPose(t)
@@ -1108,10 +1121,12 @@ local function grabPose(t)
 	alpha = alpha * alpha * (3 - 2 * alpha)
 	local pose = {}
 	for _, joint in ipairs(GRAB_JOINTS) do
-		local from = a[2][joint] or { 0, 0, 0 }
-		local to = b[2][joint] or { 0, 0, 0 }
-		pose[joint] = CFrame.Angles(math.rad(from[1] + (to[1] - from[1]) * alpha), math.rad(from[2] + (to[2] - from[2]) * alpha),
-			math.rad(from[3] + (to[3] - from[3]) * alpha))
+		local from = a[2][joint] or { 0, 0, 0, 0 }
+		local to = b[2][joint] or { 0, 0, 0, 0 }
+		local function lerp(i)
+			return (from[i] or 0) + ((to[i] or 0) - (from[i] or 0)) * alpha
+		end
+		pose[joint] = CFrame.new(0, lerp(4), 0) * CFrame.Angles(math.rad(lerp(1)), math.rad(lerp(2)), math.rad(lerp(3)))
 	end
 	return pose
 end

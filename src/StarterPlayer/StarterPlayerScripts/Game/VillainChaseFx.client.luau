@@ -959,8 +959,10 @@ local function onChaseFx(entry)
 		return
 	end
 	if kind == "Punch" then
+		-- a villain with authored clips hits with its own Attack clip (Game.VillainClipPlayer); the C0 swing is the fallback
 		local camera = Workspace.CurrentCamera
-		if camera == nil or (entry.hrp.Position - camera.CFrame.Position).Magnitude <= FX_RANGE then
+		if entry.guard:GetAttribute("ClientClips") ~= true
+			and (camera == nil or (entry.hrp.Position - camera.CFrame.Position).Magnitude <= FX_RANGE) then
 			playPunch(entry)
 		end
 		return

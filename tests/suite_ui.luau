@@ -447,7 +447,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- D7 HUD: sidebar Shop / Index buttons, currency pills, night timer
 ---------------------------------------------------------------------------------------------------
-local SIDEBAR_WRAPPER_SIZE = { 1, 0.22 } -- Elements.Left.Tools.Shop/Index: a square tile of the left column (owner 2026-09-27)
+local SIDEBAR_WRAPPER_SIZE = { 1, 0.2 } -- Elements.Left.Tools.Shop/Index: a 2.5:1 rectangle of the left column (owner 2026-09-27)
 local sideButtons = { { "Shop", "#4ed61b", "ShopIcon", 96787567013749 }, { "Index", "#14c4f4", "HeroIcon", 140189242202677 } }
 for _, spec in ipairs(sideButtons) do
 	local wrapper = H.path(sg, "Elements/Left/Tools/" .. spec[1])
@@ -471,11 +471,11 @@ for _, spec in ipairs(sideButtons) do
 		-- owner 2026-09-27: square minimalist stud tiles (were 190x70 pills with a 0.3 corner), square corners
 		local size = wrapper.Size
 		T.check(math.abs(size.X.Scale - SIDEBAR_WRAPPER_SIZE[1]) < 1e-3 and size.X.Offset == 0 and math.abs(size.Y.Scale - SIDEBAR_WRAPPER_SIZE[2]) < 1e-3
-			and size.Y.Offset == 0, "%s: wrapper Size must be {%g,0,%g,0} (square tile), found %s", spec[1], SIDEBAR_WRAPPER_SIZE[1], SIDEBAR_WRAPPER_SIZE[2],
+			and size.Y.Offset == 0, "%s: wrapper Size must be {%g,0,%g,0} (2.5:1 rectangle), found %s", spec[1], SIDEBAR_WRAPPER_SIZE[1], SIDEBAR_WRAPPER_SIZE[2],
 			tostring(size))
 		T.check(allCorners(button:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)), "%s: button corners must be square", label)
 		local ratio = wrapper:FindFirstChildOfClass("UIAspectRatioConstraint")
-		T.check(ratio ~= nil and math.abs(ratio.AspectRatio - 1) < 1e-3, "%s: the sidebar tile must be square (aspect 1)", label)
+		T.check(ratio ~= nil and math.abs(ratio.AspectRatio - 2.5) < 1e-3, "%s: the sidebar button must be a 2.5:1 rectangle", label)
 	end
 end
 if left then
@@ -592,19 +592,29 @@ if T.check(timer ~= nil, "StarterGui.GameResetTimer missing") then
 	for _, spec in ipairs({ { "TimeLeft", 131317614803230 }, { "EndingSoon", 86038047961937 } }) do
 		local root = timer:FindFirstChild(spec[1])
 		if T.check(root ~= nil, "GameResetTimer.%s missing", spec[1]) then
+			-- owner 2026-09-27: no background at all (no pill, shadow or glow squares), a pixel-art moon / sun
 			local pill = root:FindFirstChild("Background")
-			local g = pill and pill:FindFirstChildOfClass("UIGradient")
-			T.check(pill ~= nil and math.abs(pill.BackgroundTransparency - 0.22) < 0.01 and g ~= nil and hex(g.Color.Keypoints[1].Value) == "#2c4a9c"
-				and allCorners(pill:FindFirstChildOfClass("UICorner"), UDim.new(0, 0)) and isClass(pill:FindFirstChild("SpStroke"), "UIStroke"),
-				"GameResetTimer.%s must be a translucent night-blue band (#2c4a9c, 0.22, square, SpStroke rim)", spec[1])
-			local shadow = root:FindFirstChild("SpShadow")
-			T.check(pill ~= nil and shadow ~= nil and shadow.ZIndex == pill.ZIndex - 1, "GameResetTimer.%s.SpShadow must sit one ZIndex below the pill", spec[1])
+			local visibleBg = pill == nil or pill.BackgroundTransparency < 1
+			for _, d in ipairs(pill and pill:GetDescendants() or {}) do
+				if d:IsA("GuiObject") and d.Visible then
+					visibleBg = true
+				end
+			end
+			T.check(not visibleBg and root:FindFirstChild("SpShadow") == nil, "GameResetTimer.%s must have no background (pill / shadow)", spec[1])
 			local iconFrame = H.path(root, "Main/Frame")
 			local icon = iconFrame and iconFrame:FindFirstChild("ImageLabel")
 			T.check(icon ~= nil and H.imageId(icon) == spec[2], "GameResetTimer.%s timer icon must stay %d", spec[1], spec[2])
-			for n = 1, 4 do
-				local glow = iconFrame and iconFrame:FindFirstChild("SpGlow" .. n)
-				T.check(glow ~= nil and icon ~= nil and glow.ZIndex < icon.ZIndex, "GameResetTimer.%s.Main.Frame.SpGlow%d must glow behind the moon", spec[1], n)
+			T.check(iconFrame ~= nil and iconFrame:FindFirstChild("SpGlow1") == nil, "GameResetTimer.%s: no glow discs behind the moon", spec[1])
+			for _, name in ipairs({ "SpPixelMoon", "SpPixelSun" }) do
+				local pixel = iconFrame and iconFrame:FindFirstChild(name)
+				local px = 0
+				for _, d in ipairs(pixel and pixel:GetChildren() or {}) do
+					if d:IsA("Frame") then
+						px += 1
+					end
+				end
+				T.check(px >= 20 and icon ~= nil and icon:GetAttribute("PixelIcons") == true, "GameResetTimer.%s.Main.Frame.%s pixel icon missing (%d runs)",
+					spec[1], name, px)
 			end
 			local text = H.path(root, "Main/TextLabel")
 			T.check(text ~= nil and text.AutomaticSize == Enum.AutomaticSize.None and text.FontFace.Weight == Enum.FontWeight.Heavy

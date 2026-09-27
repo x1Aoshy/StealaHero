@@ -381,6 +381,14 @@ Kit.ButtonFamilies = {
 		light = { thickness = 0.06, offset = -0.1, zIndex = 1, gradient = { { 0, "#a8ff80" }, { 0.6356, "#06f81a" }, { 1, "#1e5909" } } },
 		dark = { color = hex("#104300"), thickness = 0.06, offset = -0.05, zIndex = 2 },
 	}),
+	-- owner 2026-09-27: an already-claimed reward reads as a dull, muted green (it showed white with equip_grey)
+	claimed_muted = family({
+		source = "StarterGui.AfkRewardsGui.Earnings.Claim (muted)",
+		image = Kit.Images.actionPill, corner = 0.25, aspect = 2.8, solid = hex("#5b8a52"),
+		fill = { { 0, "#7fae73" }, { 0.4577, "#5f8f55" }, { 1, "#3f6538" } },
+		light = { thickness = 0.06, offset = -0.1, zIndex = 1, gradient = { { 0, "#b9d8ae" }, { 0.6356, "#6f9d63" }, { 1, "#2b4726" } } },
+		dark = { color = hex("#1f3a1b"), thickness = 0.06, offset = -0.05, zIndex = 2 },
+	}),
 	equip_grey = family({
 		source = "StarterGui.Index.Index.ScrollingFrame.UnequippedTemplate.Equip",
 		image = Kit.Images.equipButton, corner = 0.25, aspect = 4.1111, solid = hex("#bebebe"), bg = hex("#bebebe"),

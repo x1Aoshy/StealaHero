@@ -239,7 +239,38 @@ function mountEggPortrait(icon, category)
 	if not EggPortraitModule or type(category) ~= "string" then
 		return false
 	end
+	if HeroPortraitModule then
+		pcall(HeroPortraitModule.Clear, icon)
+	end
 	local ok, portrait = pcall(EggPortraitModule.Mount, icon, category)
+	if ok and portrait ~= nil then
+		if icon:GetAttribute("EggPortraitImageTransparency") == nil then
+			icon:SetAttribute("EggPortraitImageTransparency", icon.ImageTransparency)
+		end
+		icon.ImageTransparency = 1
+		return true
+	end
+	return false
+end
+-- Owner 2026-09-27: "when you have a hero in the inventory its viewport / face must show": hero slots mount the hero's
+-- live headshot (Library.Client.HeroPortrait, the Sell Heroes one) on the Icon the same way. HeroPortraitModule caches
+-- the module (false = missing).
+HeroPortraitModule = nil
+function mountHeroPortrait(icon, heroId)
+	if HeroPortraitModule == nil then
+		local library = ReplicatedStorage:FindFirstChild("Library")
+		local client = library and library:FindFirstChild("Client")
+		local module = client and client:FindFirstChild("HeroPortrait")
+		local ok, result = pcall(require, module)
+		HeroPortraitModule = if ok and type(result) == "table" then result else false
+	end
+	if not HeroPortraitModule or type(heroId) ~= "string" or not HeroPortraitModule.HasModel(heroId) then
+		return false
+	end
+	if EggPortraitModule then
+		pcall(EggPortraitModule.Clear, icon)
+	end
+	local ok, portrait = pcall(HeroPortraitModule.Mount, icon, heroId, { Framing = "Face" })
 	if ok and portrait ~= nil then
 		if icon:GetAttribute("EggPortraitImageTransparency") == nil then
 			icon:SetAttribute("EggPortraitImageTransparency", icon.ImageTransparency)
@@ -252,6 +283,9 @@ end
 function clearEggPortrait(icon)
 	if EggPortraitModule then
 		pcall(EggPortraitModule.Clear, icon)
+	end
+	if HeroPortraitModule then
+		pcall(HeroPortraitModule.Clear, icon)
 	end
 	local saved = icon:GetAttribute("EggPortraitImageTransparency")
 	if type(saved) == "number" then
@@ -3442,6 +3476,9 @@ function MakeSlot(p121, p122) -- line: 2573
 					end
 
 					Icon.ImageColor3 = Color3.new(1.0, 1.0, 1.0)
+					if not mountHeroPortrait(Icon, v1084) then
+						clearEggPortrait(Icon)
+					end
 
 					if v1085.Rarity and v1085.Rarity.Gradient then
 						local v1087 = ToolName

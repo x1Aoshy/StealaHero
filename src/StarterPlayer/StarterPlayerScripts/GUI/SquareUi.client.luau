@@ -8,8 +8,21 @@ local Workspace = game:GetService("Workspace")
 
 local ZERO = UDim.new(0, 0)
 
+-- Owner 2026-09-27: "the topbar UI is not square, leave it round": TopbarPlus's icons (PlayerGui.TopbarStandard /
+-- TopbarCentered, and any clone it makes) keep their round corners.
+local function isTopbar(inst)
+	local node = inst
+	while node ~= nil do
+		if node:IsA("ScreenGui") then
+			return string.sub(node.Name, 1, 6) == "Topbar"
+		end
+		node = node.Parent
+	end
+	return false
+end
+
 local function square(corner)
-	if corner.CornerRadius ~= ZERO then
+	if corner.CornerRadius ~= ZERO and not isTopbar(corner) then
 		corner.CornerRadius = ZERO
 	end
 end
