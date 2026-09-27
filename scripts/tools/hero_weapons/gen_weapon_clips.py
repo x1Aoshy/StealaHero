@@ -20,14 +20,11 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."
 SRC_DIR = os.path.join(ROOT, "assets", "hero_weapons", "animations")
 OUT_DIR = os.path.join(ROOT, "src", "ReplicatedStorage", "Directory", "WeaponAnimations")
 
-# clip file -> weapon id (keep in sync with HeroWeapons.WEAPONS in src/ReplicatedStorage/Library/Modules/HeroWeapons.luau)
+# clip file -> weapon id (keep in sync with HeroWeapons.WEAPONS in src/ReplicatedStorage/Library/Modules/HeroWeapons.luau).
+# Round 9 (owner 2026-09-27): Mjolnir, the Power Pole, Cap's shield, the batarang and the web shooter play the clips
+# authored in author_weapon_clips.py (the jump slam, the spin sweep, the aimed throws); their rbxmx stay in the assets.
 CLIPS = {
-    "Shield_Bash": "CapShield",
-    "Pole_Strike": "PowerPole",
-    "Web_Shoot": "WebShooter",
-    "Batarang_Throw": "Batarang",
     "Gauntlet_Blast": "BakugoGauntlet",
-    "Mjolnir_Slam": "Mjolnir",
     "Gomu_Pistol": "GomuFist",
 }
 

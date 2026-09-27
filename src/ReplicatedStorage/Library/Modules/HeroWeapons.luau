@@ -10,12 +10,19 @@
 -- the victim's themed state). Timing comes from the owner's clips (ReplicatedStorage.Directory.WeaponAnimations.<Id>,
 -- generated from assets/hero_weapons/animations/*.rbxmx): the hit is resolved at the clip's Impact keyframe.
 --
--- Kinds (how GearService picks the victims at Impact; every range is from the attacker's root, lag compensated):
---   Melee      the nearest player in reach and in front (MinDot); CapShield throws itself (Throw*) when nobody is in reach
+-- Kinds (how GearService picks the victims; every range is from the attacker's root):
+--   Slam       up to MaxTargets players around a point Reach studs in front (lag compensated)
+--   Spin       up to MaxTargets players all around within Radius (the extended Power Pole sweeping a full turn)
+--   Blast      up to MaxTargets players in a cone (lag compensated)
 --   Thrust     the nearest player along a narrow line (MinDot, Width studs either side of the line)
---   Projectile the nearest player in a narrow cone; the hit lands Travel seconds later (distance / Speed)
---   Blast      up to MaxTargets players in a cone
---   Slam       up to MaxTargets players around a point Reach studs in front
+--   Boomerang  AIMED: flies out along a curved path to the aim point and comes back to the hand; every rival it passes
+--              within HitRadius (the model's own radius, stamped on the Tool by the build as HeroModelRadius) is hit
+--              once, at most MaxTargets
+--   Grenade    AIMED: flies along a curved path to the aim point and explodes there (or on the first rival it touches,
+--              or a wall): every rival within BlastRadius, at most MaxTargets
+--   Shot       AIMED: a straight line to the aim point; the first rival within HitRadius of it is hit
+-- Aimed weapons: the client sends the aim point (Network["Gear: WeaponAim"]) with the click; the server clamps it
+-- (HeroWeapons.AimEnd) and simulates the flight itself (HeroWeapons.PathPoint), every client draws the same path.
 -- Effects (the victim's state for Duration seconds; GearService owns movement, the controller draws it):
 --   Webbed         frozen standing in a web net, struggling
 --   Electrocuted   frozen standing, shaking comically, lightning arcs
@@ -31,6 +38,10 @@ HeroWeapons.EFFECT_DURATION = 2.5
 HeroWeapons.IMMUNITY = 1.2 -- after a debuff ends, a new hit cannot debuff again for this long (carriers excepted)
 HeroWeapons.TOOL_ATTRIBUTE = "HeroWeaponId"
 HeroWeapons.DEBUFF_ATTRIBUTE = "HeroDebuff" -- character attribute: the active effect name while debuffed
+HeroWeapons.AIM_REMOTE = "Gear: WeaponAim" -- client -> server: (tool, aim point) with an aimed weapon's click
+HeroWeapons.DUMMY_TAG = "HeroWeaponDummy" -- CollectionService tag of the admin panel's training dummies (hittable)
+HeroWeapons.MIN_AIM_DISTANCE = 6 -- an aim point closer than this still throws this far
+HeroWeapons.MAX_AIM_PITCH = math.rad(22) -- a throw never climbs or dives steeper than this
 
 -- Tool name -> weapon (owner's mapping, 2026-09-27). Prehistoric / Abyss Ocean / Admin Bat stay classic bats.
 HeroWeapons.BY_TOOL = {
@@ -53,52 +64,57 @@ export type Weapon = {
 	Cooldown: number,
 	Range: number,
 	MinDot: number,
+	Aimed: boolean?,
 	Width: number?,
 	Speed: number?,
-	ThrowRange: number?,
-	ThrowMinDot: number?,
+	ReturnSpeed: number?,
+	Curve: number?,
+	HitRadius: number?,
+	BlastRadius: number?,
 	MaxTargets: number?,
 	Reach: number?,
 	Radius: number?,
 	Push: number?,
+	Shake: number?,
 	Color: Color3,
 	Accent: Color3,
 }
 
 HeroWeapons.WEAPONS = {
 	CapShield = {
-		DisplayName = "Cap's Shield", Hero = "Captain America", Effect = "Dazed", Kind = "Melee", Cooldown = 0.9,
-		Range = 12, MinDot = 0.25, ThrowRange = 30, ThrowMinDot = 0.9, Speed = 110,
+		DisplayName = "Cap's Shield", Hero = "Captain America", Effect = "Dazed", Kind = "Boomerang", Aimed = true,
+		Cooldown = 1.2, Range = 42, MinDot = -1, Speed = 92, ReturnSpeed = 105, Curve = 0.22, HitRadius = 1.5,
+		MaxTargets = 3, Shake = 0.6,
 		Color = Color3.fromRGB(196, 28, 36), Accent = Color3.fromRGB(255, 225, 90),
 	},
 	PowerPole = {
-		DisplayName = "Power Pole", Hero = "Goku", Effect = "SpinTornado", Kind = "Thrust", Cooldown = 1.1,
-		Range = 19, MinDot = 0.6, Width = 3.2,
+		DisplayName = "Power Pole", Hero = "Goku", Effect = "SpinTornado", Kind = "Spin", Cooldown = 1.3,
+		Range = 12.5, MinDot = -1, Radius = 12.5, MaxTargets = 4, Shake = 0.8,
 		Color = Color3.fromRGB(204, 30, 34), Accent = Color3.fromRGB(255, 190, 40),
 	},
 	WebShooter = {
-		DisplayName = "Web Shooter", Hero = "Spider-Man", Effect = "Webbed", Kind = "Projectile", Cooldown = 1.3,
-		Range = 40, MinDot = 0.9, Speed = 140,
+		DisplayName = "Web Shooter", Hero = "Spider-Man", Effect = "Webbed", Kind = "Shot", Aimed = true, Cooldown = 1.2,
+		Range = 46, MinDot = -1, Speed = 150, HitRadius = 2.2, Shake = 0.35,
 		Color = Color3.fromRGB(240, 248, 255), Accent = Color3.fromRGB(206, 30, 40),
 	},
 	Batarang = {
-		DisplayName = "Batarang", Hero = "Batman", Effect = "SmokeStun", Kind = "Projectile", Cooldown = 1.3,
-		Range = 36, MinDot = 0.88, Speed = 90,
+		DisplayName = "Batarang", Hero = "Batman", Effect = "SmokeStun", Kind = "Grenade", Aimed = true, Cooldown = 1.3,
+		Range = 38, MinDot = -1, Speed = 82, Curve = 0.16, HitRadius = 1.4, BlastRadius = 8, MaxTargets = 4, Shake = 0.5,
 		Color = Color3.fromRGB(30, 30, 36), Accent = Color3.fromRGB(255, 212, 40),
 	},
 	BakugoGauntlet = {
 		DisplayName = "Grenade Gauntlet", Hero = "Bakugo", Effect = "ExplosionBlast", Kind = "Blast", Cooldown = 1.3,
-		Range = 15, MinDot = 0.5, MaxTargets = 3, Push = 26,
+		Range = 15, MinDot = 0.5, MaxTargets = 3, Push = 26, Shake = 1,
 		Color = Color3.fromRGB(255, 140, 30), Accent = Color3.fromRGB(255, 230, 120),
 	},
 	Mjolnir = {
-		DisplayName = "Mjolnir", Hero = "Thor", Effect = "Electrocuted", Kind = "Slam", Cooldown = 1.4,
-		Range = 14, MinDot = -1, Reach = 3.5, Radius = 11, MaxTargets = 4,
+		DisplayName = "Mjolnir", Hero = "Thor", Effect = "Electrocuted", Kind = "Slam", Cooldown = 1.5,
+		Range = 14, MinDot = -1, Reach = 4, Radius = 12, MaxTargets = 4, Shake = 1.2,
 		Color = Color3.fromRGB(150, 220, 255), Accent = Color3.fromRGB(235, 250, 255),
 	},
 	GomuFist = {
 		DisplayName = "Gum-Gum Fist", Hero = "Luffy", Effect = "CleanKnockback", Kind = "Thrust", Cooldown = 1.1,
-		Range = 17, MinDot = 0.6, Width = 3.4, Push = 45,
+		Range = 17, MinDot = 0.6, Width = 3.4, Push = 45, Shake = 0.7,
 		Color = Color3.fromRGB(250, 200, 158), Accent = Color3.fromRGB(204, 30, 34),
 	},
 } :: { [string]: any }
@@ -172,10 +188,85 @@ function HeroWeapons.Timing(weaponId: string): (number, number)
 	return math.clamp(impact, 0.05, 1), math.clamp(length, impact + 0.05, 2)
 end
 
--- Travel seconds of a projectile over `distance` studs.
-function HeroWeapons.Travel(weapon: any, distance: number): number
-	local speed = if type(weapon.Speed) == "number" and weapon.Speed > 0 then weapon.Speed else 100
-	return math.clamp(distance / speed, 0.05, 0.6)
+-- Travel seconds of a projectile over `distance` studs (`speed` defaults to the weapon's Speed).
+function HeroWeapons.Travel(weapon: any, distance: number, speed: number?): number
+	local s = speed or weapon.Speed
+	s = if type(s) == "number" and s > 0 then s else 100
+	return math.clamp(distance / s, 0.05, 0.9)
+end
+
+----------------------------------------------------------------------------------------------------
+-- aimed throws: the same path on the server (hits) and on every client (drawing)
+----------------------------------------------------------------------------------------------------
+
+local function flat(v: Vector3, fallback: Vector3): Vector3
+	local f = Vector3.new(v.X, 0, v.Z)
+	return if f.Magnitude > 0.01 then f.Unit else fallback
+end
+HeroWeapons.Flat = flat
+
+-- Where an aimed weapon leaves from: the thrower's right shoulder, facing the aim (both sides use this, so the path
+-- the server checks is the path every client draws). `rootCFrame` is the thrower's HumanoidRootPart.
+function HeroWeapons.ThrowOrigin(rootCFrame: CFrame, aim: Vector3): Vector3
+	local forward = flat(aim - rootCFrame.Position, flat(rootCFrame.LookVector, Vector3.new(0, 0, -1)))
+	local right = forward:Cross(Vector3.yAxis)
+	return rootCFrame.Position + Vector3.new(0, 0.9, 0) + forward * 1.2 + right * 0.9
+end
+
+-- The clamped end of an aimed throw from `origin` toward `aim`: at least MIN_AIM_DISTANCE, at most the weapon's Range,
+-- never steeper than MAX_AIM_PITCH. `raycast(origin, vector)` (optional) returns a wall hit position, which shortens it.
+function HeroWeapons.AimEnd(weapon: any, origin: Vector3, aim: Vector3, raycast: ((Vector3, Vector3) -> Vector3?)?): Vector3
+	local offset = aim - origin
+	local distance = offset.Magnitude
+	local direction = if distance > 0.01 then offset / distance else Vector3.new(0, 0, -1)
+	local horizontal = Vector3.new(direction.X, 0, direction.Z)
+	local pitch = math.atan2(direction.Y, math.max(horizontal.Magnitude, 1e-4))
+	pitch = math.clamp(pitch, -HeroWeapons.MAX_AIM_PITCH, HeroWeapons.MAX_AIM_PITCH)
+	local heading = if horizontal.Magnitude > 1e-3 then horizontal.Unit else Vector3.new(0, 0, -1)
+	direction = heading * math.cos(pitch) + Vector3.new(0, math.sin(pitch), 0)
+	distance = math.clamp(distance, HeroWeapons.MIN_AIM_DISTANCE, weapon.Range or 40)
+	local finish = origin + direction * distance
+	if raycast then
+		local wall = raycast(origin, finish - origin)
+		if wall then
+			finish = wall - direction * 0.6
+			if (finish - origin).Magnitude < 2 then
+				finish = origin + direction * 2
+			end
+		end
+	end
+	return finish
+end
+
+-- A launched projectile's path. path = { Origin, End, Side (+1 / -1), Curve (0 = straight), OutTime, Returns,
+-- BackTime }. Out: a quadratic curve bowing Side of the line by Curve x its length; back (Returns): the mirror bow from
+-- End to `home` (the thrower's hand now). Returns the position at `t` seconds and whether the flight is over.
+local function bezier(a: Vector3, c: Vector3, b: Vector3, u: number): Vector3
+	local v = 1 - u
+	return a * (v * v) + c * (2 * v * u) + b * (u * u)
+end
+
+function HeroWeapons.PathPoint(path: any, t: number, home: Vector3?): (Vector3, boolean)
+	local origin, finish = path.Origin, path.End
+	local line = finish - origin
+	local length = line.Magnitude
+	local side = flat(line, Vector3.new(0, 0, -1)):Cross(Vector3.yAxis) * (path.Side or 1)
+	local bow = side * (length * (path.Curve or 0))
+	if t <= path.OutTime then
+		local u = math.clamp(t / path.OutTime, 0, 1)
+		-- ease out a little: fast off the hand, gliding into the turn
+		u = 1 - (1 - u) * (1 - u) * 0.35 - (1 - u) * 0.65
+		return bezier(origin, origin + line * 0.5 + bow, finish, u), (not path.Returns) and u >= 1
+	end
+	if not path.Returns then
+		return finish, true
+	end
+	local target = home or origin
+	local back = target - finish
+	local u = math.clamp((t - path.OutTime) / math.max(path.BackTime or path.OutTime, 0.05), 0, 1)
+	u = u * u * (3 - 2 * u)
+	local control = finish + back * 0.5 + bow * 0.8
+	return bezier(finish, control, target, u), u >= 1
 end
 
 return HeroWeapons

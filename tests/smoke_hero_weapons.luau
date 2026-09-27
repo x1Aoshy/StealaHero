@@ -11,7 +11,11 @@
 --   4. GearService resolves hero weapon hits at the clip's Impact and applies the debuff states instead of the ragdoll;
 --      the client controller, the hotbar / Index portraits and the classic bat FX split are wired;
 --   5. the owner's reports: the trap's Hitbox moves with the placed trap, the ragdoll ignores aura / trail parts, the
---      Money Popups row paints its real value and the descriptions end before the button.
+--      Money Popups row paints its real value and the descriptions end before the button;
+--   6. round 9 (owner 2026-09-27): the aimed throws (shield boomerang, exploding batarang, web shot: the shared path /
+--      aim math sandboxed, the server flight and the client aim wired), Mjolnir's jump slam held by the handle's end,
+--      the Power Pole's spin with the pole growing out of the hand and no mesh VFX, the shield visible from behind,
+--      the borrowed particle sets (Speedsters' Eggman blast, the Ban Hammer lightning), the attacker's shake.
 
 local place = H.place()
 local rs = place:GetService("ReplicatedStorage")
@@ -113,7 +117,7 @@ for _, weaponId in pairs(OWNER_MAPPING) do
 	if T.check(module ~= nil and module:IsA("ModuleScript"), "Directory.WeaponAnimations.%s missing", weaponId) then
 		local data = H.sandbox(src(module), {})()
 		T.check(data.WeaponId == weaponId and data.Format == 1 and not data.Loop, "WeaponAnimations.%s: bad header", weaponId)
-		T.check(data.Impact > 0 and data.Impact < data.Length and data.Length <= 1, "WeaponAnimations.%s: Impact outside the clip", weaponId)
+		T.check(data.Impact > 0 and data.Impact < data.Length and data.Length <= 1.2, "WeaponAnimations.%s: Impact outside the clip", weaponId)
 		T.check(pcall(clipMath.PrepareClip, weaponId, data), "WeaponAnimations.%s does not validate with HeroClipMath", weaponId)
 		T.check(data.Tracks.RightShoulder ~= nil and data.Tracks.RightElbow ~= nil and data.Tracks.Waist ~= nil,
 			"WeaponAnimations.%s must animate the right arm and the waist", weaponId)
@@ -216,13 +220,14 @@ T.check(controller ~= nil and pcall(H.luau.compile, controllerSrc), "BranchContr
 for _, effect in pairs(OWNER_EFFECTS) do
 	T.check(H.has(controllerSrc, "effect == \"" .. effect .. "\""), "HeroWeaponController must draw %s", effect)
 end
-T.check(H.has(controllerSrc, "Kit.SetGomuTime") and H.has(controllerSrc, "Kit.SetPoleTime"), "the fist and the pole must stretch on their clips")
+T.check(H.has(controllerSrc, "Kit.SetGomuTime") and H.has(controllerSrc, "extendPole(play, keyed(play.extend, elapsed))"),
+	"the fist and the pole must stretch on their clips")
 local batFxSrc = src(H.path(sps, "Game/Tools/BatCombatFx"))
 T.check(H.has(batFxSrc, "payload.Weapon ~= nil") and H.has(batFxSrc, "GetAttribute(\"HeroWeaponId\") == nil"),
 	"BatCombatFx must leave hero weapons to HeroWeaponController")
 T.check(H.path(rs, "Library/Client/WeaponPortrait") ~= nil, "Library.Client.WeaponPortrait missing")
 T.check(H.has(src(H.path(sps, "GUI/BackpackController/Main")), "mountWeaponPortrait(Icon, p135)"), "hotbar gear slots must show the weapon")
-T.check(H.has(src(H.path(sps, "GUI/Index/AreaIndexProgressComponent")), "WeaponPortrait.Mount, image, gearId"),
+T.check(H.has(src(H.path(sps, "GUI/Index/AreaIndexProgressComponent")), "pcall(WeaponPortrait.MountBadge, view.EquipBat, gearId,"),
 	"the Index stage card must show the weapon")
 T.check(H.has(src(H.path(sss, "StageHazardService")), "GetAttribute(\"HeroDebuff\") ~= nil"),
 	"StageHazardService must leave a debuffed player's WalkSpeed to GearService")
@@ -253,9 +258,11 @@ for _, model in ipairs(vfxFolder and vfxFolder:GetChildren() or {}) do
 		end
 	end
 end
-for _, name in ipairs({ "Web_Cocoon", "Dazed_Stars", "Mjolnir_Lightning", "Comic_Explosion", "Bat_Smoke_Cloud", "Web_Blob", "Web_Net" }) do
+for _, name in ipairs({ "Web_Cocoon", "Dazed_Stars", "Comic_Explosion", "Bat_Smoke_Cloud", "Web_Blob", "Web_Net" }) do
 	T.check(H.has(controllerSrc, "\"" .. name .. "\""), "HeroWeaponController must use the owner's %s when imported", name)
 end
+-- round 9: "Mjolnir: remove every mesh VFX, only the hammer and particle emitters"
+T.check(not H.has(controllerSrc, "Mjolnir_Lightning"), "Mjolnir's effects must be particles only (no Mjolnir_Lightning mesh)")
 
 -- 5d. owner 2026-09-27: "no VFX made of meshes anywhere, apart from the ones I sent" - the controller builds no parts
 -- (particles, Beams, Trails and the owner's 7 effect models only)
@@ -312,3 +319,163 @@ local settingsSrc = src(H.path(sps, "GUI/Settings"))
 T.check(H.has(settingsSrc, "pcall(SettingsCmds.IsEnabled, \"ShowMoneyPopups\")") and H.has(settingsSrc, "ShowMoneyPopups.Status.Text"),
 	"the Money Popups row must paint its real value (it showed the template's On)")
 T.check(H.has(settingsSrc, "DESCRIPTION_RIGHT") and pcall(H.luau.compile, settingsSrc), "settings descriptions must end before the button")
+
+-- 6. round 9 (owner 2026-09-27)
+do
+	local Vector3 = roblox.Vector3
+	-- the clips: authored jump slam / spin / throws; the pole's Extend keys
+	local function clipData(weaponId)
+		local module = clipFolder and clipFolder:FindFirstChild(weaponId)
+		return module and H.sandbox(src(module), {})() or {}
+	end
+	local mjolnirClip, poleClip = clipData("Mjolnir"), clipData("PowerPole")
+	T.check(mjolnirClip.FullBody == true and mjolnirClip.Tracks.Root ~= nil and mjolnirClip.Clip == "Mjolnir_JumpSlam",
+		"Mjolnir must play the full-body jump slam")
+	local rootPeak = 0
+	for _, key in ipairs(mjolnirClip.Tracks and mjolnirClip.Tracks.Root or {}) do
+		rootPeak = math.max(rootPeak, key[8] or 0)
+	end
+	T.check(rootPeak >= 2, "the Mjolnir slam must leave the ground (Root up %.2f studs)", rootPeak)
+	local extendPeak = 0
+	for _, key in ipairs(poleClip.Extend or {}) do
+		extendPeak = math.max(extendPeak, key[2])
+	end
+	T.check(poleClip.FullBody == true and extendPeak >= 3, "the Power Pole must grow out of the hand (Extend x%.1f) on a full-body spin", extendPeak)
+	local rootYaw = poleClip.Tracks and poleClip.Tracks.Root or {}
+	T.check(#rootYaw >= 7, "the Power Pole spin needs keys every <= 90 degrees of the turn (%d Root keys)", #rootYaw)
+	for _, weaponId in ipairs({ "CapShield", "Batarang", "WebShooter" }) do
+		local data = clipData(weaponId)
+		T.check(data.Release == data.Impact, "%s must release the throw at its Impact keyframe", weaponId)
+	end
+
+	-- the table: kinds, aimed throws, the shared path / aim math
+	local cfg = configModule and H.sandbox(src(configModule), { Color3 = roblox.Color3, Vector3 = Vector3 })()
+	if T.check(type(cfg) == "table", "HeroWeapons must load with Vector3") then
+		local kinds = { CapShield = "Boomerang", Batarang = "Grenade", WebShooter = "Shot", PowerPole = "Spin", Mjolnir = "Slam" }
+		for weaponId, kind in pairs(kinds) do
+			T.check(cfg.WEAPONS[weaponId].Kind == kind, "%s must be a %s", weaponId, kind)
+		end
+		for _, weaponId in ipairs({ "CapShield", "Batarang", "WebShooter" }) do
+			T.check(cfg.WEAPONS[weaponId].Aimed == true, "%s must be aimable (owner: they are shots)", weaponId)
+		end
+		T.check(cfg.AIM_REMOTE == "Gear: WeaponAim" and cfg.DUMMY_TAG == "HeroWeaponDummy", "HeroWeapons must name the aim remote and the dummy tag")
+		local shield = cfg.WEAPONS.CapShield
+		local origin, finish = Vector3.new(0, 4, 0), Vector3.new(0, 4, -30)
+		local path = { Origin = origin, End = finish, Side = 1, Curve = shield.Curve, OutTime = 0.4, Returns = true, BackTime = 0.35 }
+		local p0 = cfg.PathPoint(path, 0, origin)
+		local pMid = cfg.PathPoint(path, 0.2, origin)
+		local pEnd, doneOut = cfg.PathPoint(path, 0.4, origin)
+		local home = Vector3.new(2, 4, 1)
+		local pBack, doneBack = cfg.PathPoint(path, 0.75, home)
+		T.check((p0 - origin).Magnitude < 1e-3 and (pEnd - finish).Magnitude < 1e-3 and not doneOut, "the shield flies from the hand to the aim point")
+		T.check(math.abs(pMid.X) > 1, "the shield's flight curves (%.2f studs off the line)", pMid.X)
+		T.check((pBack - home).Magnitude < 1e-3 and doneBack, "the shield comes back to the hand")
+		local grenade = { Origin = origin, End = finish, Side = -1, Curve = 0.16, OutTime = 0.4, Returns = false }
+		local gEnd, gDone = cfg.PathPoint(grenade, 0.4)
+		T.check(gDone and (gEnd - finish).Magnitude < 1e-3, "the batarang lands on the aim point")
+		-- AimEnd: range, minimum, pitch, walls
+		local far = cfg.AimEnd(shield, origin, Vector3.new(0, 4, -500))
+		T.check(math.abs((far - origin).Magnitude - shield.Range) < 1e-3, "a throw never flies past the weapon's Range")
+		local near = cfg.AimEnd(shield, origin, Vector3.new(0, 4, -1))
+		T.check(math.abs((near - origin).Magnitude - cfg.MIN_AIM_DISTANCE) < 1e-3, "a click at your feet still throws MIN_AIM_DISTANCE")
+		local steep = cfg.AimEnd(shield, origin, Vector3.new(0, 60, -10))
+		local climb = math.atan2(steep.Y - origin.Y, Vector3.new(steep.X, 0, steep.Z - origin.Z).Magnitude)
+		T.check(climb <= cfg.MAX_AIM_PITCH + 1e-3, "a throw never climbs steeper than MAX_AIM_PITCH")
+		local walled = cfg.AimEnd(shield, origin, Vector3.new(0, 4, -30), function()
+			return Vector3.new(0, 4, -12)
+		end)
+		T.check((walled - origin).Magnitude < 12, "a wall shortens the throw")
+		local rootCFrame = roblox.CFrame.new(0, 3, 0)
+		local throwFrom = cfg.ThrowOrigin(rootCFrame, Vector3.new(0, 3, -20))
+		T.check(throwFrom.X > 0.5 and throwFrom.Z < 0 and throwFrom.Y > 3, "throws leave from the right shoulder, facing the aim")
+	end
+
+	-- the server: aim remote, simulated flights, dummies, the spin
+	for _, needle in ipairs({ "aimRemote.OnServerEvent:Connect(function(player, tool, point)", "local function launchAimed(",
+		"local function stepFlight(flight, now)", "Action = \"ProjectileEnd\"", "local function explodeGrenade(",
+		"local function modelRadius(tool, weapon)", "params.RespectCanCollide = true", "elseif kind == \"Spin\" then",
+		"local function targetCharacter(victim)", "CollectionService:HasTag(victim, HeroWeapons.DUMMY_TAG)",
+		"local function moveDummy(", "if weapon.Aimed then" }) do
+		T.check(H.has(gearSrc, needle), "GearService must contain %s", needle)
+	end
+	T.check(not H.has(gearSrc, "local function launchProjectile("), "the old victim-seeking projectile must be gone")
+	local network = rs:FindFirstChild("Network")
+	local aimRemote = network and network:FindFirstChild("Gear: WeaponAim")
+	T.check(aimRemote ~= nil and aimRemote:IsA("RemoteEvent"), "ReplicatedStorage.Network[\"Gear: WeaponAim\"] must be built")
+
+	-- the client: aim, facing, flights, explosion, pole, shake
+	for _, needle in ipairs({ "local function aimAndFace(tool)", "pcall(aimRemote.FireServer, aimRemote, tool, point)",
+		"root.CFrame = CFrame.lookAt(root.Position, root.Position + heading.Unit)", "local function startFlight(",
+		"local function onProjectileEnd(payload)", "local function explodeAt(weapon, position)", "T.eggmanBlast()",
+		"T.toonLightning()", "T.electricImpact()", "T.shocked()", "local function extendPole(play, k)",
+		"BindToRenderStep(\"HeroWeaponShake\"", "shakeLocal((tonumber(weapon.Shake) or 0.5) * 1.8, 0.32)",
+		"setSectionHidden(tool, nil, true)", "TouchTapInWorld" }) do
+		T.check(H.has(controllerSrc, needle), "HeroWeaponController must contain %s", needle)
+	end
+	T.check(not H.has(controllerSrc, "GetAttribute(\"HeroSection\") == \"VFX\""), "no weapon VFX section is shown any more")
+
+	-- the built tools: no mesh VFX, the shield double-sided, the model radius, Mjolnir held by the handle's end
+	local function toolOf(name)
+		return shopItems and shopItems:FindFirstChild(name)
+	end
+	for toolName in pairs(OWNER_MAPPING) do
+		local tool = toolOf(toolName)
+		if tool then
+			local vfx = 0
+			for _, part in ipairs(tool:GetChildren()) do
+				if part:IsA("BasePart") and part:GetAttribute("HeroSection") == "VFX" then
+					vfx += 1
+				end
+			end
+			T.check(vfx == 0, "%s must carry no mesh VFX (%d VFX parts)", toolName, vfx)
+			if tool:GetAttribute("HeroWeaponModel") == "Import" then
+				T.check(type(tool:GetAttribute("HeroModelRadius")) == "number", "%s needs its HeroModelRadius (the throw hitbox)", toolName)
+			end
+		end
+	end
+	local shieldTool = toolOf("Bat")
+	if shieldTool and shieldTool:GetAttribute("HeroWeaponModel") == "Import" then
+		for _, part in ipairs(shieldTool:GetChildren()) do
+			if part:IsA("MeshPart") then
+				T.check(part.DoubleSided == true, "the shield's %s must be DoubleSided (seen from behind it vanished)", part.Name)
+			end
+		end
+		T.check(math.abs(shieldTool:GetAttribute("HeroModelRadius") - 1.5) < 0.1, "the shield's hitbox radius comes from its model (~1.5)")
+	end
+	local hammer = toolOf("Snow Bat")
+	local grip = hammer and hammer:GetAttribute("GripFromHand")
+	if hammer and typeof(grip) == "CFrame" and hammer:GetAttribute("HeroWeaponModel") == "Import" then
+		local head, biggestVolume = nil, 0
+		for _, part in ipairs(hammer:GetChildren()) do
+			if part:IsA("BasePart") and part.Name:find("hammer_forged") then
+				head = part
+			end
+		end
+		local weld = head and head:FindFirstChild("HeroWeaponWeld")
+		if T.check(weld ~= nil, "Mjolnir's head block (hammer_forged) missing") then
+			local inHand = grip * weld.C0 -- the head in RightHand space
+			T.check(inHand.Position.Z < -1.5, "Mjolnir must be held by the handle's end: the head %.2f studs out along the grip", -inHand.Position.Z)
+			local longAxis = inHand:VectorToWorldSpace(Vector3.new(1, 0, 0))
+			T.check(math.abs(longAxis.Y) > 0.9, "Mjolnir's striking axis must run along the forearm (%.2f)", longAxis.Y)
+		end
+	end
+
+	-- the borrowed particle sets: particle emitters only
+	local sets = H.path(rs, "Assets/VFX/HeroWeapons")
+	for _, name in ipairs({ "EggmanBlast", "ToonLightning", "ElectricImpact" }) do
+		local set = sets and sets:FindFirstChild(name)
+		if T.check(set ~= nil, "Assets.VFX.HeroWeapons.%s missing", name) then
+			local emitters, others = 0, 0
+			for _, d in ipairs(set:GetDescendants()) do
+				if d:IsA("ParticleEmitter") then
+					emitters += 1
+				else
+					others += 1
+				end
+			end
+			T.check(emitters > 0 and others == 0, "Assets.VFX.HeroWeapons.%s must be particle emitters only", name)
+		end
+	end
+	T.check(H.path(rs, "Assets/Weather/ThunderstormWeather/LightningHit") ~= nil and H.path(rs, "Mutation_FX/Shocked") ~= nil,
+		"the storm's LightningHit and the Shocked mutation (Mjolnir's particles) must be in the place")
+end

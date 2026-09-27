@@ -3,8 +3,9 @@
 -- scripts/inject/hero_weapons.luau, started by StarterPlayerScripts.BranchClient)
 --
 -- Owner 2026-09-27, "MISSION: replace the bat system with Hero Gadgets". The client half of the hero weapons
--- (ReplicatedStorage.Library.Modules.HeroWeapons; server: ServerScriptService.GearService). It only draws and moves
--- the local character when the server says so; it never sends anything.
+-- (ReplicatedStorage.Library.Modules.HeroWeapons; server: ServerScriptService.GearService). It draws, moves the local
+-- character when the server says so, and sends one thing: the aim point of an aimed weapon's click
+-- (Network["Gear: WeaponAim"]: the mouse, a tap in the world, else the red target / the camera's heading).
 --   * Attack: the owner's R15 attack clip of the weapon (ReplicatedStorage.Directory.WeaponAnimations.<Id>, generated
 --     from assets/hero_weapons/animations/*.rbxmx) is played on the attacker's Motor6D.Transform in PreSimulation,
 --     after the Animator (no animation asset): the upper body always, the hips and legs only while standing still, with
@@ -13,8 +14,13 @@
 --     from Network["Gear: BatFx"] { Action = "Swing", Weapon }. The Gum-Gum fist stretches and the Power Pole extends
 --     along their clips (HeroWeaponTools.SetGomuTime / SetPoleTime); at the clip's Impact keyframe the attack's own
 --     effect plays (Bakugo's blast, Mjolnir's ground slam and lightning, the pole / fist bursts).
---   * { Action = "Launch" }: the web line, the spinning batarang and Cap's thrown shield fly to the victim (the held
---     batarang / shield hide while they are away).
+--   * Owner 2026-09-27 (round 9): Mjolnir is a jump and a slam into the ground; the Power Pole grows out of the hand
+--     (Extend keys of its clip) and sweeps a full turn; the clips marked FullBody play the legs even while running; the
+--     attacker's own camera gets a light shake at the Impact keyframe (weapon.Shake).
+--   * { Action = "Launch" } / { Action = "ProjectileEnd" }: the aimed throws fly the path the server flies
+--     (HeroWeapons.PathPoint): Cap's shield leaves the hand, curves out and comes back, the batarang curves to the aim
+--     point and explodes there (Speedsters' Eggman missile blast), the web shoots straight. The thrower's own client
+--     starts its throw at once (predicted from its own aim) and adopts the server's flight when it arrives.
 --   * { Action = "Hit" }: a themed burst and the whitelisted pop on the victim.
 --   * { Action = "Debuff" } / { Action = "DebuffEnd" }: the victim's 2.5 s state, drawn on every client
 --       Webbed          a white web net wrapped around them, struggling
@@ -37,6 +43,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local HeroWeaponController = {}
@@ -121,9 +128,14 @@ local function characterParts(character)
 	return humanoid, root
 end
 
-local function characterOfPlayer(player)
-	if typeof(player) == "Instance" and player:IsA("Player") then
-		return player.Character
+-- A victim's character: a Player's, or the admin panel's training dummy Model itself.
+local function characterOfPlayer(victim)
+	if typeof(victim) == "Instance" then
+		if victim:IsA("Player") then
+			return victim.Character
+		elseif victim:IsA("Model") then
+			return victim
+		end
 	end
 	return nil
 end
@@ -231,6 +243,9 @@ local function attachEmitters(attachment, templates, options)
 		if options.Lifetime then
 			emitter.Lifetime = options.Lifetime
 		end
+		if options.SpeedScale and options.SpeedScale ~= 1 then
+			emitter.Speed = NumberRange.new(emitter.Speed.Min * options.SpeedScale, emitter.Speed.Max * options.SpeedScale)
+		end
 		emitter.Parent = attachment
 		if options.Enabled ~= true then
 			local count = options.Emit or tonumber(template:GetAttribute("EmitCount")) or 6
@@ -300,6 +315,25 @@ local T = {
 	end,
 	sparks = function()
 		return emittersAt("Assets/Particles/Damage", { "Hitspark" })
+	end,
+	-- round 9 (vendor/weapon_vfx.rbxm, published by post_hero_weapons): Speedsters' Eggman missile blast (its "Mid"
+	-- set), Steal a Brainrot's Ban Hammer toon lightning strike and electric impact
+	eggmanBlast = function()
+		return emittersAt("Assets/VFX/HeroWeapons/EggmanBlast",
+			{ "darkfire", "smoke", "smoke_2", "sw", "rock", "Sparks", "circle3", "groundwind", "1" })
+	end,
+	toonLightning = function()
+		return emittersAt("Assets/VFX/HeroWeapons/ToonLightning")
+	end,
+	electricImpact = function()
+		return emittersAt("Assets/VFX/HeroWeapons/ElectricImpact")
+	end,
+	-- the base place's thunderstorm lightning hit and the Shocked mutation's crackle
+	lightningHit = function()
+		return emittersAt("Assets/Weather/ThunderstormWeather/LightningHit")
+	end,
+	shocked = function()
+		return emittersAt("Mutation_FX/Shocked")
 	end,
 }
 
@@ -530,8 +564,148 @@ local function clipFor(weaponId)
 	return clip or nil
 end
 
-local playing = {} -- [character] = { weapon, clip, startedAt, impact, length, samples, legs, written = {}, tool, impacted }
+local playing = {} -- [character] = { weapon, clip, data, startedAt, impact, length, samples, legs, written, tool, ... }
 local onImpact -- (character, play) forward declaration
+
+-- A light camera shake on this client (owner 2026-09-27: "Mjolnir: a light shake on the client that uses it"):
+-- `magnitude` degrees at the start, fading out over `seconds`. Applied after the camera scripts every frame.
+local shake = { magnitude = 0, startedAt = 0, seconds = 0.3 }
+local function shakeLocal(magnitude, seconds)
+	local now = os.clock()
+	local left = if now - shake.startedAt < shake.seconds then shake.magnitude * (1 - (now - shake.startedAt) / shake.seconds) else 0
+	shake.magnitude = math.max(left, magnitude)
+	shake.startedAt = now
+	shake.seconds = seconds or 0.3
+end
+
+-- The Power Pole grows out of the hand (owner 2026-09-27: "make it big, stretch it out of the hand"): its Handle and
+-- every part welded to it lengthen along the pole, the end behind the hand stays put (the engine's RightGrip slides the
+-- Handle outward), and it thickens a little as it grows. Local on every client, undone by stopClip.
+local function poleCache(play)
+	if play.pole ~= nil then
+		return play.pole or nil
+	end
+	play.pole = false
+	local tool = play.tool
+	local handle = tool and tool:FindFirstChild("Handle")
+	local hand = rightHandOf(play.character)
+	local grip = hand and hand:FindFirstChild("RightGrip")
+	if not (handle and handle:IsA("BasePart") and grip and grip:IsA("JointInstance")) then
+		return nil
+	end
+	local size = handle.Size
+	local axis = if size.Y >= size.X and size.Y >= size.Z then Vector3.yAxis
+		elseif size.X >= size.Z then Vector3.xAxis else Vector3.zAxis
+	-- outward = the end in the hand's -Z (the kit's grip lays the pole along it; the clip turns it along the arm)
+	local gripFromHand = tool:GetAttribute("GripFromHand")
+	local outward = 1
+	if typeof(gripFromHand) == "CFrame" and gripFromHand:VectorToWorldSpace(axis):Dot(Vector3.new(0, 0, -1)) < 0 then
+		outward = -1
+	end
+	local cache = { handle = handle, size = size, axis = axis, sign = outward, grip = grip, c1 = grip.C1, parts = {},
+		length = math.max(size.X, size.Y, size.Z) }
+	for _, part in ipairs(tool:GetChildren()) do
+		local weld = part:IsA("BasePart") and part ~= handle and part:FindFirstChild("HeroWeaponWeld")
+		if weld and weld:IsA("Weld") and weld.Part0 == handle then
+			local localAxis = weld.C0.Rotation:Inverse() * axis
+			local ax = math.abs(localAxis.X)
+			local ay = math.abs(localAxis.Y)
+			local az = math.abs(localAxis.Z)
+			table.insert(cache.parts, { part = part, size = part.Size, weld = weld, c0 = weld.C0,
+				along = if ay >= ax and ay >= az then "Y" elseif ax >= az then "X" else "Z" })
+		end
+	end
+	play.pole = cache
+	return cache
+end
+
+local function scaledSize(size, along, k, thick)
+	return Vector3.new(if along == "X" then size.X * k else size.X * thick,
+		if along == "Y" then size.Y * k else size.Y * thick,
+		if along == "Z" then size.Z * k else size.Z * thick)
+end
+
+local function extendPole(play, k)
+	local cache = poleCache(play)
+	if not cache or cache.handle.Parent == nil then
+		return
+	end
+	local thick = 1 + 0.55 * math.clamp((k - 1) / 2.6, 0, 1)
+	local handleAlong = if cache.axis == Vector3.xAxis then "X" elseif cache.axis == Vector3.yAxis then "Y" else "Z"
+	cache.handle.Size = scaledSize(cache.size, handleAlong, k, thick)
+	if cache.grip.Parent then
+		-- slide the Handle outward by half the growth: its inner end stays where the hand holds it
+		cache.grip.C1 = CFrame.new(-cache.axis * cache.sign * (cache.length * (k - 1) / 2)) * cache.c1
+	end
+	for _, entry in ipairs(cache.parts) do
+		if entry.part.Parent then
+			entry.part.Size = scaledSize(entry.size, entry.along, k, thick)
+			local p = entry.c0.Position
+			entry.weld.C0 = CFrame.new(p + cache.axis * (p:Dot(cache.axis) * (k - 1))) * entry.c0.Rotation
+		end
+	end
+	-- a gold ribbon sweeping behind the tip while the pole is long
+	if k > 1.4 and not cache.trail then
+		local a0 = Instance.new("Attachment")
+		a0.Name = "HeroPoleTrail0"
+		a0.Parent = cache.handle
+		local a1 = Instance.new("Attachment")
+		a1.Name = "HeroPoleTrail1"
+		a1.Parent = cache.handle
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.Color = ColorSequence.new(Color3.fromRGB(255, 236, 170), Color3.fromRGB(255, 170, 50))
+		trail.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 1) })
+		trail.LightEmission = 1
+		trail.Lifetime = 0.16
+		trail.MinLength = 0.05
+		trail.FaceCamera = false
+		trail.Parent = cache.handle
+		cache.trail = { trail, a0, a1 }
+	end
+	if cache.trail then
+		local half = cache.length * k / 2
+		cache.trail[2].Position = cache.axis * cache.sign * (half - 0.2)
+		cache.trail[3].Position = cache.axis * cache.sign * (half * 0.35)
+		cache.trail[1].Enabled = k > 1.4
+	end
+end
+
+local function restorePole(play)
+	local cache = play.pole
+	if not cache then
+		return
+	end
+	play.pole = nil
+	if cache.handle.Parent then
+		cache.handle.Size = cache.size
+	end
+	if cache.grip.Parent then
+		cache.grip.C1 = cache.c1
+	end
+	for _, entry in ipairs(cache.parts) do
+		if entry.part.Parent then
+			entry.part.Size = entry.size
+			entry.weld.C0 = entry.c0
+		end
+	end
+	for _, instance in ipairs(cache.trail or {}) do
+		instance:Destroy()
+	end
+end
+
+local function keyed(keys, elapsed)
+	for i = 1, #keys - 1 do
+		local a, b = keys[i], keys[i + 1]
+		if elapsed >= a[1] and elapsed <= b[1] then
+			local f = (elapsed - a[1]) / math.max(b[1] - a[1], 1e-4)
+			f = f * f * (3 - 2 * f)
+			return a[2] + (b[2] - a[2]) * f
+		end
+	end
+	return if #keys > 0 then keys[#keys][2] else 1
+end
 
 local function stopClip(character)
 	local play = playing[character]
@@ -542,11 +716,12 @@ local function stopClip(character)
 	for name in pairs(play.written) do
 		releaseJoint(jointEntry(character, name))
 	end
-	if play.tool and Kit and (play.weapon.Id == "GomuFist" or play.weapon.Id == "PowerPole") then
+	if play.tool and Kit and play.weapon.Id == "GomuFist" then
 		pcall(Kit.SetStretch, play.tool, 1)
 	end
-	for _, part in ipairs(play.vfxParts or {}) do
-		part.Transparency = 1 -- the weapon's "VFX" section only shows during the attack
+	restorePole(play)
+	for _, emitter in ipairs(play.charge or {}) do
+		emitter.Enabled = false
 	end
 end
 
@@ -561,25 +736,43 @@ local function playClip(character, weapon)
 	end
 	stopClip(character)
 	local impact, length = HeroWeapons.Timing(weapon.Id)
-	playing[character] = {
+	local data = HeroWeapons.Clip(weapon.Id) or {}
+	local tool = heldTool(character)
+	local play = {
 		weapon = weapon,
 		clip = clip,
+		character = character,
 		startedAt = os.clock(),
 		impact = impact,
 		length = length,
 		samples = {},
-		legs = if humanoid.MoveDirection.Magnitude > 0.1 then 0 else 1,
+		fullBody = data.FullBody == true,
+		extend = if type(data.Extend) == "table" then data.Extend else nil,
+		legs = if data.FullBody == true or humanoid.MoveDirection.Magnitude <= 0.1 then 1 else 0,
 		written = {},
-		tool = heldTool(character),
+		tool = tool,
 		impacted = false,
 		humanoid = humanoid,
 	}
-	local play = playing[character]
-	play.vfxParts = {}
-	for _, part in ipairs(play.tool and play.tool:GetChildren() or {}) do
-		if part:IsA("BasePart") and part:GetAttribute("HeroSection") == "VFX" then
-			part.Transparency = 0 -- e.g. the Power Pole's energy arc (local, every client does the same)
-			table.insert(play.vfxParts, part)
+	playing[character] = play
+	if weapon.Id == "Mjolnir" and tool then
+		-- the hammer crackles with electricity through the leap (particles on its head)
+		local head, biggest = nil, 0
+		for _, part in ipairs(tool:GetChildren()) do
+			if part:IsA("BasePart") and part.Size.Magnitude > biggest then
+				head, biggest = part, part.Size.Magnitude
+			end
+		end
+		if head then
+			local attachment = Instance.new("Attachment")
+			attachment.Name = "HeroMjolnirCharge"
+			attachment.Parent = head
+			play.charge = attachEmitters(attachment, T.shocked(), { Enabled = true, Scale = 0.7, Locked = true })
+			for _, emitter in ipairs(attachEmitters(attachment, T.toonLightning(), { Enabled = true, Rate = 5, Scale = 0.18,
+				Locked = true, Color = ColorSequence.new(weapon.Color) })) do
+				table.insert(play.charge, emitter)
+			end
+			later(length + 1, attachment)
 		end
 	end
 end
@@ -594,7 +787,8 @@ local function stepClip(character, play, dt)
 	local config = HeroWeaponController
 	local weight = math.min(1, elapsed / config.BLEND_IN) * math.min(1, (play.length - elapsed) / config.BLEND_OUT)
 	weight = math.clamp(weight, 0, 1)
-	local still = play.humanoid.MoveDirection.Magnitude < 0.1 and play.humanoid.FloorMaterial ~= Enum.Material.Air
+	local still = play.fullBody
+		or (play.humanoid.MoveDirection.Magnitude < 0.1 and play.humanoid.FloorMaterial ~= Enum.Material.Air)
 	play.legs += ((if still then 1 else 0) - play.legs) * math.min(1, dt * 12)
 	ClipMath.SampleClip(play.clip, elapsed, play.samples)
 	for joint, sample in pairs(play.samples) do
@@ -607,12 +801,17 @@ local function stepClip(character, play, dt)
 			play.written[joint] = true
 		end
 	end
-	if play.tool and Kit then
-		if play.weapon.Id == "GomuFist" then
-			pcall(Kit.SetGomuTime, play.tool, elapsed)
-		elseif play.weapon.Id == "PowerPole" then
-			pcall(Kit.SetPoleTime, play.tool, elapsed)
+	if play.tool and Kit and play.weapon.Id == "GomuFist" then
+		pcall(Kit.SetGomuTime, play.tool, elapsed)
+	end
+	if play.extend then
+		extendPole(play, keyed(play.extend, elapsed))
+	end
+	if play.charge and elapsed > play.impact + 0.15 then
+		for _, emitter in ipairs(play.charge) do
+			emitter.Enabled = false
 		end
+		play.charge = nil
 	end
 	if not play.impacted and elapsed >= play.impact then
 		play.impacted = true
@@ -645,6 +844,18 @@ local function farEnd(handle, root)
 	return if (a - root.Position).Magnitude >= (b - root.Position).Magnitude then a else b
 end
 
+-- The ground under a point (the first collidable surface below it), else the point itself.
+local function groundBelow(position, ignore)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore or {}
+	params.RespectCanCollide = true
+	local result = Workspace:Raycast(position + Vector3.new(0, 2, 0), Vector3.new(0, -12, 0), params)
+	return if result then result.Position else position
+end
+
+local launchLocal -- (character, play) forward declaration: the thrower's own flight, started at once
+
 onImpact = function(character, play)
 	local _, root = characterParts(character)
 	if not root then
@@ -655,6 +866,21 @@ onImpact = function(character, play)
 	forward = if forward.Magnitude > 0.01 then forward.Unit else Vector3.new(0, 0, -1)
 	local tool = play.tool
 	local handle = tool and tool:FindFirstChild("Handle")
+	local up = Vector3.yAxis
+	if character == LocalPlayer.Character then
+		shakeLocal((tonumber(weapon.Shake) or 0.5) * 1.8, 0.32)
+	end
+	if weapon.Aimed then
+		-- the weapon leaves the hand: the thrower's client flies it now, the others when the server's Launch arrives
+		if character == LocalPlayer.Character then
+			launchLocal(character, play)
+		end
+		local hand = rightHandOf(character)
+		if hand then
+			burstAt(hand.Position, T.puff(), { Max = 4, Scale = 0.6, Color = ColorSequence.new(Color3.fromRGB(235, 240, 250)) }, 1)
+		end
+		return
+	end
 	if weapon.Id == "BakugoGauntlet" then
 		-- BOOM: the owner's comic explosion bursts out of the gauntlet, fire and sparks roll forward
 		local nozzle = if handle then handle.Position + forward * 1 else root.Position + forward * 2.5
@@ -669,39 +895,52 @@ onImpact = function(character, play)
 		comicText(nozzle + forward * 3 + Vector3.new(0, 2.2, 0), "BOOM!", Color3.fromRGB(255, 150, 30), 5, 0.75)
 		playPop(nozzle, { 0.55, 0.65 }, 1.4)
 	elseif weapon.Id == "Mjolnir" then
-		-- the slam: the owner's bolts crash down onto the hammer, lightning and a shockwave roll out, rocks jump
-		local point = root.Position + forward * (tonumber(weapon.Reach) or 3.5) - Vector3.new(0, root.Size.Y * 1.5, 0)
-		for k = 0, 5 do
-			popModel("Mjolnir_Lightning", CFrame.new(point + Vector3.new(0, k * 2.6 - 1.7, 0))
-				* CFrame.Angles(0, math.random() * math.pi * 2, 0), 1.9, 2.2, 0.08, 0.14)
+		-- the slam (particles only, owner 2026-09-27): a toon bolt crashes onto the hammer, the electric impact and the
+		-- storm's lightning hit burst from the ground, shock rings roll out, rocks and dust jump, sparks race outward
+		local radius = tonumber(weapon.Radius) or 12
+		local point = groundBelow(root.Position + forward * (tonumber(weapon.Reach) or 4), { character, fxFolder() })
+		burstAt(point + up * 3.2, T.toonLightning(), { Scale = 0.75, Max = 6, Color = ColorSequence.new(weapon.Color) }, 1.2)
+		task.delay(0.06, function()
+			burstAt(point + up * 1.6 + forward * 1.4, T.toonLightning(), { Scale = 0.5, Max = 4 }, 1)
+		end)
+		burstAt(point + up * 0.6, T.electricImpact(), { Scale = 0.55, Max = 10 }, 1.2)
+		burstAt(point + up * 1.4, T.lightningHit(), { Scale = 0.45, SpeedScale = 0.45, Max = 16 }, 1.5)
+		ringAt(point + up * 0.2, weapon.Color, radius)
+		ringAt(point + up * 0.3, weapon.Accent, radius * 0.55)
+		flashAt(point + up, weapon.Accent, 7, 2)
+		burstAt(point + up * 0.4, T.ground(), { Max = 40 }, 2)
+		burstAt(point + up * 0.3, T.dust(), { Emit = 14, Max = 14 }, 2)
+		for i = 0, 5 do
+			local angle = i / 6 * math.pi * 2 + math.random() * 0.4
+			local out = Vector3.new(math.cos(angle), 0, math.sin(angle))
+			task.delay(0.03 * i, function()
+				burstAt(point + out * radius * 0.55 + up * 0.4, T.sparks(), { Max = 2, Scale = 0.6,
+					Color = ColorSequence.new(weapon.Color) }, 1)
+			end)
 		end
-		burstAt(point + Vector3.new(0, 1, 0), T.strike(), { Scale = 0.35, Max = 12, Color = ColorSequence.new(weapon.Color) }, 1)
-		burstAt(point + Vector3.new(0, 1, 0), T.lightning(), { Scale = 0.35, Max = 10 }, 1.5)
-		ringAt(point + Vector3.new(0, 0.3, 0), weapon.Color, tonumber(weapon.Radius) or 11)
-		ringAt(point + Vector3.new(0, 0.4, 0), weapon.Accent, (tonumber(weapon.Radius) or 11) * 0.55)
-		flashAt(point + Vector3.new(0, 1, 0), weapon.Accent, 7, 2)
-		burstAt(point + Vector3.new(0, 0.5, 0), T.ground(), { Max = 40 }, 2)
 		playPop(point, { 0.5, 0.6 }, 1.5)
 	elseif weapon.Id == "PowerPole" then
-		local tip = sectionPart(tool, "Tip")
-		local at = if tip then tip.Position elseif handle then farEnd(handle, root) else root.Position + forward * 6
-		flashAt(at, weapon.Accent, 3.5, 1)
-		burstAt(at, T.lines(), { Scale = 0.5, Max = 7 }, 1)
-		burstAt(at, T.sparks(), { Max = 3, Color = ColorSequence.new(weapon.Accent) }, 1)
+		-- the sweep: a gold ring and wind whirl out at the pole's length, dust spins off the feet
+		local radius = tonumber(weapon.Radius) or 12
+		local feet = groundBelow(root.Position, { character, fxFolder() })
+		ringAt(feet + up * 0.25, weapon.Accent, radius)
+		burstAt(root.Position, T.wind(), {
+			Scale = 0.09, Emit = 3, Max = 3, Color = ColorSequence.new(Color3.fromRGB(255, 244, 214)),
+			Direction = Enum.NormalId.Top, Speed = NumberRange.new(0.01), Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		}, 1)
+		burstAt(feet + up * 0.3, T.twirl(), { Max = 8 }, 1.2)
+		burstAt(feet + up * 0.3, T.dust(), { Emit = 16, Max = 16 }, 1.5)
+		playPop(root.Position, { 0.8, 0.9 }, 1.2)
 	elseif weapon.Id == "GomuFist" then
 		local fist = sectionPart(tool, "Fist")
 		local at = if fist then fist.Position else root.Position + forward * 5
 		flashAt(at, Color3.new(1, 1, 1), 4.5, 1)
 		burstAt(at, T.slap(), { Max = 12 }, 1.2)
-	elseif weapon.Id == "CapShield" then
-		local at = if handle then handle.Position + forward * 0.8 else root.Position + forward * 3
-		flashAt(at, Color3.fromRGB(225, 235, 255), 3.6, 1)
-		burstAt(at, T.sparks(), { Max = 3, Color = ColorSequence.new(Color3.fromRGB(255, 240, 200)) }, 1)
 	end
 end
 
 ----------------------------------------------------------------------------------------------------
--- projectiles (Launch)
+-- aimed throws: the flights (Launch / ProjectileEnd)
 ----------------------------------------------------------------------------------------------------
 
 local animations = {} -- { fn(now) -> keep }
@@ -749,139 +988,267 @@ local function cloneWeaponParts(tool, sections)
 	return model, layout, centre.Position
 end
 
-local function targetPoint(victim, fallback)
-	local character = characterOfPlayer(victim)
-	local _, root = characterParts(character)
-	return if root then root.Position else fallback
+-- Workspace raycast that only stops at collidable world geometry (the server's rule for a throw's end).
+local function wallRaycast()
+	local exclude = { fxFolder() }
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then
+			table.insert(exclude, player.Character)
+		end
+	end
+	local dummies = Workspace:FindFirstChild("HeroWeaponDummies")
+	if dummies then
+		table.insert(exclude, dummies)
+	end
+	local traps = Workspace:FindFirstChild("PlacedTraps")
+	if traps then
+		table.insert(exclude, traps)
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = exclude
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	return function(origin, vector)
+		local result = Workspace:Raycast(origin, vector, params)
+		return if result then result.Position else nil
+	end
 end
 
--- The web: a white Beam from the web shooter to the victim whose tip (the owner's web blob) flies out, then fades.
-local function launchWeb(attackerCharacter, payload, weapon)
-	local hand = rightHandOf(attackerCharacter)
-	local _, root = characterParts(attackerCharacter)
-	if not hand or not root then
+local flights = {} -- every flight drawn here (ended ones linger a few seconds so a late ProjectileEnd finds them)
+local FLAT = CFrame.Angles(math.rad(90), 0, 0) -- the shield / batarang lie flat (both are authored facing their Z)
+
+local function explodeAt(weapon, position)
+	-- Speedsters' Eggman missile blast, scaled to the batarang's blast, and Batman's smoke pellet cloud
+	local blast = tonumber(weapon.BlastRadius) or 8
+	local scale = blast / 22
+	burstAt(position, T.eggmanBlast(), { Scale = scale, SpeedScale = scale, Max = 14 }, 3.2)
+	burstAt(position, T.smokeBomb(), { Emit = 1, Scale = 0.5 }, 3.5)
+	flashAt(position, Color3.fromRGB(255, 214, 120), 6, 1)
+	ringAt(groundBelow(position, { fxFolder() }) + Vector3.new(0, 0.2, 0), weapon.Accent, blast)
+	playPop(position, { 0.55, 0.65 }, 1.4)
+	local _, root = characterParts(LocalPlayer.Character)
+	if root then
+		local distance = (root.Position - position).Magnitude
+		if distance < 30 then
+			shakeLocal(1.4 * (1 - distance / 30), 0.3)
+		end
+	end
+end
+
+local function finishFlight(flight, position, reason)
+	if flight.ended then
 		return
 	end
-	local direction = if typeof(payload.Direction) == "Vector3" then payload.Direction else root.CFrame.LookVector
-	local fallback = hand.Position + direction * (tonumber(payload.Distance) or 30)
-	local travel = math.clamp(tonumber(payload.Travel) or 0.2, 0.05, 0.6)
-	local origin = Instance.new("Attachment")
-	origin.Name = "HeroWebOrigin"
-	origin.Parent = hand
-	local tipAttachment = Instance.new("Attachment")
-	tipAttachment.Name = "HeroWebTip"
-	tipAttachment.Position = hand.Position
-	tipAttachment.Parent = Workspace.Terrain
-	local beam = Instance.new("Beam")
-	beam.Attachment0 = origin
-	beam.Attachment1 = tipAttachment
-	beam.Color = ColorSequence.new(weapon.Color)
-	beam.Transparency = NumberSequence.new(0.05)
-	beam.Width0 = 0.16
-	beam.Width1 = 0.1
-	beam.FaceCamera = true
-	beam.LightEmission = 0.35
-	beam.LightInfluence = 0.4
-	beam.Segments = 2
-	beam.Parent = origin
-	local blob = vfxModel("Web_Blob") -- the owner's web blob rides the tip
-	burstAt(hand.Position, T.puff(), { Max = 6 }, 1)
-	local started = os.clock()
-	local lastFrom = hand.Position
-	animate(function(now)
-		local alpha = (now - started) / travel
-		if hand.Parent then
-			lastFrom = hand.Position
+	flight.ended = true
+	flight.endedAt = os.clock()
+	if flight.model then
+		flight.model:Destroy()
+	end
+	local weapon = flight.weapon
+	if weapon.Kind == "Grenade" then
+		if reason ~= "Gone" then
+			explodeAt(weapon, position or flight.path.End)
 		end
-		local to = targetPoint(payload.Victim, fallback) + Vector3.new(0, 0.6, 0)
-		local tip = lastFrom:Lerp(to, math.min(alpha, 1))
-		tipAttachment.Position = tip
-		if blob then
-			blob:PivotTo(CFrame.lookAt(tip, tip + (to - lastFrom).Unit))
-		end
-		if alpha >= 1 then
-			if blob then
-				blob:Destroy()
+		task.delay(0.35, function() -- a new batarang in the hand
+			setSectionHidden(flight.tool, nil, false)
+			local hand = rightHandOf(flight.character)
+			if hand then
+				burstAt(hand.Position, T.puff(), { Max = 3, Scale = 0.5 }, 1)
 			end
-			burstAt(tip, T.puff(), { Max = 8 }, 1)
-			TweenService:Create(beam, TweenInfo.new(0.3), { Width0 = 0, Width1 = 0 }):Play()
-			task.delay(0.32, function()
-				origin:Destroy()
-				tipAttachment:Destroy()
-			end)
-			return false
+		end)
+	elseif weapon.Kind == "Boomerang" then
+		setSectionHidden(flight.tool, nil, false)
+		local hand = rightHandOf(flight.character)
+		if hand and reason ~= "Gone" then
+			flashAt(hand.Position, Color3.fromRGB(225, 235, 255), 2.6, 1) -- the catch
+			burstAt(hand.Position, T.sparks(), { Max = 2, Scale = 0.5 }, 0.8)
 		end
-		return true
-	end)
+	elseif weapon.Kind == "Shot" then
+		local at = position or flight.position or flight.path.End
+		if flight.tip then
+			flight.tip.Position = at
+		end
+		if flight.blob then
+			flight.blob:Destroy()
+		end
+		burstAt(at, T.puff(), { Max = 8, Color = ColorSequence.new(weapon.Color) }, 1.2)
+		if flight.beam then
+			TweenService:Create(flight.beam, TweenInfo.new(0.3), { Width0 = 0, Width1 = 0 }):Play()
+		end
+		later(0.32, flight.origin)
+		later(0.32, flight.tip)
+	end
 end
 
--- A spinning copy flies flat to the victim (and back to the hand for Cap's shield) while the held one hides. Both the
--- shield and the batarang are authored facing grip -Z / +Z, so a quarter turn about X lays them flat.
-local FLAT = CFrame.Angles(math.rad(90), 0, 0)
-local function launchThrown(attackerCharacter, payload, weapon, sections, returns)
-	local tool = heldTool(attackerCharacter)
-	local _, root = characterParts(attackerCharacter)
-	local model, layout, from = cloneWeaponParts(tool, sections)
-	if not model or not root then
+-- Draws one flight along `path` (HeroWeapons.PathPoint, the server's own path).
+local function startFlight(character, weapon, path, isLocal)
+	local tool = heldTool(character)
+	local hand = rightHandOf(character)
+	local startAt = if hand then hand.Position else path.Origin
+	local flight = { weapon = weapon, character = character, path = path, startedAt = os.clock(), tool = tool,
+		isLocal = isLocal }
+	if weapon.Kind == "Shot" then
+		-- the web line: a Beam from the wrist to its tip flying out, the owner's web blob riding the tip
+		local origin = Instance.new("Attachment")
+		origin.Name = "HeroWebOrigin"
+		origin.Parent = hand or Workspace.Terrain
+		if not hand then
+			origin.Position = startAt
+		end
+		local tip = Instance.new("Attachment")
+		tip.Name = "HeroWebTip"
+		tip.Position = startAt
+		tip.Parent = Workspace.Terrain
+		local beam = Instance.new("Beam")
+		beam.Attachment0 = origin
+		beam.Attachment1 = tip
+		beam.Color = ColorSequence.new(weapon.Color)
+		beam.Transparency = NumberSequence.new(0.05)
+		beam.Width0 = 0.16
+		beam.Width1 = 0.1
+		beam.FaceCamera = true
+		beam.LightEmission = 0.35
+		beam.LightInfluence = 0.4
+		beam.Segments = 2
+		beam.Parent = origin
+		flight.origin, flight.tip, flight.beam = origin, tip, beam
+		flight.blob = vfxModel("Web_Blob")
+		burstAt(startAt, T.puff(), { Max = 5, Color = ColorSequence.new(weapon.Color) }, 1)
+	else
+		local model, layout = cloneWeaponParts(tool, nil)
 		if model then
-			model:Destroy()
+			flight.model, flight.layout = model, layout
+			local anchorPart = next(layout)
+			if anchorPart then
+				trailOn(anchorPart, if weapon.Kind == "Boomerang" then Color3.fromRGB(235, 240, 255)
+					else Color3.fromRGB(140, 140, 160), 1.4)
+			end
 		end
-		return
+		setSectionHidden(tool, nil, true) -- the held one is the one flying
 	end
-	local direction = if typeof(payload.Direction) == "Vector3" then payload.Direction else root.CFrame.LookVector
-	local travel = math.clamp(tonumber(payload.Travel) or 0.3, 0.05, 0.6)
-	local fallback = from + direction * (tonumber(payload.Distance) or 25)
-	setSectionHidden(tool, sections, true)
-	local anchorPart = next(layout)
-	if anchorPart then
-		trailOn(anchorPart, if weapon.Id == "CapShield" then Color3.fromRGB(235, 240, 255) else Color3.fromRGB(120, 120, 140), 1.2)
-	end
-	local started = os.clock()
-	local total = if returns then travel * 2 else travel
-	local reached = fallback
+	table.insert(flights, flight)
+	local direction = path.End - path.Origin
+	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.new(0, 0, -1)
 	animate(function(now)
-		local t = now - started
-		local position
-		if t <= travel then
-			local out = t / travel
-			reached = targetPoint(payload.Victim, fallback) + Vector3.new(0, 0.5, 0)
-			position = from:Lerp(reached, out) + Vector3.new(0, math.sin(out * math.pi) * 1.2, 0)
-		else
-			local back = math.min((t - travel) / travel, 1)
-			local hand = rightHandOf(attackerCharacter)
-			local home = if hand and hand.Parent then hand.Position else from
-			position = reached:Lerp(home, back)
+		if flight.ended then
+			return false
 		end
-		local frame = CFrame.new(position) * CFrame.fromAxisAngle(Vector3.yAxis, t * 30) * FLAT
-		for part, offset in pairs(layout) do
-			part.CFrame = frame * offset
+		if not character.Parent then
+			finishFlight(flight, nil, "Gone")
+			return false
 		end
-		if t >= total then
-			model:Destroy()
-			setSectionHidden(tool, sections, false)
+		local t = now - flight.startedAt
+		local home = nil
+		if path.Returns then
+			local current = rightHandOf(character)
+			home = if current and current.Parent then current.Position else path.Origin
+		end
+		local position, finished = HeroWeapons.PathPoint(path, t, home)
+		local blend = math.clamp(t / 0.08, 0, 1) -- off the hand onto the path
+		if blend < 1 then
+			position = startAt:Lerp(position, blend)
+		end
+		flight.position = position
+		if flight.model then
+			local spin = if weapon.Kind == "Boomerang" then 26 else 32
+			local frame = CFrame.new(position) * CFrame.fromAxisAngle(Vector3.yAxis, t * spin) * FLAT
+			for part, offset in pairs(flight.layout) do
+				part.CFrame = frame * offset
+			end
+		end
+		if flight.tip then
+			flight.tip.Position = position
+			if flight.blob then
+				flight.blob:PivotTo(CFrame.lookAt(position, position + direction))
+			end
+		end
+		if finished then
+			finishFlight(flight, if path.Returns then nil else path.End, "End")
 			return false
 		end
 		return true
 	end)
-	if weapon.Id == "Batarang" and not payload.Victim then
-		task.delay(travel, function()
-			burstAt(fallback, T.smokeBomb(), { Emit = 1, Scale = 0.45 }, 3.5) -- a miss still pops a little smoke
-		end)
+	return flight
+end
+
+local lastAim = nil -- { point, at }: this client's last aim point (sent to the server with the click)
+
+launchLocal = function(character, play)
+	local _, root = characterParts(character)
+	if not root then
+		return
+	end
+	local weapon = play.weapon
+	local aim = if lastAim and os.clock() - lastAim.at < 1.5 then lastAim.point
+		else root.Position + HeroWeapons.Flat(root.CFrame.LookVector, Vector3.new(0, 0, -1)) * 30
+	local origin = HeroWeapons.ThrowOrigin(root.CFrame, aim)
+	local finish = HeroWeapons.AimEnd(weapon, origin, aim, wallRaycast())
+	local distance = (finish - origin).Magnitude
+	local returns = weapon.Kind == "Boomerang"
+	local flight = startFlight(character, weapon, {
+		Origin = origin,
+		End = finish,
+		Side = if returns then 1 else -1,
+		Curve = if weapon.Kind == "Shot" then 0 else (tonumber(weapon.Curve) or 0),
+		OutTime = HeroWeapons.Travel(weapon, distance),
+		Returns = returns,
+		BackTime = if returns then HeroWeapons.Travel(weapon, distance, weapon.ReturnSpeed) else nil,
+	}, true)
+	flight.awaitingServer = true
+end
+
+local function pruneFlights()
+	local now = os.clock()
+	for index = #flights, 1, -1 do
+		local flight = flights[index]
+		if flight.ended and now - (flight.endedAt or now) > 4 then
+			table.remove(flights, index)
+		end
 	end
 end
 
 local function onLaunch(payload)
+	pruneFlights()
 	local weapon = HeroWeapons.Get(payload.Weapon)
 	local character = characterOfPlayer(payload.Attacker)
-	if not weapon or not characterParts(character) then
+	if not weapon or not characterParts(character) or typeof(payload.Origin) ~= "Vector3"
+		or typeof(payload.End) ~= "Vector3" then
 		return
 	end
-	if weapon.Id == "WebShooter" then
-		launchWeb(character, payload, weapon)
-	elseif weapon.Id == "Batarang" then
-		launchThrown(character, payload, weapon, { Blade = true, Handle = true }, false)
-	elseif weapon.Id == "CapShield" then
-		launchThrown(character, payload, weapon, nil, true)
+	if payload.Attacker == LocalPlayer then
+		for _, flight in ipairs(flights) do
+			if flight.isLocal and flight.awaitingServer and flight.weapon == weapon then
+				flight.awaitingServer = false -- our own throw, already in the air
+				flight.serverId = payload.Id
+				return
+			end
+		end
+	end
+	local path = {
+		Origin = payload.Origin,
+		End = payload.End,
+		Side = tonumber(payload.Side) or 1,
+		Curve = math.clamp(tonumber(payload.Curve) or 0, 0, 1),
+		OutTime = math.clamp(tonumber(payload.OutTime) or 0.3, 0.05, 1),
+		Returns = payload.Returns == true,
+		BackTime = math.clamp(tonumber(payload.BackTime) or 0.3, 0.05, 1),
+	}
+	local flight = startFlight(character, weapon, path, false)
+	flight.serverId = payload.Id
+end
+
+local function onProjectileEnd(payload)
+	local position = if typeof(payload.Position) == "Vector3" then payload.Position else nil
+	for _, flight in ipairs(flights) do
+		if flight.serverId ~= nil and flight.serverId == payload.Id then
+			finishFlight(flight, position, payload.Reason)
+			return
+		end
+	end
+	local weapon = HeroWeapons.Get(payload.Weapon)
+	if weapon and weapon.Kind == "Grenade" and payload.Reason == "Explode" and position then
+		explodeAt(weapon, position) -- a flight this client never drew (it joined mid-throw)
 	end
 end
 
@@ -1158,19 +1525,18 @@ local function onDebuff(payload)
 			table.insert(state.emitters, emitter)
 		end
 	elseif effect == "Electrocuted" then
+		-- particles only (owner 2026-09-27): the Shocked mutation's crackle on the body, lightning sparks, a flicker
 		state.flash = highlightOn(state, character, weapon.Accent, 0.6, 0.2)
 		state.zap = true
 		local attachment = rootAttachment(state, root, "HeroWeaponZap")
 		for _, emitter in ipairs(attachEmitters(attachment, T.lightning(), { Enabled = true, Scale = 0.35, Rate = 14 })) do
 			table.insert(state.emitters, emitter)
 		end
-		state.bolts = {}
-		for _ = 1, 3 do
-			local bolt = vfxModel("Mjolnir_Lightning") -- the owner's bolts crackle around the body when imported
-			if bolt then
-				table.insert(state.bolts, bolt)
-				table.insert(state.instances, bolt)
-			end
+		local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+		torso = if torso and torso:IsA("BasePart") then torso else root
+		local crackle = rootAttachment(state, torso, "HeroWeaponShock")
+		for _, emitter in ipairs(attachEmitters(crackle, T.shocked(), { Enabled = true, Scale = 0.9, Locked = true })) do
+			table.insert(state.emitters, emitter)
 		end
 	elseif effect == "CleanKnockback" then
 		local attachment = rootAttachment(state, root, "HeroWeaponSlide")
@@ -1306,11 +1672,11 @@ local function stepStates(now, dt)
 				if state.flash then
 					state.flash.FillTransparency = if state.flash.FillTransparency > 0.5 then 0.25 else 0.8
 				end
-				-- the owner's bolts jump around the body; a crackle of lightning sparks now and then
-				for _, bolt in ipairs(state.bolts or {}) do
+				-- small toon bolts snap around the body now and then, and a crackle of sparks
+				if math.random() < 0.18 then
 					local offset = Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 1.6, math.random() - 0.5) * 2.2
-					bolt:PivotTo(CFrame.new(centre + offset - Vector3.new(0, 1.7, 0))
-						* CFrame.Angles(math.random() * 0.6 - 0.3, math.random() * math.pi * 2, math.random() * 0.6 - 0.3))
+					burstAt(centre + offset, T.toonLightning(), { Scale = 0.22, Max = 2,
+						Color = ColorSequence.new(state.weapon.Color) }, 0.6)
 				end
 				if math.random() < 0.35 then
 					burstAt(centre + Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 3, math.random() - 0.5),
@@ -1412,6 +1778,74 @@ local function canAttackLocally(tool, weapon)
 	return true
 end
 
+local targetHighlight = nil -- the red glow on the rival the weapon would hit (refreshTarget)
+local aimRemote = nil -- Network["Gear: WeaponAim"]
+local lastTouch = nil -- { position = Vector2, at }: the last tap in the world (mobile aim)
+
+-- Where this player aims an aimed weapon: the mouse (PC), the last tap in the world (touch), else the red target or
+-- 30 studs along the camera's heading (gamepad). A character under the pointer is aimed at its middle, the ground a
+-- little above it (the throw flies at body height).
+local function aimPoint(character, root)
+	local camera = Workspace.CurrentCamera
+	if not camera then
+		return nil
+	end
+	local ray = nil
+	local lastType = UserInputService:GetLastInputType()
+	if lastType == Enum.UserInputType.Touch then
+		if lastTouch and os.clock() - lastTouch.at < 0.6 then
+			ray = camera:ScreenPointToRay(lastTouch.position.X, lastTouch.position.Y)
+		end
+	elseif not string.find(lastType.Name, "Gamepad") then
+		local mouse = UserInputService:GetMouseLocation()
+		ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
+	end
+	if ray then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { character, fxFolder() }
+		params.RespectCanCollide = true
+		local result = Workspace:Raycast(ray.Origin, ray.Direction * 800, params)
+		if result then
+			local model = result.Instance:FindFirstAncestorOfClass("Model")
+			local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+			local middle = humanoid and model:FindFirstChild("HumanoidRootPart")
+			if middle and middle:IsA("BasePart") then
+				return middle.Position
+			end
+			return result.Position + Vector3.new(0, 1.5, 0)
+		end
+		return ray.Origin + ray.Direction * 200
+	end
+	local adornee = targetHighlight and targetHighlight.Adornee
+	local middle = adornee and adornee:FindFirstChild("HumanoidRootPart")
+	if middle and middle:IsA("BasePart") then
+		return middle.Position
+	end
+	return root.Position + HeroWeapons.Flat(camera.CFrame.LookVector, HeroWeapons.Flat(root.CFrame.LookVector, Vector3.new(0, 0, -1))) * 30
+end
+
+-- An aimed weapon's click: remember the aim, send it to the server, and turn to face it.
+local function aimAndFace(tool)
+	local character = LocalPlayer.Character
+	local _, root = characterParts(character)
+	if not root then
+		return
+	end
+	local point = aimPoint(character, root)
+	if not point then
+		return
+	end
+	lastAim = { point = point, at = os.clock() }
+	if aimRemote then
+		pcall(aimRemote.FireServer, aimRemote, tool, point)
+	end
+	local heading = Vector3.new(point.X - root.Position.X, 0, point.Z - root.Position.Z)
+	if heading.Magnitude > 0.5 then
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + heading.Unit)
+	end
+end
+
 local hookedTools = setmetatable({}, { __mode = "k" })
 local function hookTool(tool)
 	if hookedTools[tool] or not tool:IsA("Tool") then
@@ -1426,6 +1860,9 @@ local function hookTool(tool)
 		if canAttackLocally(tool, weapon) then
 			lastLocalAttackAt = os.clock()
 			lastLocalWeapon = weapon
+			if weapon.Aimed then
+				aimAndFace(tool)
+			end
 			playClip(LocalPlayer.Character, weapon)
 		end
 	end)
@@ -1441,7 +1878,6 @@ local function watchContainer(container)
 	container.ChildAdded:Connect(hookTool)
 end
 
-local targetHighlight = nil
 local function refreshTarget()
 	local character = LocalPlayer.Character
 	local tool = heldTool(character)
@@ -1451,24 +1887,31 @@ local function refreshTarget()
 	if weapon and root and character:GetAttribute(HeroWeaponController.DEBUFF_ATTRIBUTE) == nil then
 		local forward = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
 		forward = if forward.Magnitude > 0.01 then forward.Unit else Vector3.new(0, 0, -1)
-		local range = weapon.ThrowRange or weapon.Range
-		local minDot = if weapon.Kind == "Slam" then -1 else (weapon.ThrowMinDot or weapon.MinDot)
+		local range = weapon.Range
+		local minDot = if weapon.Kind == "Slam" or weapon.Kind == "Spin" then -1 elseif weapon.Aimed then 0.3
+			else weapon.MinDot
 		local bestDistance = math.huge
+		local candidates = {}
 		for _, other in ipairs(Players:GetPlayers()) do
-			if other ~= LocalPlayer then
-				local otherCharacter = other.Character
-				local humanoid, otherRoot = characterParts(otherCharacter)
-				if humanoid and humanoid.Health > 0 and otherCharacter:GetAttribute("Ragdolled") ~= true then
-					local offset = otherRoot.Position - root.Position
-					local flat = Vector3.new(offset.X, 0, offset.Z)
-					local distance = offset.Magnitude
-					local inCone = flat.Magnitude < 0.01 or flat.Unit:Dot(forward) >= minDot
-					if weapon.Kind == "Melee" and distance <= weapon.Range then
-						inCone = flat.Magnitude < 0.01 or flat.Unit:Dot(forward) >= weapon.MinDot
-					end
-					if distance <= range and inCone and math.abs(offset.Y) <= 8 and distance < bestDistance then
-						best, bestDistance = otherCharacter, distance
-					end
+			if other ~= LocalPlayer and other.Character then
+				table.insert(candidates, other.Character)
+			end
+		end
+		local dummies = Workspace:FindFirstChild("HeroWeaponDummies")
+		for _, dummy in ipairs(dummies and dummies:GetChildren() or {}) do
+			if dummy:IsA("Model") then
+				table.insert(candidates, dummy)
+			end
+		end
+		for _, otherCharacter in ipairs(candidates) do
+			local humanoid, otherRoot = characterParts(otherCharacter)
+			if humanoid and humanoid.Health > 0 and otherCharacter:GetAttribute("Ragdolled") ~= true then
+				local offset = otherRoot.Position - root.Position
+				local flat = Vector3.new(offset.X, 0, offset.Z)
+				local distance = offset.Magnitude
+				local inCone = flat.Magnitude < 0.01 or flat.Unit:Dot(forward) >= minDot
+				if distance <= range and inCone and math.abs(offset.Y) <= 8 and distance < bestDistance then
+					best, bestDistance = otherCharacter, distance
 				end
 			end
 		end
@@ -1519,6 +1962,8 @@ local function onBatFx(payload)
 		playClip(attacker.Character, weapon)
 	elseif action == "Launch" then
 		onLaunch(payload)
+	elseif action == "ProjectileEnd" then
+		onProjectileEnd(payload)
 	elseif action == "Hit" then
 		onHit(payload)
 	elseif action == "Debuff" then
@@ -1556,6 +2001,35 @@ function HeroWeaponController:Start()
 		local ok, err = pcall(stepStates, os.clock(), dt)
 		if not ok then
 			warnf("state step failed: " .. tostring(err))
+		end
+	end)
+	-- the attacker's light camera shake, after the camera scripts
+	RunService:BindToRenderStep("HeroWeaponShake", Enum.RenderPriority.Camera.Value + 1, function()
+		local elapsed = os.clock() - shake.startedAt
+		local camera = Workspace.CurrentCamera
+		if camera and shake.magnitude > 0 and elapsed < shake.seconds then
+			local fade = 1 - elapsed / shake.seconds
+			local m = math.rad(shake.magnitude) * fade * fade
+			local t = os.clock() * 38
+			camera.CFrame = camera.CFrame
+				* CFrame.Angles(math.noise(t, 0.3) * m * 2, math.noise(t, 7.1) * m * 2, math.noise(t, 13.7) * m)
+		end
+	end)
+	-- mobile aim: the last tap in the world (not the move stick's corner)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed or input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		local camera = Workspace.CurrentCamera
+		local size = if camera then camera.ViewportSize else Vector2.new(1000, 1000)
+		if input.Position.X < size.X * 0.35 and input.Position.Y > size.Y * 0.5 then
+			return
+		end
+		lastTouch = { position = Vector2.new(input.Position.X, input.Position.Y), at = os.clock() }
+	end)
+	UserInputService.TouchTapInWorld:Connect(function(position, processedByUI)
+		if not processedByUI then
+			lastTouch = { position = position, at = os.clock() }
 		end
 	end)
 	RunService.RenderStepped:Connect(function()
@@ -1608,6 +2082,12 @@ function HeroWeaponController:Start()
 				warnf(tostring(err))
 			end
 		end)
+		local aim = network:WaitForChild(HeroWeapons.AIM_REMOTE, 30)
+		if aim and aim:IsA("RemoteEvent") then
+			aimRemote = aim
+		else
+			warnf("Network[\"" .. HeroWeapons.AIM_REMOTE .. "\"] missing - aimed throws go straight ahead.")
+		end
 	end)
 end
 

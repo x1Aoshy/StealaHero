@@ -98,6 +98,21 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   controller uses them (cocoon, star ring, bolts, comic explosion, bat smoke, web blob / net). Test the path without
   Studio with `STEALAHERO_WEAPON_IMPORTS=synthetic` (block stand-ins at the FBX bounds). Previews:
   `render_fbx_weapons.py` (the owner's meshes held with their kit's grip on their clips).
+  **Round 9 (owner 2026-09-27)**:
+  - Mjolnir, the Power Pole, Cap's shield, the batarang and the web shooter play clips authored in
+    `scripts/tools/hero_weapons/author_weapon_clips.py` (Euler poses; `--render` writes filmstrips
+    `assets/hero_weapons/previews/clip_<Id>.png` with the owner's FBX at the build's grip). `gen_weapon_clips.py` now only
+    converts Bakugo's and Luffy's rbxmx. Extra clip fields: `FullBody` (legs play while running), `Extend` (the pole's
+    length keys), `Release`.
+  - `assets/hero_weapons/grip_adjust.json` shifts / twists a model in the hand (Mjolnir: held above the pommel, head
+    along the forearm).
+  - The shield, batarang and web are AIMED (`Kind` Boomerang / Grenade / Shot): the client sends its aim point on
+    `Network["Gear: WeaponAim"]`, the server clamps it (`HeroWeapons.AimEnd`) and flies the projectile itself
+    (`HeroWeapons.PathPoint`, shared with the clients: `Launch` / `ProjectileEnd` broadcasts).
+  - Weapons carry no mesh VFX (the pole's energy arc is dropped); VFX are particles: `vendor/weapon_vfx.rbxm`
+    (`scripts/tools/vendor_weapon_vfx.luau`: Speedsters' Eggman missile blast, the Ban Hammer lightning / impact) ->
+    `ReplicatedStorage.Assets.VFX.HeroWeapons`, plus the place's LightningHit and Mutation_FX.Shocked.
+  - Training dummies (CollectionService tag `HeroWeaponDummy`, spawned by the admin panel) are hit like players.
 - **Hero animations**: `scripts/tools/blender/hero_anim/` (R15 rig from `assets/animations/r15_rig.json`, one module per
   hero in `heroes/`, run.py) -> generated `src/ReplicatedStorage/Directory/HeroAnimations/<HeroId>.luau` (never edit by
   hand) -> played by `Game/Plots/ActiveAssetsController/HeroClipPlayer.luau` (Motor6D transforms, no uploaded
@@ -167,6 +182,15 @@ to `assets/user_models/` and extract any `ServerStorage.BaseThemeImports` with
   - the hotbar / Index weapon portraits;
   - the red target glow;
   - traps catching another player on a stage.
+- (2026-09-27, 9th pass) Owner feedback on the weapons (see Pipelines > Hero weapons, Round 9):
+  - the shield showed only its rim from behind (single-sided faces: every weapon MeshPart is DoubleSided now);
+  - Mjolnir was held under its head: new grip + jump / ground-slam clip + a light attacker shake;
+  - the batarang stayed in the hand: it flies out and explodes;
+  - the Power Pole's yellow mesh is gone; it grows out of the hand and spins;
+  - the Index weapon icons sat in the old rotated bat image: `WeaponPortrait.MountBadge` studded tiles.
+
+  Test in Studio Play with 2+ clients (or a training dummy): aim with the mouse / a tap, the shield's curve and
+  return, the batarang blast, Mjolnir's slam, the pole spin.
 - (2026-09-27, 8th pass) The owner imported the 15 FBX models themselves and sent them as a raw `.rbxm`
   (`assets/user_models/HeroWeaponImports_owner_0927.rbxm`, extracted to `assets/hero_weapons/imports/`): every weapon
   now uses the owner's model (the kit's Prepare runs offline: grip from the import pivot = FBX origin, palette

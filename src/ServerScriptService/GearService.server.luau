@@ -42,16 +42,18 @@
 -- ReplicatedStorage.Library.Modules.HeroWeapons.BY_TOOL are hero weapons (scripts/steps/post_hero_weapons.luau built
 -- them: Bat = Cap's shield, Forest = Power Pole, Desert = web shooter, Lake = batarang, Jungle = Bakugo's gauntlet,
 -- Snow / Cosmic = Mjolnir, Volcano = Gum-Gum fist). Their click broadcasts the same "Swing" with Weapon = <id>, and
--- the hit is resolved at the owner's attack clip's Impact keyframe (HeroWeapons.Timing) by the weapon's Kind (melee,
--- line thrust, cone projectile with travel time, blast cone, ground slam). A landed hit applies the weapon's 2.5 s
+-- the hit is resolved at the attack clip's Impact keyframe (HeroWeapons.Timing) by the weapon's Kind (line thrust,
+-- blast cone, ground slam, the Power Pole's full-turn sweep, and the AIMED throws: Cap's shield flies out on a curve
+-- and comes back, the batarang explodes where it lands, the web shoots straight - the client sends its aim point with
+-- the click, the server clamps it and flies the projectile itself, see "Aimed throws"). A landed hit applies the weapon's 2.5 s
 -- state (Webbed, Electrocuted, CleanKnockback, Dazed, SmokeStun, ExplosionBlast, SpinTornado) INSTEAD of the ragdoll:
 -- WalkSpeed / jump / AutoRotate are held here (saved and restored like the trap freeze), character attributes
 -- `HeroDebuff` = <effect> and `BatFlung` are set, and { Action = "Debuff", Victim, Weapon, Effect, Token, Duration,
 -- Direction, Push, Slide } goes to every client (StarterPlayerScripts.BranchControllers.HeroWeaponController draws
 -- the state; the victim's own client does the knockback slide / spin). A carrier still drops the egg first and always
--- takes the state; a short immunity follows every state. Projectiles broadcast { Action = "Launch", ... } when they
--- leave. The villain catch keeps the ragdoll (GearRagdollRequest); the classic bats not in BY_TOOL keep the swing
--- and ragdoll below.
+-- takes the state; a short immunity follows every state. The admin panel's training dummies (HeroWeapons.DUMMY_TAG)
+-- are hit like players (the server moves them itself). The villain catch keeps the ragdoll (GearRagdollRequest); the
+-- classic bats not in BY_TOOL keep the swing and ragdoll below.
 --
 -- Carrier rules (owner 2026-09-24, Gekko TO DO 3). AreaEggService mirrors an egg carry on the player as the
 -- attribute `CarryingEgg`. A carrier cannot swing or hold any tool: every server-known Tool is put back in the
@@ -393,6 +395,43 @@ local function characterOf(player)
 		return nil
 	end
 	return character, humanoid, root
+end
+
+-- Hero weapon victims: every player's character, plus the admin panel's training dummies (a Model tagged
+-- HeroWeapons.DUMMY_TAG with a live Humanoid). A `victim` below is the Player, or the dummy Model itself.
+local function targetCharacter(victim)
+	if typeof(victim) ~= "Instance" then
+		return nil
+	end
+	if victim:IsA("Player") then
+		return characterOf(victim)
+	end
+	if victim:IsA("Model") and victim:IsDescendantOf(Workspace) and HeroWeapons
+		and CollectionService:HasTag(victim, HeroWeapons.DUMMY_TAG) then
+		local humanoid = victim:FindFirstChildOfClass("Humanoid")
+		local root = victim:FindFirstChild("HumanoidRootPart")
+		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then
+			return victim, humanoid, root
+		end
+	end
+	return nil
+end
+
+local function weaponVictims(player)
+	local out = {}
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other ~= player then
+			table.insert(out, other)
+		end
+	end
+	if HeroWeapons then
+		for _, dummy in ipairs(CollectionService:GetTagged(HeroWeapons.DUMMY_TAG)) do
+			if dummy:IsA("Model") and dummy:IsDescendantOf(Workspace) then
+				table.insert(out, dummy)
+			end
+		end
+	end
+	return out
 end
 
 local function isOnGameplaySide(position)
@@ -809,7 +848,7 @@ local function restoreMovement(victim, state)
 	else
 		humanoid.WalkSpeed = 16
 		local speed = speedService()
-		if speed and type(speed.Refresh) == "function" then
+		if speed and type(speed.Refresh) == "function" and victim:IsA("Player") then
 			pcall(speed.Refresh, victim)
 		end
 	end
@@ -844,9 +883,28 @@ end
 -- (WalkSpeed / jump / AutoRotate saved and restored like the trap freeze); the slide / spin itself is the victim's
 -- own client (it owns the character's physics), everything visible is drawn by every client from the broadcast.
 -- `direction` is the flat unit knockback heading. options.IgnoreImmunity: a carrier who just lost the egg.
+-- A training dummy has no client to move it: the server gives it the slide / spin itself.
+local function moveDummy(character, root, effect, direction, push, duration)
+	local slide = tonumber(effect.Slide)
+	if slide and slide > 0 and type(push) == "number" and typeof(direction) == "Vector3" then
+		root.AssemblyLinearVelocity = direction * (push / slide) + Vector3.new(0, 6, 0)
+	elseif effect.NoAutoRotate then
+		local stopAt = os.clock() + math.min(duration, 2.2)
+		task.spawn(function()
+			while os.clock() < stopAt and root.Parent and debuffs[character] ~= nil do
+				root.AssemblyAngularVelocity = Vector3.new(0, 22, 0)
+				task.wait(0.1)
+			end
+			if root.Parent then
+				root.AssemblyAngularVelocity = Vector3.zero
+			end
+		end)
+	end
+end
+
 local function applyDebuff(victim, weapon, direction, options)
 	options = type(options) == "table" and options or {}
-	local character, humanoid, root = characterOf(victim)
+	local character, humanoid, root = targetCharacter(victim)
 	if not character or ragdolls[character] ~= nil then
 		return false -- a villain catch owns the body
 	end
@@ -916,6 +974,9 @@ local function applyDebuff(victim, weapon, direction, options)
 		Push = weapon.Push,
 		Slide = slide,
 	})
+	if not victim:IsA("Player") then
+		moveDummy(character, root, effect, direction, weapon.Push, duration)
+	end
 	task.delay(duration, endDebuff, victim, character, token)
 	return true
 end
@@ -924,14 +985,15 @@ end
 -- anything.
 local function landWeaponHit(attacker, attackerCFrame, victim, weapon, direction)
 	local dropped = false
-	if isCarrying(victim) then
+	local isPlayer = victim:IsA("Player")
+	if isPlayer and isCarrying(victim) then
 		dropped = dropCarriedEggOf(victim, attacker, attackerCFrame, "BatHit")
 	end
 	local debuffed = applyDebuff(victim, weapon, direction, { IgnoreImmunity = dropped })
 	if not (debuffed or dropped) then
 		return false
 	end
-	local _, _, victimRoot = characterOf(victim)
+	local _, _, victimRoot = targetCharacter(victim)
 	fireBatFx({
 		Action = "Hit",
 		Attacker = attacker,
@@ -943,7 +1005,9 @@ local function landWeaponHit(attacker, attackerCFrame, victim, weapon, direction
 		Dropped = dropped,
 	})
 	shakeCamera(attacker, 1.8, 8, 0.2)
-	shakeCamera(victim, 3.5, 10, 0.4)
+	if isPlayer then
+		shakeCamera(victim, 3.5, 10, 0.4)
+	end
 	if dropped then
 		notify(victim, weapon.DisplayName .. "! You dropped the egg!", NOTICE_BAD)
 		notify(attacker, "You knocked the egg loose!", NOTICE_GOOD)
@@ -959,9 +1023,9 @@ local function weaponTargets(player, root, weapon, range, minDot, maxTargets, ce
 	local flatForward = flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1))
 	local origin = centre or root.Position
 	local found = {}
-	for _, other in ipairs(Players:GetPlayers()) do
-		if other ~= player then
-			local otherCharacter, _, otherRoot = characterOf(other)
+	for _, other in ipairs(weaponVictims(player)) do
+		do
+			local otherCharacter, _, otherRoot = targetCharacter(other)
 			if otherCharacter and isHittable(other, otherCharacter, otherRoot) then
 				local seen = if LagComp then LagComp.SeenBy(otherRoot, player) else otherRoot.Position
 				local distance = (seen - origin).Magnitude
@@ -992,44 +1056,248 @@ local function weaponTargets(player, root, weapon, range, minDot, maxTargets, ce
 	return found, flatForward
 end
 
--- A thrown / shot weapon: every client draws it flying to `target` (or straight on when it has none); the hit lands
--- when it arrives, on a victim still hittable and not already out of reach.
-local function launchProjectile(player, root, weapon, target, forward, range, thrown)
-	local victim = target and target.player or nil
-	local distance = if target then target.distance else range * 0.8
-	local travel = HeroWeapons.Travel(weapon, distance)
-	local fromCFrame = root.CFrame
+-- Aimed throws (owner 2026-09-27: "the shield must fly out of our hands with a bit of curve, a good hitbox from the
+-- model; the batarangs do the same and explode where they land; batarang, shield and web must be aimable, they are
+-- shots"). The client sends its aim point with the click (HeroWeapons.AIM_REMOTE); at the Impact keyframe the server
+-- clamps it (HeroWeapons.AimEnd: range, pitch, the first wall), broadcasts the path ({ Action = "Launch", Id, Origin,
+-- End, Side, Curve, OutTime, Returns, BackTime }: every client draws HeroWeapons.PathPoint) and flies it itself,
+-- testing every hittable victim against each Heartbeat's segment (the victim where the thrower saw them, lag
+-- compensated). Boomerang: every rival it passes, out and back, at most MaxTargets; Grenade: explodes on the first
+-- rival it touches, a wall or the end (every rival within BlastRadius); Shot: the first rival. An early end is
+-- broadcast as { Action = "ProjectileEnd", Id, Position, Reason = "Hit" | "Explode" | "Miss" }.
+local AIM_FRESH = 1.5 -- an aim point older than this (seconds) is ignored: the throw goes straight ahead
+local BODY_RADIUS = 1.6 -- a character's half width + a little: added to the projectile's own radius
+local aims = setmetatable({}, { __mode = "k" }) -- [player] = { tool, point, at }
+local projectiles = {} -- the flights in the air
+local projectileSerial = 0
+
+local aimRemote = network:FindFirstChild(HeroWeapons and HeroWeapons.AIM_REMOTE or "Gear: WeaponAim")
+if not (aimRemote and aimRemote:IsA("RemoteEvent")) then
+	aimRemote = Instance.new("RemoteEvent")
+	aimRemote.Name = HeroWeapons and HeroWeapons.AIM_REMOTE or "Gear: WeaponAim"
+	aimRemote.Parent = network
+end
+aimRemote.OnServerEvent:Connect(function(player, tool, point)
+	if typeof(tool) ~= "Instance" or not tool:IsA("Tool") or typeof(point) ~= "Vector3" then
+		return
+	end
+	if point.X ~= point.X or point.Y ~= point.Y or point.Z ~= point.Z then
+		return -- NaN
+	end
+	local character, _, root = characterOf(player)
+	if not character or tool.Parent ~= character or (point - root.Position).Magnitude > 600 then
+		return
+	end
+	local weapon = heroWeaponOf(tool)
+	if weapon and weapon.Aimed then
+		aims[player] = { tool = tool, point = point, at = os.clock() }
+	end
+end)
+
+local function aimOf(player, tool, root)
+	local aim = aims[player]
+	if aim and aim.tool == tool and os.clock() - aim.at <= AIM_FRESH then
+		return aim.point
+	end
+	return root.Position + flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1)) * 30
+end
+
+-- Workspace raycast that only stops at collidable world geometry (never a character, a dummy or an effect).
+local function wallRaycaster(player)
+	local exclude = {}
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then
+			table.insert(exclude, other.Character)
+		end
+	end
+	for _, victim in ipairs(weaponVictims(player)) do
+		if victim:IsA("Model") then
+			table.insert(exclude, victim)
+		end
+	end
+	for _, name in ipairs({ "HeroWeaponFx", TRAP_FOLDER }) do
+		local folder = Workspace:FindFirstChild(name)
+		if folder then
+			table.insert(exclude, folder)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = exclude
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	return function(origin, vector)
+		local result = Workspace:Raycast(origin, vector, params)
+		return if result then result.Position else nil
+	end
+end
+
+local function segmentDistance(point, a, b)
+	local ab = b - a
+	local lengthSquared = ab:Dot(ab)
+	local t = if lengthSquared > 1e-8 then math.clamp((point - a):Dot(ab) / lengthSquared, 0, 1) else 0
+	return (point - (a + ab * t)).Magnitude
+end
+
+-- Where the thrower saw `victim` (lag compensated), if the victim is still near there now.
+local function seenPosition(flight, victim)
+	local character, _, root = targetCharacter(victim)
+	if not character or not isHittable(victim, character, root) then
+		return nil
+	end
+	local seen = if LagComp and victim:IsA("Player") then LagComp.SeenBy(root, flight.player) else root.Position
+	if (root.Position - seen).Magnitude > MELEE_SEEN_SLACK then
+		seen = root.Position -- they moved on long since: judge where they are
+	end
+	return seen
+end
+
+local function endFlight(flight, position, reason)
+	fireBatFx({
+		Action = "ProjectileEnd",
+		Id = flight.id,
+		Attacker = flight.player,
+		Weapon = flight.weapon.Id,
+		Position = position,
+		Reason = reason,
+	})
+end
+
+local function explodeGrenade(flight, position)
+	endFlight(flight, position, "Explode")
+	local weapon = flight.weapon
+	local radius = tonumber(weapon.BlastRadius) or 8
+	local found = {}
+	for _, victim in ipairs(weaponVictims(flight.player)) do
+		local seen = seenPosition(flight, victim)
+		if seen and (seen - position).Magnitude <= radius then
+			table.insert(found, { victim = victim, distance = (seen - position).Magnitude, away = flatUnit(seen - position, flight.forward) })
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.distance < b.distance
+	end)
+	for index = 1, math.min(#found, tonumber(weapon.MaxTargets) or 4) do
+		landWeaponHit(flight.player, CFrame.new(position), found[index].victim, weapon, found[index].away)
+	end
+end
+
+-- One Heartbeat of a flight. Returns true when it is over.
+local function stepFlight(flight, now)
+	if flight.player.Parent == nil then
+		return true
+	end
+	local weapon, path = flight.weapon, flight.path
+	local home = nil
+	if path.Returns then
+		local _, _, root = characterOf(flight.player)
+		home = if root then HeroWeapons.ThrowOrigin(root.CFrame, root.Position + root.CFrame.LookVector) else path.Origin
+	end
+	local position, finished = HeroWeapons.PathPoint(path, now - flight.started, home)
+	local reach = flight.hitRadius + BODY_RADIUS
+	if flight.hits < flight.maxHits then
+		for _, victim in ipairs(weaponVictims(flight.player)) do
+			if not flight.hit[victim] then
+				local seen = seenPosition(flight, victim)
+				if seen and segmentDistance(seen, flight.last, position) <= reach then
+					flight.hit[victim] = true
+					flight.hits += 1
+					local heading = flatUnit(position - flight.last, flight.forward)
+					if weapon.Kind == "Grenade" then
+						explodeGrenade(flight, position)
+						return true
+					end
+					landWeaponHit(flight.player, CFrame.new(flight.last), victim, weapon, heading)
+					if weapon.Kind == "Shot" then
+						endFlight(flight, position, "Hit")
+						return true
+					end
+					if flight.hits >= flight.maxHits then
+						break
+					end
+				end
+			end
+		end
+	end
+	flight.last = position
+	if finished then
+		if weapon.Kind == "Grenade" then
+			explodeGrenade(flight, path.End)
+		elseif weapon.Kind == "Shot" then
+			endFlight(flight, path.End, "Miss")
+		end
+		return true
+	end
+	return false
+end
+
+RunService.Heartbeat:Connect(function()
+	if #projectiles == 0 then
+		return
+	end
+	local now = os.clock()
+	for index = #projectiles, 1, -1 do
+		local flight = projectiles[index]
+		local ok, done = pcall(stepFlight, flight, now)
+		if not ok then
+			log(flight.weapon.Id .. " flight failed: " .. tostring(done))
+			done = true
+		end
+		if done then
+			table.remove(projectiles, index)
+		end
+	end
+end)
+
+-- The model's own radius (the build stamps HeroModelRadius on the Tool), never smaller than the weapon's HitRadius.
+local function modelRadius(tool, weapon)
+	local stamped = tool:GetAttribute("HeroModelRadius")
+	local configured = tonumber(weapon.HitRadius) or 1.2
+	return if type(stamped) == "number" then math.clamp(stamped, configured, configured * 1.6) else configured
+end
+
+local function launchAimed(player, tool, root, weapon)
+	local aim = aimOf(player, tool, root)
+	local origin = HeroWeapons.ThrowOrigin(root.CFrame, aim)
+	local finish = HeroWeapons.AimEnd(weapon, origin, aim, wallRaycaster(player))
+	local distance = (finish - origin).Magnitude
+	local returns = weapon.Kind == "Boomerang"
+	projectileSerial += 1
+	local path = {
+		Origin = origin,
+		End = finish,
+		Side = if returns then 1 else -1, -- the shield bows right (and comes back on the left), the batarang left
+		Curve = if weapon.Kind == "Shot" then 0 else (tonumber(weapon.Curve) or 0),
+		OutTime = HeroWeapons.Travel(weapon, distance),
+		Returns = returns,
+		BackTime = if returns then HeroWeapons.Travel(weapon, distance, weapon.ReturnSpeed) else nil,
+	}
 	fireBatFx({
 		Action = "Launch",
 		Attacker = player,
 		Weapon = weapon.Id,
-		Victim = victim,
-		Direction = forward,
-		Distance = distance,
-		Travel = travel,
-		Thrown = thrown == true,
+		Id = projectileSerial,
+		Origin = path.Origin,
+		End = path.End,
+		Side = path.Side,
+		Curve = path.Curve,
+		OutTime = path.OutTime,
+		Returns = path.Returns,
+		BackTime = path.BackTime,
 	})
-	if not victim then
-		return
-	end
-	task.delay(travel, function()
-		local ok, err = pcall(function()
-			if player.Parent == nil or victim.Parent == nil then
-				return
-			end
-			local victimCharacter, _, victimRoot = characterOf(victim)
-			if not victimCharacter or not isHittable(victim, victimCharacter, victimRoot) then
-				return
-			end
-			if (victimRoot.Position - fromCFrame.Position).Magnitude > range + MELEE_SEEN_SLACK * 2 then
-				return -- it outran the shot
-			end
-			landWeaponHit(player, fromCFrame, victim, weapon, flatUnit(victimRoot.Position - fromCFrame.Position, forward))
-		end)
-		if not ok then
-			log(weapon.Id .. " projectile failed: " .. tostring(err))
-		end
-	end)
+	table.insert(projectiles, {
+		id = projectileSerial,
+		player = player,
+		weapon = weapon,
+		path = path,
+		started = os.clock(),
+		last = origin,
+		hit = {},
+		hits = 0,
+		maxHits = if weapon.Kind == "Boomerang" then (tonumber(weapon.MaxTargets) or 3) else 1,
+		hitRadius = modelRadius(tool, weapon),
+		forward = flatUnit(finish - origin, Vector3.new(0, 0, -1)),
+	})
 end
 
 -- The Impact keyframe of the attack clip: pick the victims by the weapon's kind.
@@ -1046,24 +1314,22 @@ local function resolveWeaponContact(player, tool, character, startedAt, weapon, 
 	end
 	local kind = weapon.Kind
 	local maxTargets = tonumber(weapon.MaxTargets) or 1
-	if kind == "Projectile" then
-		local targets, forward = weaponTargets(player, root, weapon, weapon.Range, weapon.MinDot, 1)
-		launchProjectile(player, root, weapon, targets[1], forward, weapon.Range, false)
-	elseif kind == "Melee" then
-		local targets, forward = weaponTargets(player, root, weapon, weapon.Range, weapon.MinDot, 1)
-		if targets[1] then
-			landWeaponHit(player, root.CFrame, targets[1].player, weapon, flatUnit(targets[1].away + forward, forward))
-		elseif type(weapon.ThrowRange) == "number" then
-			-- nobody in reach: Cap throws the shield at the nearest rival down the line
-			local thrown = weaponTargets(player, root, weapon, weapon.ThrowRange, weapon.ThrowMinDot or 0.9, 1)
-			launchProjectile(player, root, weapon, thrown[1], forward, weapon.ThrowRange, true)
-		end
+	if weapon.Aimed then
+		launchAimed(player, tool, root, weapon)
 	elseif kind == "Slam" then
 		local forward = flatUnit(root.CFrame.LookVector, Vector3.new(0, 0, -1))
 		local centre = root.Position + forward * (tonumber(weapon.Reach) or 3)
 		local targets = weaponTargets(player, root, weapon, tonumber(weapon.Radius) or 10, -1, maxTargets, centre)
 		for _, target in ipairs(targets) do
 			landWeaponHit(player, root.CFrame, target.player, weapon, target.away)
+		end
+	elseif kind == "Spin" then
+		-- the extended pole sweeps a full turn: everyone within its length, flung along the sweep
+		local targets = weaponTargets(player, root, weapon, tonumber(weapon.Radius) or 12, -1, maxTargets, root.Position)
+		for _, target in ipairs(targets) do
+			local away = target.away
+			local tangent = Vector3.new(-away.Z, 0, away.X)
+			landWeaponHit(player, root.CFrame, target.player, weapon, flatUnit(away + tangent * 0.6, away))
 		end
 	else -- Thrust (the punch / pole axis) and Blast (away from the attacker)
 		local targets, forward = weaponTargets(player, root, weapon, weapon.Range, weapon.MinDot,

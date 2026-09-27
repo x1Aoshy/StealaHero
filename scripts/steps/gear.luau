@@ -37,7 +37,9 @@ Step.BAT_FX_REMOTE = "Gear: BatFx" -- bat swing / hit broadcast (Gekko TO DO 2, 
 -- NETWORK_MAP.ReplicatedEffects.SHAKE_ONCE: Game.CameraShake binds it only if it exists when the client starts, so it
 -- must be in the place file (GearService shakes the attacker's and the victim's camera through it).
 Step.SHAKE_REMOTE = "ReplicateEffects: ShakeOnce"
-Step.REMOTE_EVENTS = { Step.RAGDOLL_REMOTE, Step.BAT_FX_REMOTE, Step.SHAKE_REMOTE }
+-- client -> server: an aimed hero weapon's aim point with the click (HeroWeapons.AIM_REMOTE, round 9)
+Step.AIM_REMOTE = "Gear: WeaponAim"
+Step.REMOTE_EVENTS = { Step.RAGDOLL_REMOTE, Step.BAT_FX_REMOTE, Step.SHAKE_REMOTE, Step.AIM_REMOTE }
 
 function Step.Apply(place, _spPlace, _ctx)
 	local ws = place.Workspace
